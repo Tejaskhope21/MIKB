@@ -1,28 +1,51 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import { FiUser, FiShoppingCart, FiSearch, FiMenu, FiX } from "react-icons/fi";
+// components/Navbar.jsx
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { FiUser, FiShoppingCart, FiSearch, FiMenu, FiX, FiLogOut } from "react-icons/fi";
 import logo from "/BricksKart.png";
 import { useCart } from '../context/CartContext';
-import Profile from "./Profile";
 
-export default function Navbar() {
+export default function Navbar({ user, onLogout }) {
     const [searchQuery, setSearchQuery] = useState("");
     const [menuOpen, setMenuOpen] = useState(false);
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const { getCartCount } = useCart();
+    const navigate = useNavigate();
+    const [cartCount, setCartCount] = useState(0);
+
+    useEffect(() => {
+        setCartCount(getCartCount());
+    }, [getCartCount]);
 
     const handleSearch = (e) => {
         e.preventDefault();
         if (searchQuery.trim()) {
             console.log("Searching for:", searchQuery);
+            navigate(`/products?search=${encodeURIComponent(searchQuery)}`);
         }
     };
 
+    const handleLogout = () => {
+        onLogout();
+        setDropdownOpen(false);
+        setMenuOpen(false);
+    };
+
+    const profileItems = user ? [
+        { label: "My Profile", path: "/profile" },
+        { label: "My Orders", path: "/orders" },
+        { label: "My Addresses", path: "/profile?tab=addresses" },
+        { label: "Logout", action: handleLogout, icon: <FiLogOut className="mr-2" /> }
+    ] : [
+        { label: "Sign In", path: "/login" },
+        { label: "Sign Up", path: "/register" }
+    ];
+
     return (
-        <header className="sticky top-0 z-50 bg-[#800000]">
+        <header className="sticky top-0 z-50 bg-[#800000] shadow-lg">
             <div className="w-full">
                 {/* Top Navbar */}
-                <nav className="h-[80px] px-4 flex items-center justify-between">
+                <nav className="h-[80px] px-4 md:px-6 flex items-center justify-between">
                     {/* Logo */}
                     <Link to="/" className="flex items-center h-full">
                         <img
@@ -32,12 +55,15 @@ export default function Navbar() {
                         />
                     </Link>
 
-                    {/* Desktop Navigation Center - REMOVED CATEGORIES */}
+                    {/* Desktop Navigation Center */}
                     <div className="hidden md:flex items-center space-x-8 text-white mx-8">
-                        <Link to="/" className="hover:text-gray-300 transition-colors">
+                        <Link to="/" className="hover:text-gray-300 transition-colors font-medium">
                             Home
                         </Link>
-                        <Link to="/brands" className="hover:text-gray-300 transition-colors">
+                        <Link to="/products" className="hover:text-gray-300 transition-colors font-medium">
+                            Products
+                        </Link>
+                        <Link to="/brands" className="hover:text-gray-300 transition-colors font-medium">
                             Brands
                         </Link>
                     </div>
@@ -65,10 +91,10 @@ export default function Navbar() {
 
                     {/* Right Side Icons */}
                     <div className="hidden md:flex items-center space-x-6 text-white">
-                        <Link to="/sellerhome" className="hover:text-gray-300 transition-colors">
+                        <Link to="/sellerhome" className="hover:text-gray-300 transition-colors font-medium">
                             Sell
                         </Link>
-                        <Link to="/investor" className="hover:text-gray-300 transition-colors">
+                        <Link to="/investor" className="hover:text-gray-300 transition-colors font-medium">
                             Investors
                         </Link>
 
@@ -78,12 +104,48 @@ export default function Navbar() {
                                 className="flex items-center gap-2 hover:text-gray-300 transition-colors"
                                 onClick={() => setDropdownOpen(!dropdownOpen)}
                             >
-                                <FiUser size={20} />
-                                <span>Profile</span>
+                                <div className="w-8 h-8 bg-white text-[#800000] rounded-full flex items-center justify-center font-semibold">
+                                    {user ? (
+                                        user.name?.charAt(0).toUpperCase()
+                                    ) : (
+                                        <FiUser size={16} />
+                                    )}
+                                </div>
+                                <span className="font-medium">{user ? user.name?.split(' ')[0] : 'Profile'}</span>
                             </button>
                             {dropdownOpen && (
                                 <div className="absolute top-full right-0 mt-2 bg-white text-gray-800 shadow-lg rounded-lg border w-60 z-50">
-                                    <Profile />
+                                    <div className="p-4">
+                                        {user && (
+                                            <div className="mb-4 pb-4 border-b">
+                                                <p className="font-semibold text-gray-900">{user.name}</p>
+                                                <p className="text-sm text-gray-600">{user.email}</p>
+                                            </div>
+                                        )}
+                                        <div className="space-y-2">
+                                            {profileItems.map((item, index) => (
+                                                item.path ? (
+                                                    <Link
+                                                        key={index}
+                                                        to={item.path}
+                                                        onClick={() => setDropdownOpen(false)}
+                                                        className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors font-medium"
+                                                    >
+                                                        {item.label}
+                                                    </Link>
+                                                ) : (
+                                                    <button
+                                                        key={index}
+                                                        onClick={item.action}
+                                                        className="w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors flex items-center font-medium"
+                                                    >
+                                                        {item.icon}
+                                                        {item.label}
+                                                    </button>
+                                                )
+                                            ))}
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -91,15 +153,18 @@ export default function Navbar() {
                         {/* Cart with Counter */}
                         <Link to="/cart" className="relative hover:text-gray-300 transition-colors">
                             <FiShoppingCart size={22} />
-                            {getCartCount() > 0 && (
-                                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                                    {getCartCount()}
+                            {cartCount > 0 && (
+                                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
+                                    {cartCount}
                                 </span>
                             )}
                         </Link>
 
                         {/* Post Requirement Button */}
-                        <button className="bg-white text-[#800000] px-4 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors">
+                        <button
+                            onClick={() => navigate('/post-requirement')}
+                            className="bg-white text-[#800000] px-4 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors shadow-sm"
+                        >
                             Post Requirement
                         </button>
                     </div>
@@ -108,6 +173,7 @@ export default function Navbar() {
                     <button
                         className="md:hidden text-white"
                         onClick={() => setMenuOpen(!menuOpen)}
+                        aria-label={menuOpen ? "Close menu" : "Open menu"}
                     >
                         {menuOpen ? <FiX size={28} /> : <FiMenu size={28} />}
                     </button>
@@ -122,7 +188,7 @@ export default function Navbar() {
                                 <input
                                     type="text"
                                     placeholder="Search products..."
-                                    className="w-full h-12 px-4 pr-12 rounded-lg bg-white text-gray-900"
+                                    className="w-full h-12 px-4 pr-12 rounded-lg bg-white text-gray-900 border-0"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />
@@ -135,32 +201,71 @@ export default function Navbar() {
                             </div>
                         </form>
 
-                        {/* Mobile Links - REMOVED CATEGORIES */}
+                        {/* Mobile Links */}
                         <div className="space-y-3 text-white">
-                            <Link to="/" className="block py-2 hover:text-gray-300" onClick={() => setMenuOpen(false)}>
+                            <Link to="/" className="block py-2 hover:text-gray-300 font-medium" onClick={() => setMenuOpen(false)}>
                                 Home
                             </Link>
-                            <Link to="/brands" className="block py-2 hover:text-gray-300" onClick={() => setMenuOpen(false)}>
+                            <Link to="/products" className="block py-2 hover:text-gray-300 font-medium" onClick={() => setMenuOpen(false)}>
+                                Products
+                            </Link>
+                            <Link to="/brands" className="block py-2 hover:text-gray-300 font-medium" onClick={() => setMenuOpen(false)}>
                                 Brands
                             </Link>
-                            <Link to="/sellerhome" className="block py-2 hover:text-gray-300" onClick={() => setMenuOpen(false)}>
+
+                            {user && (
+                                <>
+                                    <Link to="/profile" className="block py-2 hover:text-gray-300 font-medium" onClick={() => setMenuOpen(false)}>
+                                        My Profile
+                                    </Link>
+                                    <Link to="/orders" className="block py-2 hover:text-gray-300 font-medium" onClick={() => setMenuOpen(false)}>
+                                        My Orders
+                                    </Link>
+                                </>
+                            )}
+
+                            <Link to="/sellerhome" className="block py-2 hover:text-gray-300 font-medium" onClick={() => setMenuOpen(false)}>
                                 Become a Supplier
                             </Link>
-                            <Link to="/investor" className="block py-2 hover:text-gray-300" onClick={() => setMenuOpen(false)}>
+                            <Link to="/investor" className="block py-2 hover:text-gray-300 font-medium" onClick={() => setMenuOpen(false)}>
                                 Investor Relations
                             </Link>
-                            <Link to="/profile" className="block py-2 hover:text-gray-300" onClick={() => setMenuOpen(false)}>
-                                Profile
-                            </Link>
-                            <Link to="/cart" className="block py-2 hover:text-gray-300 flex items-center gap-2" onClick={() => setMenuOpen(false)}>
+
+                            {!user ? (
+                                <>
+                                    <Link to="/login" className="block py-2 hover:text-gray-300 font-medium" onClick={() => setMenuOpen(false)}>
+                                        Sign In
+                                    </Link>
+                                    <Link to="/register" className="block py-2 hover:text-gray-300 font-medium" onClick={() => setMenuOpen(false)}>
+                                        Sign Up
+                                    </Link>
+                                </>
+                            ) : (
+                                <button
+                                    onClick={handleLogout}
+                                    className="w-full text-left py-2 text-white hover:text-gray-300 flex items-center font-medium"
+                                >
+                                    <FiLogOut className="mr-2" />
+                                    Logout
+                                </button>
+                            )}
+
+                            <Link to="/cart" className="block py-2 hover:text-gray-300 flex items-center gap-2 font-medium" onClick={() => setMenuOpen(false)}>
                                 Cart
-                                {getCartCount() > 0 && (
-                                    <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                                        {getCartCount()}
+                                {cartCount > 0 && (
+                                    <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full font-bold">
+                                        {cartCount}
                                     </span>
                                 )}
                             </Link>
-                            <button className="w-full bg-white text-[#800000] py-3 rounded-lg font-medium mt-4">
+
+                            <button
+                                onClick={() => {
+                                    navigate('/post-requirement');
+                                    setMenuOpen(false);
+                                }}
+                                className="w-full bg-white text-[#800000] py-3 rounded-lg font-medium mt-4 shadow-sm"
+                            >
                                 Post Requirement
                             </button>
                         </div>
