@@ -1,78 +1,63 @@
-import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { categories, products } from '../../data/buildersmartData';
-import ProductCard from "../../components/Products/ProductCard"; // Import your ProductCard component
+import React, { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import ProductCard from "../../components/Products/ProductCard";
+import { fetchCategoryById, fetchProducts } from '../../services/api';
 
 const Products = () => {
     const { categoryId } = useParams();
+    const [category, setCategory] = useState(null);
+    const [categoryProducts, setCategoryProducts] = useState([]);
+    const [categorySubcategories, setCategorySubcategories] = useState([]);
     const [selectedSubcategory, setSelectedSubcategory] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [sortBy, setSortBy] = useState('default');
     const [hoveredProduct, setHoveredProduct] = useState(null);
     const [imageIndex, setImageIndex] = useState({});
+    const [loading, setLoading] = useState(true);
 
-    // Convert categoryId to number
-    const categoryIdNum = parseInt(categoryId);
+    useEffect(() => {
+        const loadCategoryAndProducts = async () => {
+            try {
+                const cat = await fetchCategoryById(categoryId);
+                setCategory(cat);
+                setCategorySubcategories(cat.subcategories || []);
 
-    // Get category details
-    const category = categories?.find(c => c.id === categoryIdNum);
+                const prods = await fetchProducts({
+                    categoryId: cat.numericId || categoryId
+                });
+                setCategoryProducts(prods);
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadCategoryAndProducts();
+    }, [categoryId]);
 
-    // Get subcategories from category
-    const categorySubcategories = category?.subcategories || [];
+    // Re-fetch products on filter/sort changes
+    useEffect(() => {
+        if (!category) return;
 
-    // Filter products by categoryId
-    let categoryProducts = products?.filter(product =>
-        product.categoryId === categoryIdNum
-    ) || [];
+        fetchProducts({
+            categoryId: category.numericId || categoryId,
+            subcategoryId: selectedSubcategory,
+            search: searchTerm || undefined,
+            sort: sortBy === 'default' ? undefined : sortBy
+        }).then(setCategoryProducts);
+    }, [searchTerm, sortBy, selectedSubcategory, category]);
 
-    // Apply subcategory filter
-    if (selectedSubcategory) {
-        categoryProducts = categoryProducts.filter(product =>
-            product.subcategoryId === selectedSubcategory
-        );
-    }
-
-    // Apply search filter
-    if (searchTerm) {
-        categoryProducts = categoryProducts.filter(product =>
-            product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            product.brand?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            product.description?.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-    }
-
-    // Apply sorting
-    categoryProducts = [...categoryProducts].sort((a, b) => {
-        switch (sortBy) {
-            case 'price-low':
-                return (a.price || 0) - (b.price || 0);
-            case 'price-high':
-                return (b.price || 0) - (a.price || 0);
-            case 'rating':
-                return (b.rating || 0) - (a.rating || 0);
-            case 'discount':
-                const discountA = a.discount || 0;
-                const discountB = b.discount || 0;
-                return discountB - discountA;
-            default:
-                return 0;
-        }
-    });
-
-    // Product card handlers
     const handleMouseEnter = (productId) => {
         setHoveredProduct(productId);
-        // Start image rotation for product with multiple images
-        const product = categoryProducts.find(p => p.id === productId);
+        const product = categoryProducts.find(p => p.numericId === productId || p.id === productId);
         if (product?.images && product.images.length > 1) {
             const interval = setInterval(() => {
                 setImageIndex(prev => ({
                     ...prev,
                     [productId]: ((prev[productId] || 0) + 1) % product.images.length
                 }));
-            }, 2000); // Change image every 2 seconds
+            }, 2000);
 
-            // Store interval ID for cleanup
             setImageIndex(prev => ({
                 ...prev,
                 [`${productId}_interval`]: interval
@@ -82,7 +67,6 @@ const Products = () => {
 
     const handleMouseLeave = (productId) => {
         setHoveredProduct(null);
-        // Clear interval when mouse leaves
         const intervalId = imageIndex[`${productId}_interval`];
         if (intervalId) {
             clearInterval(intervalId);
@@ -95,29 +79,23 @@ const Products = () => {
     };
 
     const handleProductClick = (product) => {
-        // Navigate to product details page
-        window.location.href = `/product/${product.id}`;
+        window.location.href = `/product/${product.numericId || product.id}`;
     };
 
-    const handleImageError = (e) => {
-        e.target.src = "https://placehold.co/512x512?text=Image+Not+Available";
-    };
-
-    // Transform product data to match ProductCard format
     const transformProductForCard = (product) => {
-        const subcategory = categorySubcategories.find(sub => sub.id === product.subcategoryId);
+        const subcategory = categorySubcategories.find(sub => sub.numericId === product.subcategoryId || sub.id === product.subcategoryId);
 
         return {
-            id: product.id,
+            id: product.numericId || product.id,
             productName: product.name,
             images: product.image ? [product.image] : ["https://placehold.co/512x512?text=No+Image"],
             category: category?.name || "",
-            subCategory: subcategory?.name || "General",
+            subCategory: subcategory?.title || subcategory?.name || "General",
             description: product.description || "",
             price: product.price || 0,
             originalPrice: product.originalPrice || product.price,
             rating: product.rating || 0,
-            reviews: 0, // You might want to add review count to your product data
+            reviews: 0,
             brand: product.brand || "",
             unit: product.unit || "unit",
             inStock: product.inStock !== false,
@@ -126,20 +104,6 @@ const Products = () => {
             minOrder: product.minOrder || 1
         };
     };
-
-    if (!category) {
-        return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="text-6xl mb-4">😕</div>
-                    <h2 className="text-2xl font-bold text-gray-700 mb-4">Category Not Found</h2>
-                    <a href="/" className="text-blue-600 hover:text-blue-800 font-semibold">
-                        ← Back to Home
-                    </a>
-                </div>
-            </div>
-        );
-    }
 
     const getColorClasses = (color) => {
         const colorMap = {
@@ -155,7 +119,25 @@ const Products = () => {
         return colorMap[color] || colorMap.blue;
     };
 
-    const colorClass = getColorClasses(category.color);
+    const colorClass = getColorClasses(category?.color);
+
+    if (loading) {
+        return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-xl">Loading products...</div>;
+    }
+
+    if (!category) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="text-6xl mb-4">😕</div>
+                    <h2 className="text-2xl font-bold text-gray-700 mb-4">Category Not Found</h2>
+                    <Link to="/" className="text-blue-600 hover:text-blue-800 font-semibold">
+                        ← Back to Home
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -164,18 +146,15 @@ const Products = () => {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="flex items-center">
-                            <span className="text-4xl mr-4">{category.icon}</span>
+                            <span className="text-4xl mr-4">{category.icon || '🔧'}</span>
                             <div>
                                 <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{category.name}</h1>
-                                <p className="text-gray-600 text-sm md:text-base">{category.description}</p>
+                                <p className="text-gray-600 text-sm md:text-base">{category.description || 'Explore all products in this category'}</p>
                             </div>
                         </div>
-                        <a
-                            href="/"
-                            className="text-blue-600 hover:text-blue-800 font-medium text-sm md:text-base"
-                        >
+                        <Link to="/" className="text-blue-600 hover:text-blue-800 font-medium text-sm md:text-base">
                             ← Back to Home
-                        </a>
+                        </Link>
                     </div>
                 </div>
             </div>
@@ -195,10 +174,7 @@ const Products = () => {
                                     className="w-full px-4 py-2 pl-10 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                                 />
                                 {searchTerm && (
-                                    <button
-                                        onClick={() => setSearchTerm('')}
-                                        className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
-                                    >
+                                    <button onClick={() => setSearchTerm('')} className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">
                                         ✕
                                     </button>
                                 )}
@@ -227,26 +203,20 @@ const Products = () => {
                             <div className="flex flex-wrap gap-2">
                                 <button
                                     onClick={() => setSelectedSubcategory(null)}
-                                    className={`px-3 py-1.5 rounded-lg text-sm ${!selectedSubcategory
-                                        ? 'bg-blue-600 text-white'
-                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                        }`}
+                                    className={`px-3 py-1.5 rounded-lg text-sm ${!selectedSubcategory ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                                 >
                                     All Products
                                 </button>
                                 {categorySubcategories.map(sub => {
-                                    const isActive = selectedSubcategory === sub.id;
-                                    const productCount = categoryProducts.filter(p => p.subcategoryId === sub.id).length;
+                                    const isActive = selectedSubcategory === (sub.numericId || sub.id);
+                                    const productCount = categoryProducts.filter(p => p.subcategoryId === (sub.numericId || sub.id)).length;
                                     return (
                                         <button
-                                            key={sub.id}
-                                            onClick={() => setSelectedSubcategory(isActive ? null : sub.id)}
-                                            className={`px-3 py-1.5 rounded-lg flex items-center gap-2 text-sm ${isActive
-                                                ? `${colorClass.bg} ${colorClass.text}`
-                                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                                }`}
+                                            key={sub.numericId || sub.id}
+                                            onClick={() => setSelectedSubcategory(isActive ? null : (sub.numericId || sub.id))}
+                                            className={`px-3 py-1.5 rounded-lg flex items-center gap-2 text-sm ${isActive ? `${colorClass.bg} ${colorClass.text}` : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                                         >
-                                            {sub.name}
+                                            {sub.title || sub.name}
                                             <span className={`px-1.5 py-0.5 text-xs rounded-full ${isActive ? 'bg-white' : 'bg-gray-300'}`}>
                                                 {productCount}
                                             </span>
@@ -266,12 +236,9 @@ const Products = () => {
                             <>
                                 {' '}in{' '}
                                 <span className="font-bold">
-                                    {categorySubcategories.find(s => s.id === selectedSubcategory)?.name}
+                                    {categorySubcategories.find(s => (s.numericId || s.id) === selectedSubcategory)?.title || categorySubcategories.find(s => (s.numericId || s.id) === selectedSubcategory)?.name}
                                 </span>
-                                <button
-                                    onClick={() => setSelectedSubcategory(null)}
-                                    className="ml-3 text-blue-600 hover:text-blue-800 text-xs"
-                                >
+                                <button onClick={() => setSelectedSubcategory(null)} className="ml-3 text-blue-600 hover:text-blue-800 text-xs">
                                     Clear filter
                                 </button>
                             </>
@@ -284,7 +251,7 @@ const Products = () => {
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-4">
                         {categoryProducts.map(product => (
                             <ProductCard
-                                key={product.id}
+                                key={product.numericId || product.id}
                                 product={transformProductForCard(product)}
                                 hoveredProduct={hoveredProduct}
                                 imageIndex={imageIndex}
@@ -299,12 +266,7 @@ const Products = () => {
                         <div className="text-4xl md:text-6xl mb-4">📦</div>
                         <h3 className="text-lg md:text-xl font-bold text-gray-700 mb-4">No Products Found</h3>
                         <p className="text-gray-600 mb-6 text-sm md:text-base">
-                            {searchTerm
-                                ? `No products match "${searchTerm}"`
-                                : selectedSubcategory
-                                    ? `No products in this subcategory`
-                                    : `No products available in ${category.name} category`
-                            }
+                            {searchTerm ? `No products match "${searchTerm}"` : selectedSubcategory ? `No products in this subcategory` : `No products available in ${category.name} category`}
                         </p>
                         <button
                             onClick={() => {

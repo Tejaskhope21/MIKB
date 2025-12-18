@@ -6,15 +6,26 @@ const ProductsComponent = ({
     title = "Trending Products",
     categoryColor = "blue"
 }) => {
+    const getColorClasses = (color) => {
+        const map = {
+            blue: 'text-blue-600',
+            gray: 'text-gray-600',
+            yellow: 'text-yellow-600',
+            cyan: 'text-cyan-600',
+            orange: 'text-orange-600',
+            purple: 'text-purple-600',
+            red: 'text-red-600',
+            pink: 'text-pink-600'
+        };
+        return map[color] || map.blue;
+    };
+
     return (
         <div className="py-6">
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-gray-900">{title}</h2>
-                <Link
-                    to="/products"
-                    className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
-                >
+                <Link to="/products" className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1">
                     See all
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -28,7 +39,7 @@ const ProductsComponent = ({
                     {products.map((product) => {
                         const discountPercent = product.discount || 0;
                         const transformedProduct = {
-                            id: product.id,
+                            id: product.numericId || product.id,
                             productName: product.name,
                             images: product.image ? [product.image] : ["https://placehold.co/512x512?text=No+Image"],
                             price: product.price || 0,
@@ -40,9 +51,9 @@ const ProductsComponent = ({
 
                         return (
                             <div
-                                key={product.id}
+                                key={transformedProduct.id}
                                 className="relative bg-white group overflow-hidden transition hover:shadow-lg flex flex-col items-center justify-center w-full cursor-pointer"
-                                onClick={() => window.location.href = `/product/${product.id}`}
+                                onClick={() => window.location.href = `/product/${transformedProduct.id}`}
                             >
                                 {/* Product Image */}
                                 <div className="relative w-full aspect-[3/4] overflow-hidden">

@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, 
+import {
+  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell,
   AreaChart, Area
 } from 'recharts';
-import { 
-  FaBuilding, 
-  FaTruck, 
-  FaBox, 
-  FaRupeeSign, 
+import {
+  FaBuilding,
+  FaTruck,
+  FaBox,
+  FaRupeeSign,
   FaChartLine,
   FaBell,
   FaUserCircle,
@@ -73,33 +73,33 @@ const SellerHome = () => {
   const COLORS = ['#f97316', '#3b82f6', '#ef4444', '#10b981', '#8b5cf6'];
 
   const todoItems = [
-    { 
-      title: 'Pending Orders', 
-      count: stats.pendingOrders, 
+    {
+      title: 'Pending Orders',
+      count: stats.pendingOrders,
       icon: <FaBox className="text-blue-500" />,
       bgColor: 'bg-blue-50',
       textColor: 'text-blue-700',
       borderColor: 'border-blue-200'
     },
-    { 
-      title: 'Warehouse Updates', 
-      count: 3, 
+    {
+      title: 'Warehouse Updates',
+      count: 3,
       icon: <FaWarehouse className="text-orange-500" />,
       bgColor: 'bg-orange-50',
       textColor: 'text-orange-700',
       borderColor: 'border-orange-200'
     },
-    { 
-      title: 'Low Stock Alert', 
-      count: stats.lowStockProducts, 
+    {
+      title: 'Low Stock Alert',
+      count: stats.lowStockProducts,
       icon: <FaExclamationTriangle className="text-red-500" />,
       bgColor: 'bg-red-50',
       textColor: 'text-red-700',
       borderColor: 'border-red-200'
     },
-    { 
-      title: 'Payments Due', 
-      count: 2, 
+    {
+      title: 'Payments Due',
+      count: 2,
       icon: <FaRupeeSign className="text-green-500" />,
       bgColor: 'bg-green-50',
       textColor: 'text-green-700',
@@ -276,7 +276,7 @@ const SellerHome = () => {
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {todoItems.map((item, index) => (
-                  <div 
+                  <div
                     key={index}
                     className={`${item.bgColor} border ${item.borderColor} rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer`}
                   >
@@ -309,16 +309,16 @@ const SellerHome = () => {
                   <button className="text-sm font-medium text-gray-600 hover:text-gray-900">Quarterly</button>
                 </div>
               </div>
-              
+
               <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={materialsData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis dataKey="day" stroke="#666" />
                     <YAxis stroke="#666" />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'white', 
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'white',
                         border: '1px solid #e5e7eb',
                         borderRadius: '8px',
                         boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
@@ -374,27 +374,27 @@ const SellerHome = () => {
                   <AreaChart data={revenueData}>
                     <defs>
                       <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#f97316" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#f97316" stopOpacity={0.8} />
+                        <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis dataKey="month" stroke="#666" />
-                    <YAxis stroke="#666" tickFormatter={(value) => `₹${value/1000}k`} />
-                    <Tooltip 
+                    <YAxis stroke="#666" tickFormatter={(value) => `₹${value / 1000}k`} />
+                    <Tooltip
                       formatter={(value) => [`₹${value.toLocaleString('en-IN')}`, 'Revenue']}
-                      contentStyle={{ 
-                        backgroundColor: 'white', 
+                      contentStyle={{
+                        backgroundColor: 'white',
                         border: '1px solid #e5e7eb',
                         borderRadius: '8px'
                       }}
                     />
-                    <Area 
-                      type="monotone" 
-                      dataKey="revenue" 
-                      stroke="#f97316" 
-                      fillOpacity={1} 
-                      fill="url(#colorRevenue)" 
+                    <Area
+                      type="monotone"
+                      dataKey="revenue"
+                      stroke="#f97316"
+                      fillOpacity={1}
+                      fill="url(#colorRevenue)"
                     />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -425,10 +425,10 @@ const SellerHome = () => {
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip 
+                    <Tooltip
                       formatter={(value) => [`${value}%`, 'Share']}
-                      contentStyle={{ 
-                        backgroundColor: 'white', 
+                      contentStyle={{
+                        backgroundColor: 'white',
                         border: '1px solid #e5e7eb',
                         borderRadius: '8px'
                       }}
@@ -454,7 +454,7 @@ const SellerHome = () => {
               </div>
               <div className="space-y-4">
                 {announcements.map((announcement, index) => (
-                  <div 
+                  <div
                     key={index}
                     className={`${announcement.bgColor} p-4 rounded-lg border ${announcement.textColor.replace('800', '200')}`}
                   >
