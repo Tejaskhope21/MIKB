@@ -2,66 +2,84 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
-// Page imports - check these files actually exist in your project
-import SellerLogin from "../Pages/SellerLogin"; // Should be ../Pages/SellerLogin.jsx
-import SellerRegistration from "../Pages/SellerRegistration.jsx"; // Should be ../Pages/SellerRegistration.jsx
-import HomePage from "../Pages/HomePage"; // Should be ../Pages/HomePage.jsx
-import SellerHome from "../Pages/SellerHome"; // Should be ../Pages/SellerHome.jsx
-import AddSingleCatalog from "../Pages/Catalogs/AddSingleCatalog.jsx";
-import EditProduct from "../Pages/Catalogs/EditProduct.jsx";
-import SellerProducts from "../Pages/Catalogs/SellerProducts.jsx";
-import BulkCatalogUpload from "../Pages/Catalogs/BulkCatalogUpload.jsx";
-import OrdersDashboard from "../Pages/Order/OrdersDashboard.jsx";
-import InventoryDashboard from "../Pages/Inventory/InventoryDashboard.jsx";
-import PaymentsDashboard from "../Pages/Payments/PaymentDashboard.jsx";
-import SellerSettings from "../Pages/Setting/SellerSettings.jsx";
-// Layout Components - check these exist
-import SidebarNavigation from "../components/SidebarNavigation"; // Should be ../components/SidebarNavigation.jsx
+// Page Imports (updated paths to match your actual folder structure)
+import SellerLoginPage from "../Pages/SellerLogin.jsx";
+import SellerRegisterPage from "../Pages/SellerRegistration.jsx";
 
-// You mentioned SellerDashboard but it's not used in routes
-// import SellerDashboard from "../pages/SellerDashboard";
+import HomePage from "../pages/HomePage.jsx"; // Customer homepage
+import SellerHome from "../Pages/SellerHome.jsx"; // Seller Dashboard Home
 
-// Dummy protected route
+// Catalog & Product Management
+import AddSingleCatalog from "../pages/Catalogs/AddSingleCatalog.jsx";
+import EditProduct from "../pages/Catalogs/EditProduct.jsx";
+import SellerProducts from "../pages/Catalogs/SellerProducts.jsx";
+import BulkCatalogUpload from "../pages/Catalogs/BulkCatalogUpload.jsx";
+
+// Other Seller Sections
+import OrdersDashboard from "../pages/Order/OrdersDashboard.jsx";
+import InventoryDashboard from "../pages/Inventory/InventoryDashboard.jsx";
+import PaymentsDashboard from "../pages/Payments/PaymentDashboard.jsx";
+import SellerSettings from "../pages/Setting/SellerSettings.jsx";
+
+// Layout Components
+import SidebarNavigation from "../components/SidebarNavigation.jsx";
+
+// Protected Route Component
 const ProtectedRoute = ({ children }) => {
-  const isAuth = localStorage.getItem('brickskart_token') || true; // Check for token
-  return isAuth ? children : <Navigate to="/seller-login" />;
+  const token = localStorage.getItem('token'); // Use consistent key (you used 'token' in login)
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const isSeller = user?.role === 'seller' || user?.businessName; // Extra check if needed
+
+  if (!token || !isSeller) {
+    return <Navigate to="/seller/login" replace />;
+  }
+  return children;
 };
 
-// Main Dashboard Layout
+// Dashboard Layout Wrapper
 const DashboardLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
 
   return (
     <div className="flex h-screen bg-gray-100">
-      <SidebarNavigation
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
+      {/* Sidebar */}
+      <SidebarNavigation isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+      {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Header */}
-        <header className="bg-white shadow-sm z-10">
-          <div className="flex items-center justify-between px-4 py-3">
+        <header className="bg-white shadow-sm z-10 border-b border-gray-200">
+          <div className="flex items-center justify-between px-6 py-4">
+            {/* Mobile Menu Button */}
             <button
               onClick={() => setSidebarOpen(true)}
-              className="lg:hidden text-gray-600 hover:text-gray-900"
+              className="lg:hidden text-gray-600 hover:text-gray-900 focus:outline-none"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            <div className="flex-1"></div>
+
+            <div className="flex-1 px-4 lg:px-0"></div>
+
+            {/* Right-side icons (search, notifications, profile) */}
             <div className="flex items-center space-x-4">
-              <button className="text-gray-600 hover:text-gray-900">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <button className="text-gray-500 hover:text-gray-700">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </button>
+              <button className="text-gray-500 hover:text-gray-700">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                 </svg>
               </button>
             </div>
           </div>
         </header>
 
-        {/* Main Content */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50">
+        {/* Page Content */}
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-4 lg:p-6">
           {children}
         </main>
       </div>
@@ -69,17 +87,18 @@ const DashboardLayout = ({ children }) => {
   );
 };
 
+// Main App Routes
 const AppRoutes = () => {
   return (
     <Routes>
       {/* Public Routes */}
       <Route path="/" element={<HomePage />} />
-      <Route path="/seller-login" element={<SellerLogin />} />
-      <Route path="/seller-register" element={<SellerRegistration />} />
+      <Route path="/seller/login" element={<SellerLoginPage />} />
+      <Route path="/seller/register" element={<SellerRegisterPage />} />
 
-      {/* Protected Seller Routes */}
+      {/* Protected Seller Dashboard Routes */}
       <Route
-        path="/seller"
+        path="/seller/dashboard"
         element={
           <ProtectedRoute>
             <DashboardLayout>
@@ -89,18 +108,13 @@ const AppRoutes = () => {
         }
       />
 
+      {/* Redirect old paths or root seller path */}
+      <Route path="/seller" element={<Navigate to="/seller/dashboard" replace />} />
+      <Route path="/seller/home-dashboard" element={<Navigate to="/seller/dashboard" replace />} />
+
+      {/* Catalog Management */}
       <Route
-        path="/seller/home-dashboard"
-        element={
-          <ProtectedRoute>
-            <DashboardLayout>
-              <SellerHome />
-            </DashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/seller/catalog"
+        path="/seller/catalog/add"
         element={
           <ProtectedRoute>
             <DashboardLayout>
@@ -109,7 +123,8 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
-       <Route
+
+      <Route
         path="/seller/my-products"
         element={
           <ProtectedRoute>
@@ -119,68 +134,76 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
- <Route
+
+      <Route
         path="/seller/edit-product/:id"
         element={
           <ProtectedRoute>
             <DashboardLayout>
-              <EditProduct  />
+              <EditProduct />
             </DashboardLayout>
           </ProtectedRoute>
         }
       />
+
       <Route
-        path="/seller/bulk-uplode"
+        path="/seller/bulk-upload"
         element={
           <ProtectedRoute>
             <DashboardLayout>
-              <BulkCatalogUpload  />
+              <BulkCatalogUpload />
             </DashboardLayout>
           </ProtectedRoute>
         }
       />
+
+      {/* Orders, Inventory, Payments, Settings */}
       <Route
-        path="/seller/orders-dashboard"
+        path="/seller/orders"
         element={
           <ProtectedRoute>
             <DashboardLayout>
-              <OrdersDashboard  />
+              <OrdersDashboard />
             </DashboardLayout>
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/seller/inventory"
         element={
           <ProtectedRoute>
             <DashboardLayout>
-              <InventoryDashboard  />
+              <InventoryDashboard />
             </DashboardLayout>
           </ProtectedRoute>
         }
       />
+
       <Route
-        path="/seller/payment-dashboard"
+        path="/seller/payments"
         element={
           <ProtectedRoute>
             <DashboardLayout>
-              <PaymentsDashboard  />
+              <PaymentsDashboard />
             </DashboardLayout>
           </ProtectedRoute>
         }
       />
-       <Route
+
+      <Route
         path="/seller/settings"
         element={
           <ProtectedRoute>
             <DashboardLayout>
-              <SellerSettings  />
+              <SellerSettings />
             </DashboardLayout>
           </ProtectedRoute>
         }
       />
-      {/* Fallback Route */}
-      <Route path="*" element={<Navigate to="/seller/home-dashboard" />} />
+
+      {/* Catch-all: Redirect unknown routes */}
+      <Route path="*" element={<Navigate to="/seller/dashboard" replace />} />
     </Routes>
   );
 };

@@ -3,9 +3,6 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import connectDB from './config/database.js';
 
-// 🔐 Static Admin Seeder
-import createStaticAdmin from './utils/createAdmin.js';
-
 // Routes
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
@@ -22,7 +19,10 @@ const app = express();
    Middleware
 ====================== */
 app.use(cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: [
+        'http://localhost:5173',
+        'http://localhost:5174'
+    ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     credentials: true
 }));
@@ -33,34 +33,20 @@ app.use(express.urlencoded({ extended: true }));
 /* ======================
    Database Connection
 ====================== */
-const startServer = async () => {
-    try {
-        await connectDB();
-        console.log('✅ MongoDB Connected');
-
-        // 🔥 Create Static Admin (runs once if not exists)
-        await createStaticAdmin();
-
-    } catch (error) {
-        console.error('❌ Server startup failed:', error.message);
-        process.exit(1);
-    }
-};
-
-startServer();
+connectDB();
 
 /* ======================
    API Routes
 ====================== */
 
-// Auth & User routes
+// Auth & User Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 
-// Admin routes
+// Admin Routes
 app.use('/api/admin', adminRoutes);
 
-// Category & Product routes
+// Category & Product Routes
 app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
 
@@ -83,8 +69,7 @@ app.get('/', (req, res) => {
     res.json({
         success: true,
         message: 'Welcome to BuilderSmart Backend API',
-        version: '1.0.0',
-        health: '/health'
+        version: '1.0.0'
     });
 });
 
@@ -102,9 +87,8 @@ app.use((req, res) => {
    Global Error Handler
 ====================== */
 app.use((err, req, res, next) => {
-    console.error('🔥 Global Error:', err.stack);
+    console.error('🔥 Error:', err);
 
-    // Mongoose validation error
     if (err.name === 'ValidationError') {
         return res.status(400).json({
             success: false,
@@ -113,19 +97,17 @@ app.use((err, req, res, next) => {
         });
     }
 
-    // Duplicate key error
     if (err.code === 11000) {
         return res.status(400).json({
             success: false,
-            message: 'Duplicate field value entered',
+            message: 'Duplicate field value',
             field: Object.keys(err.keyValue)[0]
         });
     }
 
     res.status(err.statusCode || 500).json({
         success: false,
-        message: err.message || 'Internal Server Error',
-        ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+        message: err.message || 'Internal Server Error'
     });
 });
 
@@ -139,16 +121,13 @@ const server = app.listen(PORT, () => {
     console.log(`🌍 Health check: http://localhost:${PORT}/health`);
 });
 
-/* ======================
-   Graceful Shutdown
-====================== */
-process.on('SIGTERM', shutdown);
-process.on('SIGINT', shutdown);
+// Graceful Shutdown
+process.on('SIGINT', () => {
+    console.log('SIGINT received. Shutting down...');
+    server.close(() => process.exit(0));
+});
 
-function shutdown() {
-    console.log('🛑 Shutting down server...');
-    server.close(() => {
-        console.log('✅ Server closed');
-        process.exit(0);
-    });
-}
+process.on('SIGTERM', () => {
+    console.log('SIGTERM received. Shutting down...');
+    server.close(() => process.exit(0));
+});
