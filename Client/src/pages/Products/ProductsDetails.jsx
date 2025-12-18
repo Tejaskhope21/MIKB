@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { products, categories } from '../../data/buildersmartData';
 import { useCart } from "../../context/CartContext";
-
+import ProductsComponent from '../../components/Products/ProductsComponent';
 const ProductDetailsPage = () => {
     const { productId } = useParams();
     const navigate = useNavigate();
@@ -500,70 +500,32 @@ const ProductDetailsPage = () => {
                 </div>
 
                 {/* Related Products */}
-                {relatedProducts.length > 0 && (
-                    <div className="mt-12">
-                        <div className="flex items-center justify-between mb-8">
-                            <h2 className="text-2xl font-bold text-gray-900">Related Products</h2>
-                            <Link
-                                to={`/products/category/${category?.id}`}
-                                className="text-blue-600 hover:text-blue-800 font-medium flex items-center"
-                            >
-                                View All
-                                <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                </svg>
-                            </Link>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                            {relatedProducts.map(relatedProduct => (
-                                <Link
-                                    key={relatedProduct.id}
-                                    to={`/product/${relatedProduct.id}`}
-                                    className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow border border-gray-100"
-                                >
-                                    <div className="h-48 overflow-hidden">
-                                        <img
-                                            src={relatedProduct.image}
-                                            alt={relatedProduct.name}
-                                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                                        />
-                                        {relatedProduct.discount && (
-                                            <div className="absolute top-3 right-3 bg-red-500 text-white px-2 py-1 rounded text-xs font-bold">
-                                                {relatedProduct.discount}% OFF
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="p-4">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className={`${colorClass.bg} ${colorClass.text} px-2 py-1 rounded text-xs font-semibold`}>
-                                                {relatedProduct.brand}
-                                            </span>
-                                            <div className="flex items-center text-yellow-400 text-sm">
-                                                {'★'.repeat(Math.floor(relatedProduct.rating))}
-                                            </div>
-                                        </div>
-                                        <h3 className="font-bold text-gray-900 mb-2 line-clamp-2 h-12">
-                                            {relatedProduct.name}
-                                        </h3>
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <div className="text-lg font-bold text-gray-900">
-                                                    ₹{relatedProduct.price.toLocaleString()}
-                                                </div>
-                                                {relatedProduct.originalPrice && (
-                                                    <div className="text-gray-500 line-through text-sm">
-                                                        ₹{relatedProduct.originalPrice.toLocaleString()}
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <span className="text-blue-600 font-medium">View →</span>
-                                        </div>
-                                    </div>
-                                </Link>
-                            ))}
-                        </div>
-                    </div>
-                )}
+               {relatedProducts.length > 0 && (
+    <div className="mt-12">
+        <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl font-bold text-gray-900">Related Products</h2>
+            <Link
+                to={`/products/category/${category?.id}`}
+                className="text-blue-600 hover:text-blue-800 font-medium flex items-center"
+            >
+                View All
+                <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+            </Link>
+        </div>
+        
+        {/* Use ProductsComponent for related products */}
+        <ProductsComponent
+            title="" // Empty title since we already have one above
+            showFilters={false}
+            categoryColor="blue" // You can customize this color
+            products={relatedProducts}
+            hideTitle={true} // Add this prop if your component supports it
+            gridCols="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4" // Pass grid cols if supported
+        />
+    </div>
+)}
             </div>
         </div>
     );
