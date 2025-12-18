@@ -1,160 +1,152 @@
 import React, { useState, useEffect } from 'react';
-<<<<<<< HEAD
 import { useParams, Link } from 'react-router-dom';
 import ProductCard from "../../components/Products/ProductCard";
 import { fetchCategoryById, fetchProducts } from '../../services/api';
-=======
-import { useParams } from 'react-router-dom';
-import { categories, products } from '../../data/buildersmartData';
-import ProductCard from "../../components/Products/ProductCard";
->>>>>>> 1027d176fb308092036d407b85ccb09fae22510e
 
 const Products = () => {
     const { categoryId } = useParams();
     const [category, setCategory] = useState(null);
     const [categoryProducts, setCategoryProducts] = useState([]);
+    const [allCategoryProducts, setAllCategoryProducts] = useState([]);
     const [categorySubcategories, setCategorySubcategories] = useState([]);
     const [selectedSubcategory, setSelectedSubcategory] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [sortBy, setSortBy] = useState('default');
     const [hoveredProduct, setHoveredProduct] = useState(null);
     const [imageIndex, setImageIndex] = useState({});
-<<<<<<< HEAD
     const [loading, setLoading] = useState(true);
-=======
-    
+
     // New filter states
     const [showFilters, setShowFilters] = useState(false);
     const [selectedBrands, setSelectedBrands] = useState([]);
     const [selectedPriceRanges, setSelectedPriceRanges] = useState([]);
     const [selectedCategories, setSelectedCategories] = useState([]);
->>>>>>> 1027d176fb308092036d407b85ccb09fae22510e
 
+    // Load category and products
     useEffect(() => {
         const loadCategoryAndProducts = async () => {
             try {
+                setLoading(true);
                 const cat = await fetchCategoryById(categoryId);
                 setCategory(cat);
                 setCategorySubcategories(cat.subcategories || []);
 
+                // Fetch all products for this category for filtering counts
                 const prods = await fetchProducts({
                     categoryId: cat.numericId || categoryId
                 });
+
+                setAllCategoryProducts(prods);
                 setCategoryProducts(prods);
             } catch (err) {
-                console.error(err);
+                console.error('Error loading category:', err);
             } finally {
                 setLoading(false);
             }
         };
-        loadCategoryAndProducts();
+
+        if (categoryId) {
+            loadCategoryAndProducts();
+        }
     }, [categoryId]);
 
-    // Re-fetch products on filter/sort changes
+    // Apply filters and sorting
     useEffect(() => {
-        if (!category) return;
+        if (!category || allCategoryProducts.length === 0) return;
 
-        fetchProducts({
-            categoryId: category.numericId || categoryId,
-            subcategoryId: selectedSubcategory,
-            search: searchTerm || undefined,
-            sort: sortBy === 'default' ? undefined : sortBy
-        }).then(setCategoryProducts);
-    }, [searchTerm, sortBy, selectedSubcategory, category]);
+        let filteredProducts = [...allCategoryProducts];
 
-<<<<<<< HEAD
-    const handleMouseEnter = (productId) => {
-        setHoveredProduct(productId);
-        const product = categoryProducts.find(p => p.numericId === productId || p.id === productId);
-=======
-    // Apply subcategory filter
-    if (selectedSubcategory) {
-        categoryProducts = categoryProducts.filter(product =>
-            product.subcategoryId === selectedSubcategory
-        );
-    }
+        // Apply subcategory filter
+        if (selectedSubcategory) {
+            filteredProducts = filteredProducts.filter(product =>
+                product.subcategoryId === selectedSubcategory
+            );
+        }
 
-    // Apply search filter
-    if (searchTerm) {
-        categoryProducts = categoryProducts.filter(product =>
-            product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            product.brand?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            product.description?.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-    }
+        // Apply search filter
+        if (searchTerm) {
+            filteredProducts = filteredProducts.filter(product =>
+                product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                product.brand?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                product.description?.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+        }
 
-    // Apply brand filter
-    if (selectedBrands.length > 0) {
-        categoryProducts = categoryProducts.filter(product =>
-            selectedBrands.includes(product.brand)
-        );
-    }
+        // Apply brand filter
+        if (selectedBrands.length > 0) {
+            filteredProducts = filteredProducts.filter(product =>
+                selectedBrands.includes(product.brand)
+            );
+        }
 
-    // Apply price range filter
-    if (selectedPriceRanges.length > 0) {
-        categoryProducts = categoryProducts.filter(product => {
-            return selectedPriceRanges.some(range => {
-                const [min, max] = range.split('-').map(Number);
-                return product.price >= min && product.price <= max;
+        // Apply price range filter
+        if (selectedPriceRanges.length > 0) {
+            filteredProducts = filteredProducts.filter(product => {
+                return selectedPriceRanges.some(range => {
+                    const [min, max] = range.split('-').map(Number);
+                    const price = product.price || 0;
+                    return price >= min && price <= max;
+                });
+            });
+        }
+
+        // Apply category filter (subcategories)
+        if (selectedCategories.length > 0) {
+            filteredProducts = filteredProducts.filter(product =>
+                selectedCategories.includes(product.subcategoryId)
+            );
+        }
+
+        // Apply sorting
+        const sortedProducts = [...filteredProducts].sort((a, b) => {
+            switch (sortBy) {
+                case 'price-low':
+                    return (a.price || 0) - (b.price || 0);
+                case 'price-high':
+                    return (b.price || 0) - (a.price || 0);
+                case 'rating':
+                    return (b.rating || 0) - (a.rating || 0);
+                case 'discount':
+                    const discountA = a.discount || 0;
+                    const discountB = b.discount || 0;
+                    return discountB - discountA;
+                default:
+                    return 0;
+            }
+        });
+
+        setCategoryProducts(sortedProducts);
+    }, [allCategoryProducts, selectedSubcategory, searchTerm, selectedBrands, selectedPriceRanges, selectedCategories, sortBy, category]);
+
+    // Get unique brands and counts from all products
+    const brandCounts = {};
+    const priceRangeCounts = {};
+
+    if (allCategoryProducts.length > 0) {
+        allCategoryProducts.forEach(product => {
+            // Count brands
+            if (product.brand) {
+                brandCounts[product.brand] = (brandCounts[product.brand] || 0) + 1;
+            }
+
+            // Count price ranges
+            const price = product.price || 0;
+            const ranges = [
+                { label: '300-400', min: 300, max: 400 },
+                { label: '400-600', min: 400, max: 600 },
+                { label: '600-800', min: 600, max: 800 },
+                { label: '800-1000', min: 800, max: 1000 },
+                { label: '1000-2000', min: 1000, max: 2000 },
+                { label: '2000-3000', min: 2000, max: 3000 }
+            ];
+
+            ranges.forEach(range => {
+                if (price >= range.min && price <= range.max) {
+                    priceRangeCounts[range.label] = (priceRangeCounts[range.label] || 0) + 1;
+                }
             });
         });
     }
-
-    // Apply category filter (subcategories)
-    if (selectedCategories.length > 0) {
-        categoryProducts = categoryProducts.filter(product =>
-            selectedCategories.includes(product.subcategoryId)
-        );
-    }
-
-    // Apply sorting
-    categoryProducts = [...categoryProducts].sort((a, b) => {
-        switch (sortBy) {
-            case 'price-low':
-                return (a.price || 0) - (b.price || 0);
-            case 'price-high':
-                return (b.price || 0) - (a.price || 0);
-            case 'rating':
-                return (b.rating || 0) - (a.rating || 0);
-            case 'discount':
-                const discountA = a.discount || 0;
-                const discountB = b.discount || 0;
-                return discountB - discountA;
-            default:
-                return 0;
-        }
-    });
-
-    // Get unique brands and counts
-    const brandCounts = {};
-    const priceRangeCounts = {};
-    
-    // Get all products in this category for counts
-    const allCategoryProducts = products?.filter(p => p.categoryId === categoryIdNum) || [];
-    
-    allCategoryProducts.forEach(product => {
-        // Count brands
-        if (product.brand) {
-            brandCounts[product.brand] = (brandCounts[product.brand] || 0) + 1;
-        }
-
-        // Count price ranges
-        const price = product.price || 0;
-        const ranges = [
-            { label: '300-400', min: 300, max: 400 },
-            { label: '400-600', min: 400, max: 600 },
-            { label: '600-800', min: 600, max: 800 },
-            { label: '800-1000', min: 800, max: 1000 },
-            { label: '1000-2000', min: 1000, max: 2000 },
-            { label: '2000-3000', min: 2000, max: 3000 }
-        ];
-        
-        ranges.forEach(range => {
-            if (price >= range.min && price <= range.max) {
-                priceRangeCounts[range.label] = (priceRangeCounts[range.label] || 0) + 1;
-            }
-        });
-    });
 
     // Get unique brands with counts
     const brands = Object.keys(brandCounts).map(brand => ({
@@ -192,15 +184,12 @@ const Products = () => {
         );
     };
 
-    const handleCategoryChange = (categoryName) => {
-        const subcategory = categorySubcategories.find(s => s.name === categoryName);
-        if (subcategory) {
-            setSelectedCategories(prev =>
-                prev.includes(subcategory.id)
-                    ? prev.filter(id => id !== subcategory.id)
-                    : [...prev, subcategory.id]
-            );
-        }
+    const handleCategoryChange = (subcategoryId) => {
+        setSelectedCategories(prev =>
+            prev.includes(subcategoryId)
+                ? prev.filter(id => id !== subcategoryId)
+                : [...prev, subcategoryId]
+        );
     };
 
     const clearAllFilters = () => {
@@ -212,10 +201,9 @@ const Products = () => {
     };
 
     // Product card handlers
-    const handleMouseEnter = (productId) => {
+    const handleProductMouseEnter = (productId) => {
         setHoveredProduct(productId);
-        const product = categoryProducts.find(p => p.id === productId);
->>>>>>> 1027d176fb308092036d407b85ccb09fae22510e
+        const product = categoryProducts.find(p => p.id === productId || p.numericId === productId);
         if (product?.images && product.images.length > 1) {
             const interval = setInterval(() => {
                 setImageIndex(prev => ({
@@ -231,7 +219,7 @@ const Products = () => {
         }
     };
 
-    const handleMouseLeave = (productId) => {
+    const handleProductMouseLeave = (productId) => {
         setHoveredProduct(null);
         const intervalId = imageIndex[`${productId}_interval`];
         if (intervalId) {
@@ -245,27 +233,25 @@ const Products = () => {
     };
 
     const handleProductClick = (product) => {
-<<<<<<< HEAD
         window.location.href = `/product/${product.numericId || product.id}`;
-=======
-        window.location.href = `/product/${product.id}`;
->>>>>>> 1027d176fb308092036d407b85ccb09fae22510e
     };
 
     const transformProductForCard = (product) => {
-        const subcategory = categorySubcategories.find(sub => sub.numericId === product.subcategoryId || sub.id === product.subcategoryId);
+        const subcategory = categorySubcategories.find(sub =>
+            sub.numericId === product.subcategoryId || sub.id === product.subcategoryId
+        );
 
         return {
             id: product.numericId || product.id,
             productName: product.name,
-            images: product.image ? [product.image] : ["https://placehold.co/512x512?text=No+Image"],
+            images: product.image ? [product.image] : product.images || ["https://placehold.co/512x512?text=No+Image"],
             category: category?.name || "",
             subCategory: subcategory?.title || subcategory?.name || "General",
             description: product.description || "",
             price: product.price || 0,
             originalPrice: product.originalPrice || product.price,
             rating: product.rating || 0,
-            reviews: 0,
+            reviews: product.reviews || 0,
             brand: product.brand || "",
             unit: product.unit || "unit",
             inStock: product.inStock !== false,
@@ -289,10 +275,25 @@ const Products = () => {
         return colorMap[color] || colorMap.blue;
     };
 
-    const colorClass = getColorClasses(category?.color);
+    const colorClass = category ? getColorClasses(category.color) : getColorClasses('blue');
+
+    // Count active filters
+    const activeFilterCount =
+        (selectedSubcategory ? 1 : 0) +
+        selectedBrands.length +
+        selectedPriceRanges.length +
+        selectedCategories.length +
+        (searchTerm ? 1 : 0);
 
     if (loading) {
-        return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-xl">Loading products...</div>;
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mb-4 mx-auto"></div>
+                    <p className="text-gray-600 text-xl">Loading products...</p>
+                </div>
+            </div>
+        );
     }
 
     if (!category) {
@@ -308,14 +309,6 @@ const Products = () => {
             </div>
         );
     }
-
-    // Count active filters
-    const activeFilterCount = 
-        (selectedSubcategory ? 1 : 0) +
-        selectedBrands.length +
-        selectedPriceRanges.length +
-        selectedCategories.length +
-        (searchTerm ? 1 : 0);
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -339,23 +332,6 @@ const Products = () => {
 
             {/* Main Content */}
             <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-6">
-<<<<<<< HEAD
-                {/* Filters */}
-                <div className="bg-white rounded-lg shadow p-4 md:p-6 mb-6">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                        <div className="w-full md:w-1/3">
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    placeholder="🔍 Search products..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full px-4 py-2 pl-10 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                                />
-                                {searchTerm && (
-                                    <button onClick={() => setSearchTerm('')} className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">
-                                        ✕
-=======
                 {/* Mobile Filter Button */}
                 <button
                     onClick={() => setShowFilters(!showFilters)}
@@ -389,7 +365,6 @@ const Products = () => {
                                         className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                                     >
                                         Clear All
->>>>>>> 1027d176fb308092036d407b85ccb09fae22510e
                                     </button>
                                 )}
                             </div>
@@ -449,11 +424,30 @@ const Products = () => {
                             {/* CATEGORY Filter */}
                             {categorySubcategories.length > 0 && (
                                 <div className="mb-6">
-                                    <h4 className="font-bold text-gray-900 mb-3 text-base">CATEGORY</h4>
+                                    <h4 className="font-bold text-gray-900 mb-3 text-base">SUBCATEGORIES</h4>
                                     <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center">
+                                                <input
+                                                    type="radio"
+                                                    name="subcategory"
+                                                    id="subcat-all"
+                                                    checked={!selectedSubcategory}
+                                                    onChange={() => setSelectedSubcategory(null)}
+                                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                />
+                                                <label htmlFor="subcat-all" className="ml-2 text-sm text-gray-700 cursor-pointer">
+                                                    All Products
+                                                </label>
+                                            </div>
+                                            <span className="text-gray-500 text-sm">({allCategoryProducts.length})</span>
+                                        </div>
                                         {categorySubcategories.map(sub => {
                                             const isActive = selectedSubcategory === sub.id;
-                                            const productCount = allCategoryProducts.filter(p => p.subcategoryId === sub.id).length;
+                                            const productCount = allCategoryProducts.filter(p =>
+                                                p.subcategoryId === sub.id ||
+                                                p.subcategoryId === sub.numericId
+                                            ).length;
                                             return (
                                                 <div key={sub.id} className="flex items-center justify-between">
                                                     <div className="flex items-center">
@@ -504,7 +498,7 @@ const Products = () => {
                             )}
 
                             {/* PRICE RANGE Filter */}
-                            <div>
+                            <div className="mb-6">
                                 <h4 className="font-bold text-gray-900 mb-3 text-base">PRICE RANGE</h4>
                                 <div className="space-y-2">
                                     {priceRanges.map(range => (
@@ -529,32 +523,6 @@ const Products = () => {
                         </div>
                     </div>
 
-<<<<<<< HEAD
-                    {/* Subcategories */}
-                    {categorySubcategories.length > 0 && (
-                        <div className="mb-4">
-                            <h3 className="text-base font-semibold text-gray-800 mb-2">Filter by Subcategory</h3>
-                            <div className="flex flex-wrap gap-2">
-                                <button
-                                    onClick={() => setSelectedSubcategory(null)}
-                                    className={`px-3 py-1.5 rounded-lg text-sm ${!selectedSubcategory ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
-                                >
-                                    All Products
-                                </button>
-                                {categorySubcategories.map(sub => {
-                                    const isActive = selectedSubcategory === (sub.numericId || sub.id);
-                                    const productCount = categoryProducts.filter(p => p.subcategoryId === (sub.numericId || sub.id)).length;
-                                    return (
-                                        <button
-                                            key={sub.numericId || sub.id}
-                                            onClick={() => setSelectedSubcategory(isActive ? null : (sub.numericId || sub.id))}
-                                            className={`px-3 py-1.5 rounded-lg flex items-center gap-2 text-sm ${isActive ? `${colorClass.bg} ${colorClass.text}` : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
-                                        >
-                                            {sub.title || sub.name}
-                                            <span className={`px-1.5 py-0.5 text-xs rounded-full ${isActive ? 'bg-white' : 'bg-gray-300'}`}>
-                                                {productCount}
-                                            </span>
-=======
                     {/* Products Section - RIGHT SIDE */}
                     <div className="flex-1">
                         {/* Search and Sort Bar */}
@@ -608,11 +576,13 @@ const Products = () => {
                                                 }`}
                                         >
                                             All Products
->>>>>>> 1027d176fb308092036d407b85ccb09fae22510e
                                         </button>
                                         {categorySubcategories.map(sub => {
                                             const isActive = selectedSubcategory === sub.id;
-                                            const productCount = allCategoryProducts.filter(p => p.subcategoryId === sub.id).length;
+                                            const productCount = allCategoryProducts.filter(p =>
+                                                p.subcategoryId === sub.id ||
+                                                p.subcategoryId === sub.numericId
+                                            ).length;
                                             return (
                                                 <button
                                                     key={sub.id}
@@ -634,20 +604,6 @@ const Products = () => {
                             )}
                         </div>
 
-<<<<<<< HEAD
-                {/* Products Count */}
-                <div className="mb-4 px-2">
-                    <p className="text-gray-600 text-sm">
-                        Showing <span className="font-bold">{categoryProducts.length}</span> products
-                        {selectedSubcategory && (
-                            <>
-                                {' '}in{' '}
-                                <span className="font-bold">
-                                    {categorySubcategories.find(s => (s.numericId || s.id) === selectedSubcategory)?.title || categorySubcategories.find(s => (s.numericId || s.id) === selectedSubcategory)?.name}
-                                </span>
-                                <button onClick={() => setSelectedSubcategory(null)} className="ml-3 text-blue-600 hover:text-blue-800 text-xs">
-                                    Clear filter
-=======
                         {/* Products Count */}
                         <div className="mb-4 px-2">
                             <p className="text-gray-600 text-sm">
@@ -670,13 +626,13 @@ const Products = () => {
                             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                                 {categoryProducts.map(product => (
                                     <ProductCard
-                                        key={product.id}
+                                        key={product.id || product.numericId}
                                         product={transformProductForCard(product)}
                                         hoveredProduct={hoveredProduct}
                                         imageIndex={imageIndex}
-                                        handleMouseEnter={handleMouseEnter}
-                                        handleMouseLeave={handleMouseLeave}
-                                        handleProductClick={handleProductClick}
+                                        handleMouseEnter={handleProductMouseEnter}
+                                        handleMouseLeave={handleProductMouseLeave}
+                                        handleProductClick={() => handleProductClick(product)}
                                     />
                                 ))}
                             </div>
@@ -697,49 +653,11 @@ const Products = () => {
                                     className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 md:px-6 md:py-3 rounded-lg text-sm md:text-base"
                                 >
                                     {activeFilterCount > 0 ? "Clear Filters" : "View All Products"}
->>>>>>> 1027d176fb308092036d407b85ccb09fae22510e
                                 </button>
                             </div>
                         )}
                     </div>
                 </div>
-<<<<<<< HEAD
-
-                {/* Products Grid */}
-                {categoryProducts.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-4">
-                        {categoryProducts.map(product => (
-                            <ProductCard
-                                key={product.numericId || product.id}
-                                product={transformProductForCard(product)}
-                                hoveredProduct={hoveredProduct}
-                                imageIndex={imageIndex}
-                                handleMouseEnter={handleMouseEnter}
-                                handleMouseLeave={handleMouseLeave}
-                                handleProductClick={handleProductClick}
-                            />
-                        ))}
-                    </div>
-                ) : (
-                    <div className="bg-white rounded-lg shadow p-6 md:p-12 text-center">
-                        <div className="text-4xl md:text-6xl mb-4">📦</div>
-                        <h3 className="text-lg md:text-xl font-bold text-gray-700 mb-4">No Products Found</h3>
-                        <p className="text-gray-600 mb-6 text-sm md:text-base">
-                            {searchTerm ? `No products match "${searchTerm}"` : selectedSubcategory ? `No products in this subcategory` : `No products available in ${category.name} category`}
-                        </p>
-                        <button
-                            onClick={() => {
-                                setSearchTerm('');
-                                setSelectedSubcategory(null);
-                            }}
-                            className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 md:px-6 md:py-3 rounded-lg text-sm md:text-base"
-                        >
-                            View All Products
-                        </button>
-                    </div>
-                )}
-=======
->>>>>>> 1027d176fb308092036d407b85ccb09fae22510e
             </div>
         </div>
     );
