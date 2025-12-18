@@ -1,41 +1,27 @@
 // src/components/SidebarNavigation.js
 import React, { useState, useContext, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Link } from "react-router-dom";
-import { 
-  RiArrowDropDownLine, 
-  RiArrowDropUpLine, 
-  RiSettingsLine, 
-  RiLogoutBoxLine, 
+import {
+  RiArrowDropDownLine,
+  RiArrowDropUpLine,
+  RiSettingsLine,
+  RiLogoutBoxLine,
   RiUserLine,
   RiHomeLine,
   RiBuildingLine,
-  RiTruckLine,
-  RiBarChartLine,
-  RiShieldLine,
-  RiMoneyDollarCircleLine,
-  RiStoreLine,
-  RiFileListLine,
-  RiImageLine,
-  RiBankCardLine,
   RiShoppingBagLine,
-  RiMegaphoneLine,
-  RiFireLine,
-  RiDashboardLine,
+  RiStoreLine,
+  RiBankCardLine,
   RiNotificationLine,
   RiCustomerServiceLine,
-  RiCheckboxCircleLine,
-  RiProductHuntLine,
-  RiUploadCloudLine,
-  RiFileEditLine
 } from "react-icons/ri";
 
-// Add this simple cn function
+// Utility className helper
 const cn = (...classes) => {
   return classes.filter(Boolean).join(' ');
 };
 
-// Create a mock AuthContext
+// Mock AuthContext (keep as-is for demo)
 const AuthContext = React.createContext({
   auth: {
     token: "demo_token",
@@ -47,21 +33,21 @@ const AuthContext = React.createContext({
     },
     loading: false
   },
-  login: () => {},
-  logout: () => {}
+  login: () => { },
+  logout: () => { }
 });
 
-// Simple Button component
+// Simple reusable Button
 const Button = ({ children, className, onClick, variant = 'ghost' }) => {
-  const baseClasses = "text-left transition-colors w-full";
+  const baseClasses = "text-left transition-colors w-full rounded-lg";
   const variantClasses = {
     ghost: "text-gray-300 hover:text-white hover:bg-gray-800/50",
     default: "bg-gray-800 text-white hover:bg-gray-700"
   };
-  
+
   return (
-    <button 
-      className={`${baseClasses} ${variantClasses[variant]} ${className}`}
+    <button
+      className={`${baseClasses} ${variantClasses[variant]} ${className} px-3 py-2.5`}
       onClick={onClick}
     >
       {children}
@@ -69,35 +55,31 @@ const Button = ({ children, className, onClick, variant = 'ghost' }) => {
   );
 };
 
+// Updated navigation items with correct paths
 const navigationItems = [
-  // Home Dashboard - Available in your routes
   {
     name: "Home Dashboard",
-    path: "/seller/home-dashboard",
+    path: "/seller/dashboard",
     icon: <RiHomeLine className="w-5 h-5" />,
     category: "Dashboard",
     color: "text-orange-500"
   },
-  
-  // Catalog Management - Available with sub-items
   {
     name: "Catalog Management",
-    path: "/seller/catalog",
+    path: "/seller/catalog/add", // Default: opens Add Single Product
     icon: <RiBuildingLine className="w-5 h-5" />,
     category: "Product Management",
     color: "text-indigo-500",
     subItems: [
-      { name: "Add Single Product", path: "/seller/catalog" },
+      { name: "Add Single Product", path: "/seller/catalog/add" },
       { name: "My Products", path: "/seller/my-products" },
-      { name: "Bulk Upload", path: "/seller/bulk-uplode" },
-      { name: "Edit Product", path: "/seller/edit-product" },
+      { name: "Bulk Upload", path: "/seller/bulk-upload" },
+      { name: "Edit Product", path: "/seller/edit-product" }, // Base path for active detection
     ],
   },
-  
-  // UNLOCKED ROUTES - Removed comingSoon flags
   {
     name: "Orders Management",
-    path: "/seller/orders-dashboard",
+    path: "/seller/orders",
     icon: <RiShoppingBagLine className="w-5 h-5" />,
     category: "Manage Business",
     color: "text-orange-500"
@@ -111,7 +93,7 @@ const navigationItems = [
   },
   {
     name: "Payments & Settlements",
-    path: "/seller/payment-dashboard",
+    path: "/seller/payments",
     icon: <RiBankCardLine className="w-5 h-5" />,
     category: "Manage Business",
     color: "text-emerald-500"
@@ -128,12 +110,8 @@ function CustomHomeIcon() {
         <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-900"></div>
       </div>
       <div className="flex flex-col">
-        <span className="text-white text-sm font-bold">
-          Seller Home
-        </span>
-        <span className="text-gray-400 text-xs">
-          Dashboard Overview
-        </span>
+        <span className="text-white text-sm font-bold">Seller Home</span>
+        <span className="text-gray-400 text-xs">Dashboard Overview</span>
       </div>
     </div>
   );
@@ -147,8 +125,7 @@ function CustomIcon({ icon, color = "text-gray-400", active = false }) {
   );
 }
 
-export default function SidebarNavigation({ isOpen = false, onClose = () => {} }) {
-  // Use the mock context
+export default function SidebarNavigation({ isOpen = false, onClose = () => { } }) {
   const { auth, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
@@ -156,24 +133,29 @@ export default function SidebarNavigation({ isOpen = false, onClose = () => {} }
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const profileRef = useRef(null);
 
-  // Close dropdown when clicking outside
+  // Close profile dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (profileRef.current && !profileRef.current.contains(event.target)) {
         setIsProfileDropdownOpen(false);
       }
     }
-
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const isActivePath = (path) =>
-    path === "/"
-      ? location.pathname === "/"
-      : location.pathname.startsWith(path);
+  // Improved active path detection (handles dynamic routes like /edit-product/:id)
+  const isActivePath = (path) => {
+    if (!path) return false;
+    if (path === "/") return location.pathname === "/";
+
+    // Special handling for edit-product routes
+    if (path.includes("/edit-product")) {
+      return location.pathname.startsWith("/seller/edit-product/");
+    }
+
+    return location.pathname.startsWith(path);
+  };
 
   const toggleDropdown = (itemName) => {
     setExpandedItems((prev) => ({
@@ -188,7 +170,7 @@ export default function SidebarNavigation({ isOpen = false, onClose = () => {} }
 
   const handleLogout = () => {
     logout();
-    navigate("/seller-login");
+    navigate("/seller/login");
     setIsProfileDropdownOpen(false);
     onClose?.();
   };
@@ -205,21 +187,20 @@ export default function SidebarNavigation({ isOpen = false, onClose = () => {} }
     onClose?.();
   };
 
+  const handleNavigation = (path) => {
+    navigate(path);
+    onClose?.();
+  };
+
   const groupedItems = navigationItems.reduce((acc, item) => {
     if (!acc[item.category]) acc[item.category] = [];
     acc[item.category].push(item);
     return acc;
   }, {});
 
-  // Function to handle navigation
-  const handleNavigation = (path) => {
-    navigate(path);
-    onClose?.();
-  };
-
   return (
     <div
-      style={{ 
+      style={{
         fontFamily: "'Mier Book', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
         background: "linear-gradient(180deg, #1a1c1e 0%, #242729 100%)"
       }}
@@ -229,7 +210,7 @@ export default function SidebarNavigation({ isOpen = false, onClose = () => {} }
         "md:translate-x-0 md:block"
       )}
     >
-      {/* Mobile header */}
+      {/* Mobile Header */}
       <div className="flex justify-between items-center px-5 py-4 md:hidden border-b border-gray-800 bg-gray-900/50">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
@@ -237,8 +218,8 @@ export default function SidebarNavigation({ isOpen = false, onClose = () => {} }
           </div>
           <span className="text-white font-bold text-base">Brick's Kart</span>
         </div>
-        <button 
-          onClick={onClose} 
+        <button
+          onClick={onClose}
           className="text-gray-400 hover:text-white hover:bg-gray-800 w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -247,8 +228,8 @@ export default function SidebarNavigation({ isOpen = false, onClose = () => {} }
         </button>
       </div>
 
-      {/* Logo and profile with dropdown */}
-      <div 
+      {/* Profile Section with Dropdown */}
+      <div
         ref={profileRef}
         className="relative flex items-center gap-3 px-5 py-5 border-b border-gray-800 cursor-pointer hover:bg-gray-800/50 transition-colors group"
         onClick={toggleProfileDropdown}
@@ -280,13 +261,10 @@ export default function SidebarNavigation({ isOpen = false, onClose = () => {} }
           )}
         </div>
 
-        {/* Profile Dropdown Menu */}
+        {/* Profile Dropdown */}
         {isProfileDropdownOpen && (
           <div className="absolute top-full left-0 right-0 mt-2 mx-4 bg-gray-900 border border-gray-800 rounded-xl shadow-2xl z-50 overflow-hidden backdrop-blur-sm">
-            <div 
-              className="flex items-center gap-3 px-4 py-4 hover:bg-gray-800 transition-colors cursor-pointer border-b border-gray-800"
-              onClick={handleProfile}
-            >
+            <div className="flex items-center gap-3 px-4 py-4 hover:bg-gray-800 transition-colors cursor-pointer border-b border-gray-800" onClick={handleProfile}>
               <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-orange-500/20 to-orange-600/20 flex items-center justify-center">
                 <RiUserLine className="text-orange-400 w-5 h-5" />
               </div>
@@ -295,11 +273,7 @@ export default function SidebarNavigation({ isOpen = false, onClose = () => {} }
                 <div className="text-gray-400 text-xs">View your profile</div>
               </div>
             </div>
-            
-            <div 
-              className="flex items-center gap-3 px-4 py-4 hover:bg-gray-800 transition-colors cursor-pointer border-b border-gray-800"
-              onClick={handleSettings}
-            >
+            <div className="flex items-center gap-3 px-4 py-4 hover:bg-gray-800 transition-colors cursor-pointer border-b border-gray-800" onClick={handleSettings}>
               <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-blue-500/20 to-blue-600/20 flex items-center justify-center">
                 <RiSettingsLine className="text-blue-400 w-5 h-5" />
               </div>
@@ -308,11 +282,7 @@ export default function SidebarNavigation({ isOpen = false, onClose = () => {} }
                 <div className="text-gray-400 text-xs">Manage preferences</div>
               </div>
             </div>
-            
-            <div 
-              className="flex items-center gap-3 px-4 py-4 hover:bg-gray-800 transition-colors cursor-pointer"
-              onClick={handleLogout}
-            >
+            <div className="flex items-center gap-3 px-4 py-4 hover:bg-gray-800 transition-colors cursor-pointer" onClick={handleLogout}>
               <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-red-500/20 to-red-600/20 flex items-center justify-center">
                 <RiLogoutBoxLine className="text-red-400 w-5 h-5" />
               </div>
@@ -343,30 +313,21 @@ export default function SidebarNavigation({ isOpen = false, onClose = () => {} }
         </div>
       </div>
 
-      {/* Notices / Support */}
+      {/* Notices & Support */}
       <div className="flex border-b border-gray-800">
-        <div 
-          className="flex-1 flex items-center gap-3 px-5 py-4 hover:bg-gray-800/50 cursor-pointer transition-colors border-r border-gray-800"
-          onClick={() => handleNavigation("/seller/notices")}
-        >
+        <div className="flex-1 flex items-center gap-3 px-5 py-4 hover:bg-gray-800/50 cursor-pointer transition-colors border-r border-gray-800" onClick={() => handleNavigation("/seller/notices")}>
           <div className="relative">
             <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-red-500/20 to-red-600/20 flex items-center justify-center">
               <RiNotificationLine className="text-red-400 w-5 h-5" />
             </div>
-            <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs text-white font-bold">
-              2
-            </div>
+            <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs text-white font-bold">2</div>
           </div>
           <div>
             <div className="text-white text-sm font-semibold">Notices</div>
             <div className="text-gray-400 text-xs">Important updates</div>
           </div>
         </div>
-        
-        <div 
-          className="flex-1 flex items-center gap-3 px-5 py-4 hover:bg-gray-800/50 cursor-pointer transition-colors"
-          onClick={() => handleNavigation("/seller/support")}
-        >
+        <div className="flex-1 flex items-center gap-3 px-5 py-4 hover:bg-gray-800/50 cursor-pointer transition-colors" onClick={() => handleNavigation("/seller/support")}>
           <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-blue-500/20 to-blue-600/20 flex items-center justify-center">
             <RiCustomerServiceLine className="text-blue-400 w-5 h-5" />
           </div>
@@ -377,120 +338,101 @@ export default function SidebarNavigation({ isOpen = false, onClose = () => {} }
         </div>
       </div>
 
-      {/* Nav Links - Hidden Scrollbar */}
-      <nav
-        className="flex-1 my-4 overflow-y-auto mb-4 mr-1 px-2"
-        style={{ 
-          maxHeight: "calc(100vh - 320px)",
-          scrollbarWidth: "none", /* Firefox */
-          msOverflowStyle: "none", /* IE and Edge */
-        }}
-      >
-        <div className="[&::-webkit-scrollbar]:hidden"> {/* Hide scrollbar for Chrome, Safari and Opera */}
+      {/* Navigation Links */}
+      <nav className="flex-1 my-4 overflow-y-auto px-2" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+        <div className="[&::-webkit-scrollbar]:hidden">
+          {/* Home Dashboard Button */}
           <Button
             variant="ghost"
             className={cn(
-              "w-full justify-start text-left text-gray-300 hover:text-white hover:bg-gray-800/50 mx-2 mb-3 rounded-xl transition-all duration-200 border border-transparent hover:border-gray-700",
-              isActivePath("/seller/home-dashboard") && "bg-gray-800/50 text-white border-gray-700"
+              "w-full justify-start mx-2 mb-3 rounded-xl border border-transparent hover:border-gray-700",
+              isActivePath("/seller/dashboard") && "bg-gray-800/50 text-white border-gray-700"
             )}
-            onClick={() => handleNavigation("/seller/home-dashboard")}
+            onClick={() => handleNavigation("/seller/dashboard")}
           >
             <CustomHomeIcon />
           </Button>
 
+          {/* Grouped Navigation Items */}
           {Object.entries(groupedItems).map(([category, items]) => (
             <div key={category} className="mb-6">
               <div className="flex items-center justify-between px-4 mb-2">
-                <p
-                  className="text-gray-400 text-xs font-semibold uppercase tracking-wider"
-                  style={{ letterSpacing: "0.05em" }}
-                >
+                <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider" style={{ letterSpacing: "0.05em" }}>
                   {category}
                 </p>
                 <div className="w-2 h-2 bg-gray-700 rounded-full"></div>
               </div>
+
               <div className="space-y-1">
                 {items.map((item) => {
-                  const isActive = isActivePath(item.path);
-                  
+                  const isExpanded = expandedItems[item.name];
+                  const isMainActive = isActivePath(item.path);
+
                   return item.subItems ? (
                     <div key={item.name}>
+                      {/* Main Dropdown Item */}
                       <Button
                         variant="ghost"
                         className={cn(
-                          "w-full justify-start text-left text-gray-300 hover:text-white hover:bg-gray-800/50 mx-2 rounded-xl transition-all duration-200 border border-transparent hover:border-gray-700",
-                          (isActive || expandedItems[item.name]) && "bg-gray-800/50 text-white border-gray-700"
+                          "w-full justify-start mx-2 rounded-xl border border-transparent hover:border-gray-700",
+                          (isMainActive || isExpanded) && "bg-gray-800/50 text-white border-gray-700"
                         )}
-                        onClick={() => toggleDropdown(item.name)}
+                        onClick={() => {
+                          handleNavigation(item.path); // Go to default sub-page
+                          toggleDropdown(item.name);
+                        }}
                       >
                         <div className="flex items-center w-full">
-                          <CustomIcon 
-                            icon={item.icon} 
-                            color={item.color} 
-                            active={isActive || expandedItems[item.name]} 
-                          />
-                          <span className="flex-1 text-sm font-medium ml-3">
-                            {item.name}
-                          </span>
-                          {expandedItems[item.name] ? (
+                          <CustomIcon icon={item.icon} color={item.color} active={isMainActive || isExpanded} />
+                          <span className="flex-1 text-sm font-medium ml-3">{item.name}</span>
+                          {isExpanded ? (
                             <RiArrowDropUpLine className="text-gray-400 w-5 h-5" />
                           ) : (
                             <RiArrowDropDownLine className="text-gray-400 w-5 h-5" />
                           )}
                         </div>
                       </Button>
-                      {expandedItems[item.name] && (
+
+                      {/* Sub-items */}
+                      {isExpanded && (
                         <div className="ml-4 pl-10 pr-2 space-y-1 mt-1">
-                          {item.subItems.map((subItem) => {
-                            // For edit product route, we need to handle it specially since it has :id parameter
-                            const subItemPath = subItem.path === "/seller/edit-product" 
-                              ? "/seller/edit-product/1" // Default ID, you can adjust this
-                              : subItem.path;
-                            
-                            return (
-                              <Button
-                                key={subItem.name}
-                                variant="ghost"
-                                className={cn(
-                                  "w-full justify-start text-left text-gray-400 hover:text-white hover:bg-gray-800/30 rounded-lg transition-colors text-sm py-2",
-                                  isActivePath(subItem.path) && "text-white bg-gray-800/30"
-                                )}
-                                onClick={() => handleNavigation(subItemPath)}
-                              >
-                                <div className="flex items-center">
-                                  <div className="w-1.5 h-1.5 rounded-full bg-gray-600 mr-3"></div>
-                                  <span>
-                                    {subItem.name}
-                                  </span>
-                                </div>
-                              </Button>
-                            );
-                          })}
+                          {item.subItems.map((subItem) => (
+                            <Button
+                              key={subItem.name}
+                              variant="ghost"
+                              className={cn(
+                                "w-full justify-start text-gray-400 hover:text-white hover:bg-gray-800/30 text-sm py-2",
+                                isActivePath(subItem.path) && "text-white bg-gray-800/30"
+                              )}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleNavigation(subItem.path);
+                              }}
+                            >
+                              <div className="flex items-center">
+                                <div className="w-1.5 h-1.5 rounded-full bg-gray-600 mr-3"></div>
+                                <span>{subItem.name}</span>
+                              </div>
+                            </Button>
+                          ))}
                         </div>
                       )}
                     </div>
                   ) : (
+                    // Regular menu item
                     <Button
                       key={item.name}
                       variant="ghost"
                       className={cn(
-                        "w-full justify-start text-left text-gray-300 hover:text-white hover:bg-gray-800/50 mx-2 rounded-xl transition-all duration-200 border border-transparent hover:border-gray-700",
-                        isActive && "bg-gray-800/50 text-white border-gray-700"
+                        "w-full justify-start mx-2 rounded-xl border border-transparent hover:border-gray-700",
+                        isActivePath(item.path) && "bg-gray-800/50 text-white border-gray-700"
                       )}
                       onClick={() => handleNavigation(item.path)}
                     >
                       <div className="flex items-center w-full">
-                        <CustomIcon 
-                          icon={item.icon} 
-                          color={item.color} 
-                          active={isActive} 
-                        />
-                        <span className="flex-1 text-sm font-medium ml-3">
-                          {item.name}
-                        </span>
-                        {isActive && (
-                          <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                        )}
+                        <CustomIcon icon={item.icon} color={item.color} active={isActivePath(item.path)} />
+                        <span className="flex-1 text-sm font-medium ml-3">{item.name}</span>
+                        {isActivePath(item.path) && <div className="w-2 h-2 bg-orange-500 rounded-full"></div>}
                       </div>
                     </Button>
                   );
@@ -501,7 +443,7 @@ export default function SidebarNavigation({ isOpen = false, onClose = () => {} }
         </div>
       </nav>
 
-      {/* Footer with business info */}
+      {/* Footer */}
       <div className="border-t border-gray-800 px-5 py-4 bg-gradient-to-r from-gray-900/50 to-transparent">
         <div className="flex items-center justify-between mb-2">
           <span className="text-white text-sm font-bold">
@@ -515,7 +457,7 @@ export default function SidebarNavigation({ isOpen = false, onClose = () => {} }
         <div className="text-gray-400 text-xs">
           Seller ID: {auth.seller?.sellerId || "BK-SELLER-12345"}
         </div>
-        <div className="mt-3 flex items-center gap-2">
+        <div className="mt-3 flex items-center gap-2 flex-wrap">
           <div className="text-xs text-gray-500 bg-gray-800/50 px-2 py-1 rounded-full">Since 2023</div>
           <div className="text-xs text-gray-500 bg-gray-800/50 px-2 py-1 rounded-full">Verified</div>
           <div className="text-xs text-blue-500 bg-blue-500/10 px-2 py-1 rounded-full">All Features Active</div>
