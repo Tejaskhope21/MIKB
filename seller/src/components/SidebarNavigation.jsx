@@ -102,32 +102,6 @@ const navigationItems = [
     category: "Manage Business",
     color: "text-orange-500"
   },
-  // {
-  //   name: "Returns & RTO",
-  //   path: "/seller/returns",
-  //   icon: <RiCheckboxCircleLine className="w-5 h-5" />,
-  //   category: "Manage Business",
-  //   color: "text-red-500"
-  // },
-  // {
-  //   name: "Pricing & Discounts",
-  //   path: "/seller/pricing",
-  //   icon: <RiMoneyDollarCircleLine className="w-5 h-5" />,
-  //   category: "Manage Business",
-  //   color: "text-green-500",
-  //   subItems: [
-  //     { name: "Manage Pricing", path: "/seller/pricing" },
-  //     { name: "Discount Management", path: "/seller/discount" },
-  //     { name: "RTO Settings", path: "/seller/rto-settings" },
-  //   ],
-  // },
-  // {
-  //   name: "Claims Management",
-  //   path: "/seller/claims",
-  //   icon: <RiFileListLine className="w-5 h-5" />,
-  //   category: "Manage Business",
-  //   color: "text-purple-500"
-  // },
   {
     name: "Inventory Management",
     path: "/seller/inventory",
@@ -135,13 +109,6 @@ const navigationItems = [
     category: "Manage Business",
     color: "text-blue-500"
   },
-  // {
-  //   name: "Image Upload",
-  //   path: "/seller/image-upload",
-  //   icon: <RiImageLine className="w-5 h-5" />,
-  //   category: "Manage Business",
-  //   color: "text-pink-500"
-  // },
   {
     name: "Payments & Settlements",
     path: "/seller/payment-dashboard",
@@ -149,55 +116,6 @@ const navigationItems = [
     category: "Manage Business",
     color: "text-emerald-500"
   },
-  // {
-  //   name: "Quality Control",
-  //   path: "/seller/product-quality",
-  //   icon: <RiShieldLine className="w-5 h-5" />,
-  //   category: "Manage Business",
-  //   color: "text-cyan-500"
-  // },
-  // {
-  //   name: "Warehouse Management",
-  //   path: "/seller/WarehousePage",
-  //   icon: <RiTruckLine className="w-5 h-5" />,
-  //   category: "Manage Business",
-  //   color: "text-amber-500"
-  // },
-  // {
-  //   name: "Contractor Network",
-  //   path: "/seller/influencerinfo",
-  //   icon: <RiUserLine className="w-5 h-5" />,
-  //   category: "Boost Sales",
-  //   color: "text-teal-500"
-  // },
-  // {
-  //   name: "Advertisement",
-  //   path: "/seller/advertisement",
-  //   icon: <RiMegaphoneLine className="w-5 h-5" />,
-  //   category: "Boost Sales",
-  //   color: "text-violet-500"
-  // },
-  // {
-  //   name: "Promotions",
-  //   path: "/seller/promotions",
-  //   icon: <RiFireLine className="w-5 h-5" />,
-  //   category: "Boost Sales",
-  //   color: "text-rose-500"
-  // },
-  // {
-  //   name: "Instant Cash Flow",
-  //   path: "/seller/instant-cash",
-  //   icon: <RiMoneyDollarCircleLine className="w-5 h-5" />,
-  //   category: "Boost Sales",
-  //   color: "text-lime-500"
-  // },
-  // {
-  //   name: "Business Analytics",
-  //   path: "/seller/dashboard",
-  //   icon: <RiBarChartLine className="w-5 h-5" />,
-  //   category: "Performance",
-  //   color: "text-sky-500"
-  // },
 ];
 
 function CustomHomeIcon() {
@@ -459,122 +377,128 @@ export default function SidebarNavigation({ isOpen = false, onClose = () => {} }
         </div>
       </div>
 
-      {/* Nav Links */}
+      {/* Nav Links - Hidden Scrollbar */}
       <nav
         className="flex-1 my-4 overflow-y-auto mb-4 mr-1 px-2"
-        style={{ maxHeight: "calc(100vh - 320px)" }}
+        style={{ 
+          maxHeight: "calc(100vh - 320px)",
+          scrollbarWidth: "none", /* Firefox */
+          msOverflowStyle: "none", /* IE and Edge */
+        }}
       >
-        <Button
-          variant="ghost"
-          className={cn(
-            "w-full justify-start text-left text-gray-300 hover:text-white hover:bg-gray-800/50 mx-2 mb-3 rounded-xl transition-all duration-200 border border-transparent hover:border-gray-700",
-            isActivePath("/seller/home-dashboard") && "bg-gray-800/50 text-white border-gray-700"
-          )}
-          onClick={() => handleNavigation("/seller/home-dashboard")}
-        >
-          <CustomHomeIcon />
-        </Button>
+        <div className="[&::-webkit-scrollbar]:hidden"> {/* Hide scrollbar for Chrome, Safari and Opera */}
+          <Button
+            variant="ghost"
+            className={cn(
+              "w-full justify-start text-left text-gray-300 hover:text-white hover:bg-gray-800/50 mx-2 mb-3 rounded-xl transition-all duration-200 border border-transparent hover:border-gray-700",
+              isActivePath("/seller/home-dashboard") && "bg-gray-800/50 text-white border-gray-700"
+            )}
+            onClick={() => handleNavigation("/seller/home-dashboard")}
+          >
+            <CustomHomeIcon />
+          </Button>
 
-        {Object.entries(groupedItems).map(([category, items]) => (
-          <div key={category} className="mb-6">
-            <div className="flex items-center justify-between px-4 mb-2">
-              <p
-                className="text-gray-400 text-xs font-semibold uppercase tracking-wider"
-                style={{ letterSpacing: "0.05em" }}
-              >
-                {category}
-              </p>
-              <div className="w-2 h-2 bg-gray-700 rounded-full"></div>
-            </div>
-            <div className="space-y-1">
-              {items.map((item) => {
-                const isActive = isActivePath(item.path);
-                
-                return item.subItems ? (
-                  <div key={item.name}>
+          {Object.entries(groupedItems).map(([category, items]) => (
+            <div key={category} className="mb-6">
+              <div className="flex items-center justify-between px-4 mb-2">
+                <p
+                  className="text-gray-400 text-xs font-semibold uppercase tracking-wider"
+                  style={{ letterSpacing: "0.05em" }}
+                >
+                  {category}
+                </p>
+                <div className="w-2 h-2 bg-gray-700 rounded-full"></div>
+              </div>
+              <div className="space-y-1">
+                {items.map((item) => {
+                  const isActive = isActivePath(item.path);
+                  
+                  return item.subItems ? (
+                    <div key={item.name}>
+                      <Button
+                        variant="ghost"
+                        className={cn(
+                          "w-full justify-start text-left text-gray-300 hover:text-white hover:bg-gray-800/50 mx-2 rounded-xl transition-all duration-200 border border-transparent hover:border-gray-700",
+                          (isActive || expandedItems[item.name]) && "bg-gray-800/50 text-white border-gray-700"
+                        )}
+                        onClick={() => toggleDropdown(item.name)}
+                      >
+                        <div className="flex items-center w-full">
+                          <CustomIcon 
+                            icon={item.icon} 
+                            color={item.color} 
+                            active={isActive || expandedItems[item.name]} 
+                          />
+                          <span className="flex-1 text-sm font-medium ml-3">
+                            {item.name}
+                          </span>
+                          {expandedItems[item.name] ? (
+                            <RiArrowDropUpLine className="text-gray-400 w-5 h-5" />
+                          ) : (
+                            <RiArrowDropDownLine className="text-gray-400 w-5 h-5" />
+                          )}
+                        </div>
+                      </Button>
+                      {expandedItems[item.name] && (
+                        <div className="ml-4 pl-10 pr-2 space-y-1 mt-1">
+                          {item.subItems.map((subItem) => {
+                            // For edit product route, we need to handle it specially since it has :id parameter
+                            const subItemPath = subItem.path === "/seller/edit-product" 
+                              ? "/seller/edit-product/1" // Default ID, you can adjust this
+                              : subItem.path;
+                            
+                            return (
+                              <Button
+                                key={subItem.name}
+                                variant="ghost"
+                                className={cn(
+                                  "w-full justify-start text-left text-gray-400 hover:text-white hover:bg-gray-800/30 rounded-lg transition-colors text-sm py-2",
+                                  isActivePath(subItem.path) && "text-white bg-gray-800/30"
+                                )}
+                                onClick={() => handleNavigation(subItemPath)}
+                              >
+                                <div className="flex items-center">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-gray-600 mr-3"></div>
+                                  <span>
+                                    {subItem.name}
+                                  </span>
+                                </div>
+                              </Button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
                     <Button
+                      key={item.name}
                       variant="ghost"
                       className={cn(
                         "w-full justify-start text-left text-gray-300 hover:text-white hover:bg-gray-800/50 mx-2 rounded-xl transition-all duration-200 border border-transparent hover:border-gray-700",
-                        (isActive || expandedItems[item.name]) && "bg-gray-800/50 text-white border-gray-700"
+                        isActive && "bg-gray-800/50 text-white border-gray-700"
                       )}
-                      onClick={() => toggleDropdown(item.name)}
+                      onClick={() => handleNavigation(item.path)}
                     >
                       <div className="flex items-center w-full">
                         <CustomIcon 
                           icon={item.icon} 
                           color={item.color} 
-                          active={isActive || expandedItems[item.name]} 
+                          active={isActive} 
                         />
                         <span className="flex-1 text-sm font-medium ml-3">
                           {item.name}
                         </span>
-                        {expandedItems[item.name] ? (
-                          <RiArrowDropUpLine className="text-gray-400 w-5 h-5" />
-                        ) : (
-                          <RiArrowDropDownLine className="text-gray-400 w-5 h-5" />
+                        {isActive && (
+                          <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
                         )}
                       </div>
                     </Button>
-                    {expandedItems[item.name] && (
-                      <div className="ml-4 pl-10 pr-2 space-y-1 mt-1">
-                        {item.subItems.map((subItem) => {
-                          // For edit product route, we need to handle it specially since it has :id parameter
-                          const subItemPath = subItem.path === "/seller/edit-product" 
-                            ? "/seller/edit-product/1" // Default ID, you can adjust this
-                            : subItem.path;
-                          
-                          return (
-                            <Button
-                              key={subItem.name}
-                              variant="ghost"
-                              className={cn(
-                                "w-full justify-start text-left text-gray-400 hover:text-white hover:bg-gray-800/30 rounded-lg transition-colors text-sm py-2",
-                                isActivePath(subItem.path) && "text-white bg-gray-800/30"
-                              )}
-                              onClick={() => handleNavigation(subItemPath)}
-                            >
-                              <div className="flex items-center">
-                                <div className="w-1.5 h-1.5 rounded-full bg-gray-600 mr-3"></div>
-                                <span>
-                                  {subItem.name}
-                                </span>
-                              </div>
-                            </Button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <Button
-                    key={item.name}
-                    variant="ghost"
-                    className={cn(
-                      "w-full justify-start text-left text-gray-300 hover:text-white hover:bg-gray-800/50 mx-2 rounded-xl transition-all duration-200 border border-transparent hover:border-gray-700",
-                      isActive && "bg-gray-800/50 text-white border-gray-700"
-                    )}
-                    onClick={() => handleNavigation(item.path)}
-                  >
-                    <div className="flex items-center w-full">
-                      <CustomIcon 
-                        icon={item.icon} 
-                        color={item.color} 
-                        active={isActive} 
-                      />
-                      <span className="flex-1 text-sm font-medium ml-3">
-                        {item.name}
-                      </span>
-                      {isActive && (
-                        <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                      )}
-                    </div>
-                  </Button>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </nav>
 
       {/* Footer with business info */}

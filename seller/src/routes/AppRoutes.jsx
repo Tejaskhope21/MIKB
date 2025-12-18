@@ -14,6 +14,7 @@ import BulkCatalogUpload from "../Pages/Catalogs/BulkCatalogUpload.jsx";
 import OrdersDashboard from "../Pages/Order/OrdersDashboard.jsx";
 import InventoryDashboard from "../Pages/Inventory/InventoryDashboard.jsx";
 import PaymentsDashboard from "../Pages/Payments/PaymentDashboard.jsx";
+import SellerSettings from "../Pages/Setting/SellerSettings.jsx";
 // Layout Components - check these exist
 import SidebarNavigation from "../components/SidebarNavigation"; // Should be ../components/SidebarNavigation.jsx
 
@@ -168,7 +169,16 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
-       
+       <Route
+        path="/seller/settings"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <SellerSettings  />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
       {/* Fallback Route */}
       <Route path="*" element={<Navigate to="/seller/home-dashboard" />} />
     </Routes>
