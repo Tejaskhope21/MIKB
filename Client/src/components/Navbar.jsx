@@ -113,7 +113,7 @@ export default function Navbar({ user, onLogout }) {
                     {/* Right Side Icons */}
                     <div className="hidden md:flex items-center space-x-6 text-white">
                         <Link to="/login" className="hover:text-gray-300 transition-colors font-medium">
-                            Sell+
+                            Sell
                         </Link>
                         <Link to="/investor" className="hover:text-gray-300 transition-colors font-medium">
                             Investors
@@ -137,7 +137,7 @@ export default function Navbar({ user, onLogout }) {
                                 <span className="font-medium">{user ? user.name?.split(' ')[0] : 'Profile'}</span>
                             </button>
                             {dropdownOpen && (
-                                <div 
+                                <div
                                     ref={dropdownRef}
                                     className="absolute top-full right-0 mt-2 bg-white text-gray-800 shadow-lg rounded-sm border w-60 z-100" // Changed from z-50 to z-100
                                     onMouseEnter={() => setDropdownOpen(true)}

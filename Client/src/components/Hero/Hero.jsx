@@ -11,27 +11,27 @@ function Hero() {
   const heroSlides = [
     // {
     //   imageUrl: b1,
-     
+
     // },
     {
       imageUrl: b2,
-      
+
     },
-     {
+    {
       imageUrl: b3,
-     
+
     },
     {
       imageUrl: b4,
-      
+
     },
-     {
+    {
       imageUrl: b5,
-      
+
     },
     // {
     //   imageUrl: b6,
-      
+
     // },
   ];
 
@@ -91,9 +91,8 @@ function Hero() {
               <button
                 key={index}
                 onClick={() => goToSlide(index)}
-                className={`w-3 h-3 rounded-full ${
-                  currentSlide === index ? "bg-white" : "bg-white/50"
-                } hover:bg-white/80 transition`}
+                className={`w-3 h-3 rounded-full ${currentSlide === index ? "bg-white" : "bg-white/50"
+                  } hover:bg-white/80 transition`}
                 aria-label={`Go to slide ${index + 1}`}
               />
             ))}
