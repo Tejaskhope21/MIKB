@@ -1,170 +1,228 @@
+// models/Product.model.js
 import mongoose from 'mongoose';
 
-const productSchema = new mongoose.Schema({
-    numericId: { type: Number, required: true, unique: true },
-    name: { type: String, required: true },
-    categoryId: { type: Number, required: true },
-    subcategoryId: Number,
-    images: [{ type: String }], // Changed from single image to array
-    brand: String,
-    description: String,
-    price: { type: Number, required: true },
-    originalPrice: Number,
-    rating: { type: Number, default: 0 },
-    discount: { type: Number, default: 0 },
-    specs: [String],
+// Custom validator
+const arrayLimit = (val) => Array.isArray(val) && val.length > 0;
 
-    // Inventory Management
-    inventory: {
-        sku: { type: String, unique: true },
-        stock: { type: Number, default: 0 },
-        lowStockThreshold: { type: Number, default: 10 },
-        isInStock: { type: Boolean, default: true },
-        manageStock: { type: Boolean, default: true },
-        backorders: {
+const productSchema = new mongoose.Schema(
+    {
+        // Basic Information
+        name: {
             type: String,
-            enum: ['no', 'notify', 'allow'],
-            default: 'no'
+            required: true,
+            trim: true,
+            maxlength: 200,
         },
-        soldCount: { type: Number, default: 0 },
-        reservedStock: { type: Number, default: 0 }
-    },
 
-    // Shipping & Dimensions
-    shipping: {
-        weight: Number,
-        dimensions: {
-            length: Number,
-            width: Number,
-            height: Number
+        categoryId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Category',
+            required: true,
         },
-        shippingClass: String
-    },
 
-    minOrder: { type: Number, default: 1 },
-    unit: { type: String, default: 'unit' },
+        subcategoryId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Category',
+            default: null,
+        },
 
-    // Product Variations
-    variations: [{
-        name: String,
-        options: [String],
-        variantType: {
+        brand: {
             type: String,
-            enum: ['color', 'size', 'material', 'other']
-        }
-    }],
+            trim: true,
+        },
 
-    // Product variants
-    variants: [{
-        sku: String,
-        name: String,
-        price: Number,
-        stock: Number,
-        attributes: mongoose.Schema.Types.Mixed,
-        image: String
-    }],
+        description: {
+            type: String,
+            required: true,
+            trim: true,
+        },
 
-    // Seller Information
-    sellerId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
+        // Construction Specific
+        materialType: {
+            type: String,
+            enum: [
+                'cement',
+                'steel',
+                'bricks',
+                'sand',
+                'tiles',
+                'paint',
+                'wood',
+                'plumbing',
+                'electrical',
+                'hardware',
+                'insulation',
+                'roofing',
+                'other',
+            ],
+            default: 'other',
+        },
+
+        grade: String,
+        color: String,
+        finish: String,
+        application: [String],
+
+        // Technical Specifications
+        technicalSpecs: {
+            thickness: String,
+            weight: String,
+            density: String,
+            waterResistance: { type: Boolean, default: false },
+            fireResistant: { type: Boolean, default: false },
+            thermalInsulation: { type: Boolean, default: false },
+        },
+
+        // Pricing
+        price: {
+            type: Number,
+            required: true,
+            min: 0,
+        },
+
+        originalPrice: {
+            type: Number,
+            min: 0,
+        },
+
+        discount: {
+            type: Number,
+            default: 0,
+            min: 0,
+            max: 100,
+        },
+
+        // Images
+        images: {
+            type: [String],
+            required: true,
+            validate: [arrayLimit, 'At least one image is required'],
+        },
+
+        // Inventory
+        inventory: {
+            sku: {
+                type: String,
+                unique: true,
+                sparse: true,
+            },
+            stock: { type: Number, default: 0, min: 0 },
+            lowStockThreshold: { type: Number, default: 10 },
+            moq: { type: Number, default: 1 },
+            manageStock: { type: Boolean, default: true },
+            bulkDiscount: { type: Boolean, default: false },
+            bulkTiers: [
+                {
+                    minQuantity: Number,
+                    discountPercent: Number,
+                },
+            ],
+        },
+
+        // Shipping & Packaging
+        unitType: {
+            type: String,
+            enum: ['piece', 'kg', 'ton', 'meter', 'sq-meter', 'cubic-meter', 'bag', 'set', 'roll'],
+            default: 'piece',
+        },
+
+        packaging: {
+            type: {
+                type: String,
+                enum: ['box', 'bag', 'bundle', 'pallet', 'roll', 'crate', 'loose'],
+                default: 'box',
+            },
+            quantityPerPackage: { type: Number, default: 1 },
+        },
+
+        // Variants
+        variants: [
+            {
+                name: String,
+                sku: String,
+                price: Number,
+                stock: Number,
+                attributes: mongoose.Schema.Types.Mixed,
+                image: String,
+            },
+        ],
+
+        // Seller
+        sellerId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: true,
+        },
+
+        storeName: String,
+
+        // Status
+        status: {
+            type: String,
+            enum: ['draft', 'published', 'out_of_stock', 'archived'],
+            default: 'draft',
+        },
+
+        // SEO & Extra
+        certifications: [String],
+        tags: [String],
+
+        seo: {
+            title: String,
+            description: String,
+            keywords: [String],
+        },
+
+        rating: { type: Number, default: 0 },
+        views: { type: Number, default: 0 },
     },
-    storeName: String,
+    { timestamps: true }
+);
 
-    // Product Status
-    status: {
-        type: String,
-        enum: ['draft', 'published', 'out_of_stock', 'discontinued', 'archived'],
-        default: 'draft'
-    },
+/* =======================
+   PRE-SAVE HOOK (FIXED)
+======================= */
+productSchema.pre('save', async function () {
+    // Ensure inventory exists
+    if (!this.inventory) this.inventory = {};
 
-    // SEO
-    seo: {
-        title: String,
-        description: String,
-        keywords: [String]
-    },
-
-    // Additional Details
-    warranty: String,
-    returnPolicy: String,
-    tags: [String],
-
-    // Reviews & Ratings
-    reviews: [{
-        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-        rating: { type: Number, min: 1, max: 5 },
-        comment: String,
-        images: [String],
-        createdAt: { type: Date, default: Date.now }
-    }],
-
-    // Performance Metrics
-    views: { type: Number, default: 0 },
-    wishlists: { type: Number, default: 0 },
-
-    // Audit
-    lastRestocked: Date,
-    lastSold: Date
-}, {
-    timestamps: true
-});
-
-// Auto-generate SKU before saving
-productSchema.pre('save', function (next) {
+    // Generate SKU
     if (!this.inventory.sku) {
-        const prefix = this.brand ? this.brand.substring(0, 3).toUpperCase() : 'PRD';
-        const timestamp = Date.now().toString().slice(-6);
-        const random = Math.floor(Math.random() * 1000);
-        this.inventory.sku = `${prefix}-${timestamp}-${random}`;
+        const prefix = this.brand
+            ? this.brand.substring(0, 3).toUpperCase().replace(/\s/g, '')
+            : 'PRD';
+        this.inventory.sku = `${prefix}-${Math.floor(100000 + Math.random() * 900000)}`;
     }
 
-    // Update isInStock based on stock
-    if (this.inventory.manageStock) {
-        this.inventory.isInStock = this.inventory.stock > this.inventory.lowStockThreshold;
+    // Variant SKUs
+    if (this.variants?.length) {
+        this.variants.forEach((variant) => {
+            if (!variant.sku) {
+                variant.sku = `VAR-${Math.floor(10000 + Math.random() * 90000)}`;
+            }
+        });
     }
 
-    next();
-});
-
-// Virtual for available stock
-productSchema.virtual('availableStock').get(function () {
-    return this.inventory.stock - this.inventory.reservedStock;
-});
-
-// Method to reserve stock
-productSchema.methods.reserveStock = function (quantity) {
-    if (this.inventory.stock - this.inventory.reservedStock >= quantity) {
-        this.inventory.reservedStock += quantity;
-        return true;
+    // Discount calculation
+    if (this.originalPrice && this.originalPrice > this.price) {
+        this.discount = Math.round(
+            ((this.originalPrice - this.price) / this.originalPrice) * 100
+        );
+    } else {
+        this.discount = 0;
     }
-    return false;
-};
 
-// Method to release reserved stock
-productSchema.methods.releaseStock = function (quantity) {
-    if (this.inventory.reservedStock >= quantity) {
-        this.inventory.reservedStock -= quantity;
-        return true;
-    }
-    return false;
-};
-
-// Method to update stock after sale
-productSchema.methods.updateStock = function (quantity) {
-    if (this.inventory.reservedStock >= quantity) {
-        this.inventory.reservedStock -= quantity;
-    }
-    this.inventory.stock -= quantity;
-    this.inventory.soldCount += quantity;
-    this.lastSold = new Date();
-
-    // Update stock status
-    if (this.inventory.stock <= 0) {
+    // Stock-based status
+    if (this.inventory.stock <= 0 && this.status !== 'archived') {
         this.status = 'out_of_stock';
-        this.inventory.isInStock = false;
     }
-};
+});
+
+/* Indexes */
+productSchema.index({ name: 'text', description: 'text', brand: 'text' });
+productSchema.index({ categoryId: 1 });
+productSchema.index({ sellerId: 1 });
+productSchema.index({ status: 1 });
+productSchema.index({ 'inventory.sku': 1 });
 
 export default mongoose.model('Product', productSchema);
