@@ -25,6 +25,7 @@ import Analytics from '../components/Seller/Analytics/Analytics'
 import Reviews from '../components/Seller/Reviews/Reviews'
 import Inventory from '../components/Seller/Inventory/Inventory'
 import StoreSettings from '../components/Seller/Settings/StoreSettings'
+import CategoryDetailsPage from '../pages/Category/CategoryDetailsPage'
 
 const AppRoutes = () => {
     return (
@@ -37,6 +38,7 @@ const AppRoutes = () => {
                     <Route path="/products/category/:categoryId" element={<ProductsPage />} />
                     <Route path="/product/:productId" element={<ProductDetailsPage />} />
                     <Route path="/cart" element={<CartPage />} />
+                    <Route path="/category/:categoryId" element={<CategoryDetailsPage />} />
                     <Route path="/checkout" element={
                         <ProtectedRoute>
                             <CheckoutPage />

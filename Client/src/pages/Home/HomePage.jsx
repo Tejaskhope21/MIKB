@@ -5,6 +5,7 @@ import CategorySection from "../../components/CategorySection/CategorySection";
 import BrandsSection from "../../components/Brands/BrandsSection";
 import ProductsComponent from "../../components/Products/ProductsComponent";
 import { fetchProducts } from '../../services/api';
+import Banner from '../../components/Banner/Banner';
 
 const HomePage = () => {
     const [featuredProducts, setFeaturedProducts] = useState([]);
@@ -103,7 +104,7 @@ const HomePage = () => {
 
     return (
         <div className="min-h-screen">
-            <div className="sticky top-0 z-50 bg-white shadow-sm">
+            <div className="sticky top-0 z-0 bg-white shadow-sm">
                 <div className="container mx-auto">
                     <CategoryHeader />
                 </div>
@@ -166,7 +167,7 @@ const HomePage = () => {
                         )}
                     </div>
                 </section>
-
+             
                 {/* Best Sellers Section */}
                 <section className="py-12 bg-white">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -219,7 +220,7 @@ const HomePage = () => {
                         )}
                     </div>
                 </section>
-
+                 <Banner/>
                 {/* Special Offers Section */}
                 <section className="py-12 bg-gradient-to-r from-blue-50 to-cyan-50">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -44,3 +44,44 @@ header {
   background: #d1d5db;
   border-radius: 3px;
 }
+
+
+.z-9999 {
+  z-index: 9999 !important;
+}
+
+.z-9998 {
+  z-index: 9998 !important;
+}
+
+.z-60 {
+  z-index: 100 !important;
+}
+
+/* Ensure search autocomplete appears above everything */
+.search-autocomplete-container {
+  position: relative;
+  z-index: 9999;
+}
+
+/* Prevent body scroll when dropdowns are open */
+body.search-dropdown-open {
+  overflow: hidden;
+}
+
+/* Improve dropdown visibility */
+.dropdown-shadow {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+
+/* Ensure search dropdown appears above everything */
+.search-dropdown {
+  z-index: 9999 !important;
+  position: relative;
+}
+
+/* CategoryHeader dropdown should be below search */
+.category-dropdown {
+  z-index: 40 !important;
+}

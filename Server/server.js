@@ -16,6 +16,7 @@ import productRoutes from './routes/productRoutes.js';
 import sellerRoutes from './routes/seller.routes.js';
 import orderRoutes from './routes/order.routes.js';
 import uploadRoutes from "./routes/uploadRoutes.js";
+import searchRoutes from "./routes/search.routes.js"
 
 // Load env
 dotenv.config();
@@ -112,6 +113,7 @@ app.use('/api/v1/seller', sellerRoutes);
 app.use('/api/v1/categories', categoryRoutes);
 app.use('/api/v1/products', productRoutes);
 app.use('/api/v1/orders', orderRoutes);
+app.use('/api/v1/search',searchRoutes);
 
 // Legacy support
 app.use('/api/auth', authRoutes);
@@ -120,6 +122,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/seller', sellerRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/search',searchRoutes);
 
 /* ======================
    Root

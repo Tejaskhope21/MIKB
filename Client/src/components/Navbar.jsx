@@ -1,34 +1,113 @@
 // components/Navbar.jsx
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { FiUser, FiShoppingCart, FiSearch, FiMenu, FiX, FiLogOut } from "react-icons/fi";
+import { FiUser, FiShoppingCart, FiSearch, FiMenu, FiX, FiLogOut, FiPackage, FiGrid, FiTag } from "react-icons/fi";
+import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import logo from "/BricksKart.png";
 import { useCart } from '../context/CartContext';
+import { searchAutocomplete, hasSearchResults } from '../services/api';
 import "../index.css"
 
 export default function Navbar({ user, onLogout }) {
     const [searchQuery, setSearchQuery] = useState("");
     const [menuOpen, setMenuOpen] = useState(false);
     const [dropdownOpen, setDropdownOpen] = useState(false);
+    const [searchResults, setSearchResults] = useState({
+        success: true,
+        products: [],
+        categories: [],
+        subcategories: [],
+        query: '',
+        totalResults: 0
+    });
+    const [showAutocomplete, setShowAutocomplete] = useState(false);
+    const [isSearching, setIsSearching] = useState(false);
     const { getCartCount } = useCart();
     const navigate = useNavigate();
     const [cartCount, setCartCount] = useState(0);
     const dropdownRef = useRef(null);
     const profileButtonRef = useRef(null);
+    const searchRef = useRef(null);
+    const searchInputRef = useRef(null);
 
+    // Update cart count
     useEffect(() => {
-        setCartCount(getCartCount());
+        const updateCartCount = () => {
+            setCartCount(getCartCount());
+        };
+        updateCartCount();
+        
+        // Listen for cart updates if your context provides it
+        const interval = setInterval(updateCartCount, 1000);
+        return () => clearInterval(interval);
     }, [getCartCount]);
 
+    // Debounced search function
+    const debouncedSearch = useCallback(
+        debounce(async (query) => {
+            if (query.length < 1) {
+                setSearchResults({ 
+                    success: true,
+                    products: [], 
+                    categories: [], 
+                    subcategories: [],
+                    query: '',
+                    totalResults: 0
+                });
+                setIsSearching(false);
+                return;
+            }
+            
+            setIsSearching(true);
+            try {
+                const results = await searchAutocomplete(query, 8);
+                setSearchResults(results);
+            } catch (error) {
+                console.error('Search error:', error);
+                setSearchResults({ 
+                    success: false,
+                    products: [], 
+                    categories: [], 
+                    subcategories: [],
+                    query: query,
+                    totalResults: 0,
+                    error: error.message || 'Search failed'
+                });
+            } finally {
+                setIsSearching(false);
+            }
+        }, 300),
+        []
+    );
+
+    // Handle search input changes
+    useEffect(() => {
+        if (searchQuery.trim().length > 0) {
+            debouncedSearch(searchQuery);
+            setShowAutocomplete(true);
+        } else {
+            setSearchResults({ 
+                success: true,
+                products: [], 
+                categories: [], 
+                subcategories: [],
+                query: '',
+                totalResults: 0
+            });
+            setShowAutocomplete(false);
+        }
+    }, [searchQuery, debouncedSearch]);
+
+    // Close autocomplete when clicking outside
     useEffect(() => {
         const handleClickOutside = (event) => {
-            if (
-                dropdownRef.current &&
-                !dropdownRef.current.contains(event.target) &&
-                profileButtonRef.current &&
-                !profileButtonRef.current.contains(event.target)
-            ) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target) &&
+                profileButtonRef.current && !profileButtonRef.current.contains(event.target)) {
                 setDropdownOpen(false);
+            }
+            
+            if (searchRef.current && !searchRef.current.contains(event.target)) {
+                setShowAutocomplete(false);
             }
         };
 
@@ -38,11 +117,48 @@ export default function Navbar({ user, onLogout }) {
         };
     }, []);
 
+    // Debounce utility function
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
     const handleSearch = (e) => {
         e.preventDefault();
         if (searchQuery.trim()) {
             console.log("Searching for:", searchQuery);
-            navigate(`/products?search=${encodeURIComponent(searchQuery)}`);
+            setShowAutocomplete(false);
+            navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+        }
+    };
+
+    const handleAutocompleteSelect = (type, item) => {
+        setSearchQuery(item.name || item.title || item.productName || '');
+        setShowAutocomplete(false);
+        
+        switch (type) {
+            case 'product':
+                navigate(`/product/${item._id || item.id || item.numericId}`);
+                break;
+            case 'category':
+                navigate(`/category/${item._id || item.id || item.numericId}`);
+                break;
+            case 'subcategory':
+                if (item.category || item.categoryId) {
+                    navigate(`/category/${item.category || item.categoryId}?subcategory=${item._id || item.numericId}`);
+                } else {
+                    navigate(`/search?q=${encodeURIComponent(searchQuery)}&type=subcategory&id=${item._id || item.numericId}`);
+                }
+                break;
+            default:
+                navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
         }
     };
 
@@ -62,13 +178,16 @@ export default function Navbar({ user, onLogout }) {
         { label: "Sign Up", path: "/register" }
     ];
 
+    // Check if we have successful search results
+    const hasSuccessfulResults = hasSearchResults(searchResults);
+
     return (
-        <header className=" top-0 z-100 bg-[#800000] shadow-lg"> {/* Changed from z-50 to z-100 */}
+        <header className="top-0 z-50 bg-[#800000] shadow-lg relative">
             <div className="w-full">
                 {/* Top Navbar */}
-                <nav className="h-[80px] px-4 md:px-6 flex items-center justify-between">
+                <nav className="h-[80px] px-4 md:px-6 flex items-center justify-between relative">
                     {/* Logo */}
-                    <Link to="/" className="flex items-center h-full">
+                    <Link to="/" className="flex items-center h-full z-10">
                         <img
                             src={logo}
                             alt="Logo"
@@ -77,7 +196,7 @@ export default function Navbar({ user, onLogout }) {
                     </Link>
 
                     {/* Desktop Navigation Center */}
-                    <div className="hidden md:flex items-center space-x-8 text-white mx-8">
+                    <div className="hidden lg:flex items-center space-x-8 text-white mx-8 z-10">
                         <Link to="/" className="hover:text-gray-300 transition-colors font-medium">
                             Home
                         </Link>
@@ -89,41 +208,183 @@ export default function Navbar({ user, onLogout }) {
                         </Link>
                     </div>
 
-                    {/* Search Bar (Desktop) */}
-                    <div className="hidden lg:flex flex-1 max-w-lg mx-4">
-                        <form onSubmit={handleSearch} className="w-full">
+                    {/* Search Bar (Desktop) with Autocomplete - UPDATED Z-INDEX */}
+                    <div className="hidden lg:flex flex-1 max-w-xl mx-4 relative z-[9999]" ref={searchRef}>
+                        <form onSubmit={handleSearch} className="w-full relative">
                             <div className="relative">
                                 <input
+                                    ref={searchInputRef}
                                     type="text"
                                     placeholder="Search products, brands, categories..."
-                                    className="w-full h-12 px-4 pr-12 rounded-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="w-full h-12 px-4 pr-12 rounded-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-transparent shadow-sm relative z-10"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
+                                    onFocus={() => setShowAutocomplete(true)}
                                 />
                                 <button
                                     type="submit"
-                                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 z-10"
                                 >
                                     <FiSearch size={20} />
                                 </button>
+                                
+                                {/* Autocomplete Dropdown - HIGH Z-INDEX */}
+                                {showAutocomplete && (
+                                    <div className="absolute top-full left-0 right-0 mt-1 bg-white shadow-2xl rounded-lg border border-gray-300 z-[9999] max-h-[500px] overflow-y-auto">
+                                        {isSearching ? (
+                                            <div className="p-6 text-center text-gray-500">
+                                                <AiOutlineLoading3Quarters className="animate-spin inline-block mr-2 text-[#800000]" />
+                                                Searching...
+                                            </div>
+                                        ) : !searchResults.success ? (
+                                            <div className="p-6 text-center text-red-500">
+                                                {searchResults.error || 'Search failed. Please try again.'}
+                                            </div>
+                                        ) : hasSuccessfulResults ? (
+                                            <>
+                                                {/* Products Section */}
+                                                {searchResults.products.length > 0 && (
+                                                    <div className="border-b border-gray-100">
+                                                        <div className="px-4 py-3 bg-gray-50 text-gray-700 text-sm font-semibold">
+                                                            Products
+                                                        </div>
+                                                        {searchResults.products.map((product) => (
+                                                            <button
+                                                                key={product._id || product.id || product.numericId}
+                                                                onClick={() => handleAutocompleteSelect('product', product)}
+                                                                className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 group border-b border-gray-50 last:border-b-0"
+                                                            >
+                                                                <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center flex-shrink-0 border border-gray-200">
+                                                                    {product.images?.[0] ? (
+                                                                        <img 
+                                                                            src={product.images[0]} 
+                                                                            alt={product.name}
+                                                                            className="w-10 h-10 object-contain"
+                                                                        />
+                                                                    ) : (
+                                                                        <FiPackage className="text-gray-400" size={20} />
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <div className="font-medium text-gray-800 truncate group-hover:text-[#800000]">
+                                                                        {product.name || product.productName}
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2 mt-1">
+                                                                        {product.brand && (
+                                                                            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                                                                                {product.brand}
+                                                                            </span>
+                                                                        )}
+                                                                        {product.categoryName && (
+                                                                            <span className="text-xs text-gray-500">
+                                                                                in {product.categoryName}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                                {product.price && (
+                                                                    <div className="text-sm font-semibold text-[#800000] whitespace-nowrap">
+                                                                        ₹{product.price || product.sellingPrice}
+                                                                    </div>
+                                                                )}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                
+                                                {/* Categories & Subcategories */}
+                                                {(searchResults.categories.length > 0 || searchResults.subcategories.length > 0) && (
+                                                    <div className="border-b border-gray-100 last:border-b-0">
+                                                        <div className="px-4 py-3 bg-gray-50 text-gray-700 text-sm font-semibold">
+                                                            Categories
+                                                        </div>
+                                                        {searchResults.categories.map((category) => (
+                                                            <button
+                                                                key={category._id || category.id || category.numericId}
+                                                                onClick={() => handleAutocompleteSelect('category', category)}
+                                                                className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 group border-b border-gray-50 last:border-b-0"
+                                                            >
+                                                                <FiGrid className="text-gray-400" size={20} />
+                                                                <div className="font-medium text-gray-800 group-hover:text-[#800000]">
+                                                                    {category.name}
+                                                                </div>
+                                                            </button>
+                                                        ))}
+                                                        {searchResults.subcategories.map((subcategory) => (
+                                                            <button
+                                                                key={subcategory._id || subcategory.id || subcategory.numericId}
+                                                                onClick={() => handleAutocompleteSelect('subcategory', subcategory)}
+                                                                className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 pl-10 group border-b border-gray-50 last:border-b-0"
+                                                            >
+                                                                <FiTag className="text-gray-400" size={16} />
+                                                                <div className="font-medium text-gray-800 group-hover:text-[#800000]">
+                                                                    {subcategory.title || subcategory.name}
+                                                                </div>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                {/* View all results */}
+                                                {/* {searchResults.totalResults > 0 && (
+                                                    <div className="border-t border-gray-200 p-4 bg-gray-50">
+                                                        <button
+                                                            onClick={() => {
+                                                                setShowAutocomplete(false);
+                                                                navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+                                                            }}
+                                                            className="w-full text-center text-[#800000] font-medium hover:underline py-2 flex items-center justify-center gap-2"
+                                                        >
+                                                            View all {searchResults.totalResults} results
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                )} */}
+                                            </>
+                                        ) : searchQuery.length > 0 ? (
+                                            <div className="p-8 text-center">
+                                                <div className="text-gray-400 text-4xl mb-4">🔍</div>
+                                                <p className="text-gray-600 font-medium">No results found for</p>
+                                                <p className="text-gray-800 font-semibold mt-2 text-lg">"{searchQuery}"</p>
+                                                <p className="text-gray-500 text-sm mt-3">Try different keywords or check spelling</p>
+                                            </div>
+                                        ) : (
+                                            <div className="p-6 text-center text-gray-500">
+                                                Start typing to search products...
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </form>
                     </div>
 
                     {/* Right Side Icons */}
-                    <div className="hidden md:flex items-center space-x-6 text-white">
-                        <Link to="/login" className="hover:text-gray-300 transition-colors font-medium">
+                    <div className="hidden md:flex items-center space-x-6 text-white z-10">
+                        <Link to="/sell" className="hover:text-gray-300 transition-colors font-medium">
                             Sell
                         </Link>
-                        <Link to="/investor" className="hover:text-gray-300 transition-colors font-medium">
+                        <Link to="/investors" className="hover:text-gray-300 transition-colors font-medium">
                             Investors
+                        </Link>
+
+                        {/* Cart with Counter */}
+                        <Link to="/cart" className="relative hover:text-gray-300 transition-colors">
+                            <FiShoppingCart size={22} />
+                            {cartCount > 0 && (
+                                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold z-20">
+                                    {cartCount > 99 ? '99+' : cartCount}
+                                </span>
+                            )}
                         </Link>
 
                         {/* Profile Dropdown */}
                         <div className="relative">
                             <button
                                 ref={profileButtonRef}
-                                className="flex items-center gap-2 hover:text-gray-300 transition-colors"
+                                className="flex items-center gap-2 hover:text-gray-300 transition-colors z-10"
                                 onClick={() => setDropdownOpen(!dropdownOpen)}
                                 onMouseEnter={() => setDropdownOpen(true)}
                             >
@@ -139,7 +400,7 @@ export default function Navbar({ user, onLogout }) {
                             {dropdownOpen && (
                                 <div
                                     ref={dropdownRef}
-                                    className="absolute top-full right-0 mt-2 bg-white text-gray-800 shadow-lg rounded-sm border w-60 z-100" // Changed from z-50 to z-100
+                                    className="absolute top-full right-0 mt-2 bg-white text-gray-800 shadow-lg rounded-sm border w-60 z-[9998]"
                                     onMouseEnter={() => setDropdownOpen(true)}
                                     onMouseLeave={() => setDropdownOpen(false)}
                                 >
@@ -157,7 +418,7 @@ export default function Navbar({ user, onLogout }) {
                                                         key={index}
                                                         to={item.path}
                                                         onClick={() => setDropdownOpen(false)}
-                                                        className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors font-medium"
+                                                        className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors font-medium hover:text-[#800000]"
                                                     >
                                                         {item.label}
                                                     </Link>
@@ -165,7 +426,7 @@ export default function Navbar({ user, onLogout }) {
                                                     <button
                                                         key={index}
                                                         onClick={item.action}
-                                                        className="w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors flex items-center font-medium"
+                                                        className="w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors flex items-center font-medium hover:text-[#800000]"
                                                     >
                                                         {item.icon}
                                                         {item.label}
@@ -178,20 +439,10 @@ export default function Navbar({ user, onLogout }) {
                             )}
                         </div>
 
-                        {/* Cart with Counter */}
-                        <Link to="/cart" className="relative hover:text-gray-300 transition-colors">
-                            <FiShoppingCart size={22} />
-                            {cartCount > 0 && (
-                                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
-                                    {cartCount}
-                                </span>
-                            )}
-                        </Link>
-
                         {/* Post Requirement Button */}
                         <button
                             onClick={() => navigate('/post-requirement')}
-                            className="bg-white text-[#800000] px-4 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors shadow-sm"
+                            className="bg-white text-[#800000] px-4 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors shadow-sm hover:shadow z-10"
                         >
                             Post Requirement
                         </button>
@@ -199,7 +450,7 @@ export default function Navbar({ user, onLogout }) {
 
                     {/* Mobile Menu Button */}
                     <button
-                        className="md:hidden text-white"
+                        className="md:hidden text-white z-10"
                         onClick={() => setMenuOpen(!menuOpen)}
                         aria-label={menuOpen ? "Close menu" : "Open menu"}
                     >
@@ -209,28 +460,73 @@ export default function Navbar({ user, onLogout }) {
 
                 {/* Mobile Menu */}
                 {menuOpen && (
-                    <div className="md:hidden bg-[#800000] border-t border-gray-600 px-4 py-4 space-y-4" style={{ zIndex: 100 }}>
+                    <div className="md:hidden bg-[#800000] border-t border-gray-600 px-4 py-4 space-y-4 absolute top-full left-0 right-0 z-[9999]">
                         {/* Mobile Search */}
-                        <form onSubmit={handleSearch} className="mb-4">
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    placeholder="Search products..."
-                                    className="w-full h-12 px-4 pr-12 rounded-lg bg-white text-gray-900 border-0"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                />
-                                <button
-                                    type="submit"
-                                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600"
-                                >
-                                    <FiSearch size={20} />
-                                </button>
-                            </div>
-                        </form>
+                        <div className="relative mb-4" ref={searchRef}>
+                            <form onSubmit={handleSearch}>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        placeholder="Search products..."
+                                        className="w-full h-12 px-4 pr-12 rounded-lg bg-white text-gray-900 border-0 focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-transparent z-10"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        onFocus={() => setShowAutocomplete(true)}
+                                    />
+                                    <button
+                                        type="submit"
+                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 z-10"
+                                    >
+                                        <FiSearch size={20} />
+                                    </button>
+                                </div>
+                            </form>
+                            
+                            {/* Mobile Autocomplete - HIGH Z-INDEX */}
+                            {showAutocomplete && searchQuery.length > 0 && (
+                                <div className="absolute top-full left-0 right-0 mt-1 bg-white shadow-2xl rounded-lg border border-gray-300 z-[9999] max-h-[400px] overflow-y-auto">
+                                    {isSearching ? (
+                                        <div className="p-4 text-center text-gray-500">
+                                            <AiOutlineLoading3Quarters className="animate-spin inline-block mr-2" />
+                                            Searching...
+                                        </div>
+                                    ) : hasSuccessfulResults ? (
+                                        <div className="py-2">
+                                            {searchResults.products.slice(0, 5).map((product) => (
+                                                <button
+                                                    key={product._id || product.id || product.numericId}
+                                                    onClick={() => handleAutocompleteSelect('product', product)}
+                                                    className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 border-b border-gray-100 last:border-b-0"
+                                                >
+                                                    <div className="font-medium text-gray-800">
+                                                        {product.name || product.productName}
+                                                    </div>
+                                                </button>
+                                            ))}
+                                            {searchResults.totalResults > 5 && (
+                                                <button
+                                                    onClick={() => {
+                                                        setShowAutocomplete(false);
+                                                        navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+                                                        setMenuOpen(false);
+                                                    }}
+                                                    className="w-full text-center text-[#800000] font-medium py-3 border-t border-gray-200"
+                                                >
+                                                    View all {searchResults.totalResults} results
+                                                </button>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="p-6 text-center text-gray-500">
+                                            No results found for "{searchQuery}"
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
 
                         {/* Mobile Links */}
-                        <div className="space-y-3 text-white">
+                        <div className="space-y-3 text-white relative z-10">
                             <Link to="/" className="block py-2 hover:text-gray-300 font-medium" onClick={() => setMenuOpen(false)}>
                                 Home
                             </Link>
@@ -239,6 +535,13 @@ export default function Navbar({ user, onLogout }) {
                             </Link>
                             <Link to="/brands" className="block py-2 hover:text-gray-300 font-medium" onClick={() => setMenuOpen(false)}>
                                 Brands
+                            </Link>
+
+                            <Link to="/sell" className="block py-2 hover:text-gray-300 font-medium" onClick={() => setMenuOpen(false)}>
+                                Sell
+                            </Link>
+                            <Link to="/investors" className="block py-2 hover:text-gray-300 font-medium" onClick={() => setMenuOpen(false)}>
+                                Investors
                             </Link>
 
                             {user && (
@@ -251,13 +554,6 @@ export default function Navbar({ user, onLogout }) {
                                     </Link>
                                 </>
                             )}
-
-                            <Link to="/login" className="block py-2 hover:text-gray-300 font-medium" onClick={() => setMenuOpen(false)}>
-                                Become a Supplier
-                            </Link>
-                            <Link to="/investor" className="block py-2 hover:text-gray-300 font-medium" onClick={() => setMenuOpen(false)}>
-                                Investor Relations
-                            </Link>
 
                             {!user ? (
                                 <>
@@ -282,7 +578,7 @@ export default function Navbar({ user, onLogout }) {
                                 Cart
                                 {cartCount > 0 && (
                                     <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full font-bold">
-                                        {cartCount}
+                                        {cartCount > 99 ? '99+' : cartCount}
                                     </span>
                                 )}
                             </Link>
@@ -292,7 +588,7 @@ export default function Navbar({ user, onLogout }) {
                                     navigate('/post-requirement');
                                     setMenuOpen(false);
                                 }}
-                                className="w-full bg-white text-[#800000] py-3 rounded-lg font-medium mt-4 shadow-sm"
+                                className="w-full bg-white text-[#800000] py-3 rounded-lg font-medium mt-4 shadow-sm hover:bg-gray-100"
                             >
                                 Post Requirement
                             </button>
