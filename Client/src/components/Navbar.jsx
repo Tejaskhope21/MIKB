@@ -1,9 +1,10 @@
 // components/Navbar.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FiUser, FiShoppingCart, FiSearch, FiMenu, FiX, FiLogOut } from "react-icons/fi";
 import logo from "/BricksKart.png";
 import { useCart } from '../context/CartContext';
+import "../index.css"
 
 export default function Navbar({ user, onLogout }) {
     const [searchQuery, setSearchQuery] = useState("");
@@ -12,10 +13,30 @@ export default function Navbar({ user, onLogout }) {
     const { getCartCount } = useCart();
     const navigate = useNavigate();
     const [cartCount, setCartCount] = useState(0);
+    const dropdownRef = useRef(null);
+    const profileButtonRef = useRef(null);
 
     useEffect(() => {
         setCartCount(getCartCount());
     }, [getCartCount]);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (
+                dropdownRef.current &&
+                !dropdownRef.current.contains(event.target) &&
+                profileButtonRef.current &&
+                !profileButtonRef.current.contains(event.target)
+            ) {
+                setDropdownOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
 
     const handleSearch = (e) => {
         e.preventDefault();
@@ -42,7 +63,7 @@ export default function Navbar({ user, onLogout }) {
     ];
 
     return (
-        <header className="sticky top-0 z-50 bg-[#800000] shadow-lg">
+        <header className="sticky top-0 z-100 bg-[#800000] shadow-lg"> {/* Changed from z-50 to z-100 */}
             <div className="w-full">
                 {/* Top Navbar */}
                 <nav className="h-[80px] px-4 md:px-6 flex items-center justify-between">
@@ -75,7 +96,7 @@ export default function Navbar({ user, onLogout }) {
                                 <input
                                     type="text"
                                     placeholder="Search products, brands, categories..."
-                                    className="w-full h-12 px-4 pr-12 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="w-full h-12 px-4 pr-12 rounded-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />
@@ -92,7 +113,7 @@ export default function Navbar({ user, onLogout }) {
                     {/* Right Side Icons */}
                     <div className="hidden md:flex items-center space-x-6 text-white">
                         <Link to="/sellerhome" className="hover:text-gray-300 transition-colors font-medium">
-                            Sell
+                            Sell+
                         </Link>
                         <Link to="/investor" className="hover:text-gray-300 transition-colors font-medium">
                             Investors
@@ -101,8 +122,10 @@ export default function Navbar({ user, onLogout }) {
                         {/* Profile Dropdown */}
                         <div className="relative">
                             <button
+                                ref={profileButtonRef}
                                 className="flex items-center gap-2 hover:text-gray-300 transition-colors"
                                 onClick={() => setDropdownOpen(!dropdownOpen)}
+                                onMouseEnter={() => setDropdownOpen(true)}
                             >
                                 <div className="w-8 h-8 bg-white text-[#800000] rounded-full flex items-center justify-center font-semibold">
                                     {user ? (
@@ -114,7 +137,12 @@ export default function Navbar({ user, onLogout }) {
                                 <span className="font-medium">{user ? user.name?.split(' ')[0] : 'Profile'}</span>
                             </button>
                             {dropdownOpen && (
-                                <div className="absolute top-full right-0 mt-2 bg-white text-gray-800 shadow-lg rounded-lg border w-60 z-50">
+                                <div 
+                                    ref={dropdownRef}
+                                    className="absolute top-full right-0 mt-2 bg-white text-gray-800 shadow-lg rounded-sm border w-60 z-100" // Changed from z-50 to z-100
+                                    onMouseEnter={() => setDropdownOpen(true)}
+                                    onMouseLeave={() => setDropdownOpen(false)}
+                                >
                                     <div className="p-4">
                                         {user && (
                                             <div className="mb-4 pb-4 border-b">
@@ -181,7 +209,7 @@ export default function Navbar({ user, onLogout }) {
 
                 {/* Mobile Menu */}
                 {menuOpen && (
-                    <div className="md:hidden bg-[#800000] border-t border-gray-600 px-4 py-4 space-y-4">
+                    <div className="md:hidden bg-[#800000] border-t border-gray-600 px-4 py-4 space-y-4" style={{ zIndex: 100 }}>
                         {/* Mobile Search */}
                         <form onSubmit={handleSearch} className="mb-4">
                             <div className="relative">
