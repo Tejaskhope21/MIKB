@@ -1,136 +1,132 @@
-// models/User.model.js
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
-/* USER ADDRESS SUB-SCHEMA */
-const addressSchema = new mongoose.Schema(
-    {
-        fullName: {
-            type: String,
-            required: [true, 'Full name is required'],
-            trim: true,
-        },
-        phone: {
-            type: String,
-            required: [true, 'Phone number is required'],
-            match: [/^[0-9]{10}$/, 'Please enter a valid 10-digit phone number'],
-        },
-        addressLine: {
-            type: String,
-            required: [true, 'Address line is required'],
-            trim: true,
-        },
-        city: {
-            type: String,
-            required: [true, 'City is required'],
-            trim: true,
-        },
-        state: {
-            type: String,
-            required: [true, 'State is required'],
-            trim: true,
-        },
-        pincode: {
-            type: String,
-            required: [true, 'Pincode is required'],
-            match: [/^[0-9]{6}$/, 'Please enter a valid 6-digit pincode'],
-        },
-        country: {
-            type: String,
-            default: 'India',
-            trim: true,
-        },
-        isDefault: {
-            type: Boolean,
-            default: false,
-        },
-    },
-    { _id: true } // Each address gets its own _id
-);
+/* =========================
+   USER SCHEMA
+========================= */
 
-/* MAIN USER SCHEMA */
 const userSchema = new mongoose.Schema(
     {
-        /* COMMON FIELDS */
+        /* ===== BASIC INFO ===== */
         name: {
             type: String,
             required: [true, 'Name is required'],
             trim: true,
+            minlength: 2,
+            maxlength: 100,
         },
+
         email: {
             type: String,
             required: [true, 'Email is required'],
             unique: true,
             lowercase: true,
             trim: true,
-            match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email'],
+            match: [
+                /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
+                'Invalid email',
+            ],
         },
+
         password: {
             type: String,
             required: [true, 'Password is required'],
-            minlength: [6, 'Password must be at least 6 characters'],
-            select: false, // Don't return password by default
+            minlength: 6,
+            select: false,
         },
+
         role: {
             type: String,
-            enum: ['USER', 'SELLER', 'ADMIN'],
+            enum: ['USER', 'SELLER', 'ADMIN', 'SUPER_ADMIN'],
             default: 'USER',
         },
+
         phone: {
             type: String,
-            match: [/^[0-9]{10}$/, 'Please enter a valid 10-digit phone number'],
+            match: [/^[0-9]{10}$/, 'Invalid 10-digit phone number'],
         },
 
-        /* USER SPECIFIC */
-        addresses: [addressSchema],
-
-        /* SELLER SPECIFIC FIELDS */
-        businessName: { type: String, trim: true },
-        businessType: {
+        profileImage: {
             type: String,
-            enum: ['Manufacturer', 'Distributor', 'Retailer', 'Wholesaler', null],
-        },
-        gstNumber: {
-            type: String,
-            uppercase: true,
-            trim: true,
-            match: [/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/, 'Invalid GST Number'],
-        },
-        businessAddress: { type: String, trim: true },
-        businessCity: { type: String, trim: true },
-        businessState: { type: String, trim: true },
-        businessPincode: {
-            type: String,
-            match: [/^[0-9]{6}$/, 'Invalid pincode'],
-        },
-        contactNumber: {
-            type: String,
-            match: [/^[0-9]{10}$/, 'Invalid contact number'],
-        },
-        bankAccountName: { type: String, trim: true },
-        bankAccountNumber: {
-            type: String,
-            match: [/^[0-9]{9,18}$/, 'Invalid account number'],
-        },
-        bankIFSC: {
-            type: String,
-            uppercase: true,
-            trim: true,
-            match: [/^[A-Z]{4}0[A-Z0-9]{6}$/, 'Invalid IFSC code'],
-        },
-        isSellerVerified: {
-            type: Boolean,
-            default: false,
         },
 
-        /* COMMON META */
-        isActive: {
-            type: Boolean,
-            default: true,
+        /* ===== ADDRESSES ===== */
+        addresses: [
+            {
+                fullName: { type: String, required: true },
+                phone: { type: String, required: true },
+                addressLine: { type: String, required: true },
+                city: { type: String, required: true },
+                state: { type: String, required: true },
+                pincode: {
+                    type: String,
+                    required: true,
+                    match: [/^[0-9]{6}$/, 'Invalid pincode'],
+                },
+                country: { type: String, default: 'India' },
+                addressType: {
+                    type: String,
+                    enum: ['home', 'office', 'other'],
+                    default: 'home',
+                },
+                isDefault: { type: Boolean, default: false },
+            },
+        ],
+
+        /* ===== SELLER INFO ===== */
+        businessName: {
+            type: String,
         },
-        lastLogin: Date,
-        resetPasswordToken: String,
-        resetPasswordExpire: Date,
+
+        sellerSettings: {
+            storeName: String,
+            storeSlug: {
+                type: String,
+                unique: true,
+                sparse: true,
+                lowercase: true,
+            },
+            storeLogo: String,
+            storeBanner: String,
+            isStorePublished: {
+                type: Boolean,
+                default: false,
+            },
+            storeStatus: {
+                type: String,
+                enum: ['active', 'inactive', 'suspended', 'under_review'],
+                default: 'under_review',
+            },
+            default: {},
+        },
+
+        /* ===== STATUS & VERIFICATION ===== */
+        isEmailVerified: { type: Boolean, default: false },
+        isPhoneVerified: { type: Boolean, default: false },
+        isSellerVerified: { type: Boolean, default: false },
+        isActive: { type: Boolean, default: true },
+
+        /* ===== SECURITY ===== */
+        resetPasswordToken: { type: String, select: false },
+        resetPasswordExpire: { type: Date, select: false },
+
+        loginAttempts: { type: Number, default: 0, select: false },
+        lockUntil: { type: Date, select: false },
+
+        /* ===== WALLET (SELLER) ===== */
+        wallet: {
+            balance: { type: Number, default: 0, min: 0 },
+            pendingBalance: { type: Number, default: 0, min: 0 },
+            lifetimeEarnings: { type: Number, default: 0, min: 0 },
+        },
+
+        /* ===== REFERRAL ===== */
+        referralCode: {
+            type: String,
+            unique: true,
+            sparse: true,
+        },
     },
     {
         timestamps: true,
@@ -139,21 +135,63 @@ const userSchema = new mongoose.Schema(
     }
 );
 
-/* HASH PASSWORD BEFORE SAVING - MODERN ASYNC STYLE (Mongoose 7/8+) */
+/* =========================
+   PRE-SAVE MIDDLEWARE
+========================= */
 userSchema.pre('save', async function () {
-    // Only hash if password is modified (or new)
-    if (!this.isModified('password')) return;
+    // Hash password
+    if (this.isModified('password')) {
+        const salt = await bcrypt.genSalt(10);
+        this.password = await bcrypt.hash(this.password, salt);
+    }
 
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
+    // Generate referral code for USER
+    if (this.role === 'USER' && !this.referralCode) {
+        this.referralCode = crypto.randomBytes(4).toString('hex').toUpperCase();
+    }
+
+    // Generate store slug for SELLER
+    if (
+        this.role === 'SELLER' &&
+        this.businessName &&
+        !this.sellerSettings?.storeSlug
+    ) {
+        this.sellerSettings.storeSlug = this.businessName
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+    }
 });
 
-/* METHOD TO COMPARE PASSWORD DURING LOGIN */
+/* =========================
+   QUERY MIDDLEWARE (NO next)
+========================= */
+userSchema.pre(/^find/, function () {
+    this.where({ deletedAt: { $exists: false } });
+});
+
+/* =========================
+   INSTANCE METHODS
+========================= */
 userSchema.methods.matchPassword = async function (enteredPassword) {
-    return await bcrypt.compare(enteredPassword, this.password);
+    return bcrypt.compare(enteredPassword, this.password);
 };
 
-/* EXPORT MODEL */
-const User = mongoose.model('User', userSchema);
+userSchema.methods.getResetPasswordToken = function () {
+    const resetToken = crypto.randomBytes(20).toString('hex');
 
+    this.resetPasswordToken = crypto
+        .createHash('sha256')
+        .update(resetToken)
+        .digest('hex');
+
+    this.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+    return resetToken;
+};
+
+/* =========================
+   MODEL EXPORT
+========================= */
+const User = mongoose.model('User', userSchema);
 export default User;
