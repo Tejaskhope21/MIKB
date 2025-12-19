@@ -4,7 +4,9 @@ import {
     getCategory,
     createCategory,
     updateCategory,
-    deleteCategory
+    deleteCategory,
+    fixDuplicateIndex,
+    checkExistingData
 } from '../controllers/categoryController.js';
 
 import {
@@ -14,15 +16,19 @@ import {
 
 const router = express.Router();
 
-/* ---------- PUBLIC ---------- */
+/* ---------- PUBLIC ROUTES ---------- */
 router.get('/', getCategories);
 router.get('/:id', getCategory);
 
-/* ---------- ADMIN ---------- */
+/* ---------- UTILITY ROUTES (for debugging) ---------- */
+router.get('/debug/check-data', checkExistingData);
+router.get('/debug/fix-index', fixDuplicateIndex);
+
+/* ---------- ADMIN PROTECTED ROUTES ---------- */
 router.post(
     '/',
-    protect,                 // ✅ correct
-    authorize('admin'),      // ✅ correct
+    protect,
+    authorize('admin'),
     createCategory
 );
 
