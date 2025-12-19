@@ -15,7 +15,7 @@ import categoryRoutes from './routes/categoryRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import sellerRoutes from './routes/seller.routes.js';
 import orderRoutes from './routes/order.routes.js';
-import uploadRoutes from './routes/uploadroutes.js';
+import uploadRoutes from "./routes/uploadRoutes.js";
 
 // Load env
 dotenv.config();
