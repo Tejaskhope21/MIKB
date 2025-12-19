@@ -7,6 +7,7 @@ import MainLayout from "../layouts/MainLayout"
 import LoginPage from "../pages/Users/LoginPage"
 import RegisterPage from "../pages/Users/RegisterPage"
 import ProtectedRoute from '../components/Auth/ProtectedRoute'
+
 import ErrorBoundary from '../components/ErrorBoundary'
 
 // Seller Components
@@ -26,6 +27,7 @@ const AppRoutes = () => {
                     <Route path="/products/category/:categoryId" element={<ProductsPage />} />
                     <Route path="/product/:productId" element={<ProductDetailsPage />} />
                     <Route path="/cart" element={<CartPage />} />
+                    
                 </Route>
 
                 {/* Auth routes (without MainLayout) */}
