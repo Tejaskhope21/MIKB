@@ -63,7 +63,7 @@ export default function Navbar({ user, onLogout }) {
     ];
 
     return (
-        <header className="sticky top-0 z-100 bg-[#800000] shadow-lg"> {/* Changed from z-50 to z-100 */}
+        <header className=" top-0 z-100 bg-[#800000] shadow-lg"> {/* Changed from z-50 to z-100 */}
             <div className="w-full">
                 {/* Top Navbar */}
                 <nav className="h-[80px] px-4 md:px-6 flex items-center justify-between">
