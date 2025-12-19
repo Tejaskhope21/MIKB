@@ -54,14 +54,14 @@ const categorySchema = new mongoose.Schema(
 );
 
 /* -------- Auto-generate slug from name -------- */
-// categorySchema.pre('save', function (next) {
-//     if (this.name && !this.slug) {
-//         this.slug = this.name
-//             .toLowerCase()
-//             .replace(/[^a-z0-9]+/g, '-')
-//             .replace(/(^-|-$)/g, '');
-//     }
-//     next();
-// });
+categorySchema.pre('save', function (next) {
+    if (this.name && !this.slug) {
+        this.slug = this.name
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/(^-|-$)/g, '');
+    }
+    next();
+});
 
 export default mongoose.model('Category', categorySchema);

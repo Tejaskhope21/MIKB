@@ -1,17 +1,3 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-/* Add custom z-index values */
-.z-100 {
-  z-index: 100;
-}
-
-/* Ensure navbar stays on top of everything */
-header {
-  isolation: isolate;
-}
-
-/* Optional: Add a delay to category hover to prevent interference */
-.category-header nav {
-  transition: z-index 0.3s ease;
-}
