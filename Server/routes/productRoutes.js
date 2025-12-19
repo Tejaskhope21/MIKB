@@ -1,14 +1,29 @@
 import express from 'express';
-import { getProducts, getProduct, createProduct, updateProduct, deleteProduct } from '../controllers/productController.js';
+import {
+    getProducts,
+    getProduct,
+    createProduct,
+    updateProduct,
+    deleteProduct,
+    getSellerProducts,
+    bulkUpdateProducts
+} from '../controllers/productController.js';
 import { protect, authorize } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
+// Public routes
 router.get('/', getProducts);
 router.get('/:id', getProduct);
 
-router.post('/', protect, authorize('admin', 'seller'), createProduct);
-router.put('/:id', protect, authorize('admin', 'seller'), updateProduct); // Additional check in controller
-router.delete('/:id', protect, authorize('admin', 'seller'), deleteProduct); // Additional check in controller
+// Protected routes - all require authentication
+router.use(protect);
+
+// Seller specific routes
+router.get('/seller/my-products', authorize('admin', 'seller'), getSellerProducts);
+router.post('/', authorize('admin', 'seller'), createProduct);
+router.put('/:id', authorize('admin', 'seller'), updateProduct);
+router.delete('/:id', authorize('admin', 'seller'), deleteProduct);
+router.post('/bulk-update', authorize('admin', 'seller'), bulkUpdateProducts);
 
 export default router;
