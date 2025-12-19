@@ -323,16 +323,16 @@ const CategorySection = () => {
                                             </div>
 
                                             {/* Subcategory Count Badge */}
-                                            {category.subcategories?.length > 0 && (
+                                            {/* {category.subcategories?.length > 0 && (
                                                 <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-sm text-gray-700 border">
                                                     {category.subcategories.length} sub
                                                 </div>
-                                            )}
+                                            )} */}
 
                                             {/* Icon Badge */}
-                                            <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm w-9 h-9 rounded-full flex items-center justify-center text-xl">
+                                            {/* <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm w-9 h-9 rounded-full flex items-center justify-center text-xl">
                                                 {category.icon}
-                                            </div>
+                                            </div> */}
 
                                             {/* Hover Overlay */}
                                             <div className="absolute inset-0 bg-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
