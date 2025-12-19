@@ -7,7 +7,12 @@ import {
     adminLogin,
     getMe
 } from '../controllers/auth.controller.js';
-import { protect, authorize, checkActive } from '../middleware/auth.middleware.js';
+
+import {
+    protect,
+    checkActive
+} from '../middleware/auth.middleware.js';
+
 import {
     validate,
     registerValidation,
@@ -16,22 +21,50 @@ import {
 
 const router = express.Router();
 
-/* ================= PUBLIC ROUTES ================= */
+/* =======================
+   PUBLIC ROUTES
+======================= */
 
 // USER AUTH
-router.post('/user/register', validate(registerValidation), userRegister);
-router.post('/user/login', userLogin);
+router.post(
+    '/user/register',
+    validate(registerValidation),
+    userRegister
+);
+
+router.post(
+    '/user/login',
+    userLogin
+);
 
 // SELLER AUTH
-router.post('/seller/register', validate([...registerValidation, ...sellerRegisterValidation]), sellerRegister);
-router.post('/seller/login', sellerLogin);
+router.post(
+    '/seller/register',
+    validate([...registerValidation, ...sellerRegisterValidation]),
+    sellerRegister
+);
+
+router.post(
+    '/seller/login',
+    sellerLogin
+);
 
 // ADMIN AUTH
-router.post('/admin/login', adminLogin);
+router.post(
+    '/admin/login',
+    adminLogin
+);
 
-/* ================= PROTECTED ROUTES ================= */
+/* =======================
+   PROTECTED ROUTES
+======================= */
 
-// GET CURRENT USER (ALL ROLES)
-router.get('/me', protect, checkActive, getMe);
+// GET CURRENT USER (USER / SELLER / ADMIN)
+router.get(
+    '/me',
+    protect,        // ✅ middleware (DO NOT CALL)
+    checkActive,    // ✅ middleware (DO NOT CALL)
+    getMe
+);
 
 export default router;

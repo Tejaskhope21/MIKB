@@ -1,59 +1,117 @@
 import Category from '../models/Category.model.js';
-
-// Get all categories (Public)
+/* -------- GET ALL -------- */
 export const getCategories = async (req, res) => {
     try {
-        const categories = await Category.find();
-        res.json({ success: true, count: categories.length, categories });
+        const categories = await Category.find().sort({ numericId: 1 });
+
+        res.status(200).json({
+            success: true,
+            count: categories.length,
+            categories
+        });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
 };
 
-// Get single category (Public)
+/* -------- GET ONE -------- */
 export const getCategory = async (req, res) => {
     try {
-        const category = await Category.findOne({ numericId: req.params.id });
-        if (!category) return res.status(404).json({ success: false, message: 'Category not found' });
-        res.json({ success: true, category });
+        const id = Number(req.params.id);
+
+        const category = await Category.findOne({ numericId: id });
+
+        if (!category) {
+            return res.status(404).json({
+                success: false,
+                message: 'Category not found'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            category
+        });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
 };
 
-// Create category (Admin only)
+/* -------- CREATE (ADMIN) -------- */
 export const createCategory = async (req, res) => {
     try {
-        const category = new Category(req.body);
-        await category.save();
-        res.status(201).json({ success: true, category });
+        const category = await Category.create(req.body);
+
+        res.status(201).json({
+            success: true,
+            category
+        });
     } catch (error) {
-        res.status(400).json({ success: false, message: error.message });
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
     }
 };
 
-// Update category (Admin only)
+/* -------- UPDATE (ADMIN) -------- */
 export const updateCategory = async (req, res) => {
     try {
+        const id = Number(req.params.id);
+
         const category = await Category.findOneAndUpdate(
-            { numericId: req.params.id },
+            { numericId: id },
             req.body,
-            { new: true }
+            { new: true, runValidators: true }
         );
-        if (!category) return res.status(404).json({ success: false, message: 'Category not found' });
-        res.json({ success: true, category });
+
+        if (!category) {
+            return res.status(404).json({
+                success: false,
+                message: 'Category not found'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            category
+        });
     } catch (error) {
-        res.status(400).json({ success: false, message: error.message });
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
     }
 };
 
-// Delete category (Admin only)
+/* -------- DELETE (ADMIN) -------- */
 export const deleteCategory = async (req, res) => {
     try {
-        const category = await Category.findOneAndDelete({ numericId: req.params.id });
-        if (!category) return res.status(404).json({ success: false, message: 'Category not found' });
-        res.json({ success: true, message: 'Category deleted' });
+        const id = Number(req.params.id);
+
+        const category = await Category.findOneAndDelete({ numericId: id });
+
+        if (!category) {
+            return res.status(404).json({
+                success: false,
+                message: 'Category not found'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Category deleted successfully'
+        });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
 };
