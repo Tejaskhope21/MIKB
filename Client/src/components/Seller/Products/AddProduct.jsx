@@ -18,6 +18,7 @@ const AddProduct = () => {
     const [categories, setCategories] = useState([]);
     const [subcategories, setSubcategories] = useState([]);
     const [loadingCategories, setLoadingCategories] = useState(true);
+    const [loadingSubcategories, setLoadingSubcategories] = useState(false);
 
     // Building construction materials specific product data
     const [productData, setProductData] = useState({
@@ -111,21 +112,92 @@ const AddProduct = () => {
 
     const fetchSubcategories = async (categoryId) => {
         try {
-            const response = await axios.get(`${API_URL}/categories/${categoryId}/subcategories`);
-            if (response.data.success) {
-                setSubcategories(response.data.subcategories || []);
+            setLoadingSubcategories(true);
+            setSubcategories([]);
+
+            // Try to get subcategories from the category data first
+            const selectedCategory = categories.find(cat =>
+                cat._id === categoryId || cat.numericId?.toString() === categoryId
+            );
+
+            if (selectedCategory && selectedCategory.subcategories && selectedCategory.subcategories.length > 0) {
+                // Use subcategories from category data
+                const formattedSubcategories = selectedCategory.subcategories.map((sub, index) => ({
+                    _id: sub._id || `sub-${index}-${Date.now()}`,
+                    numericId: sub.numericId || index + 1,
+                    name: sub.title || sub.name,
+                    title: sub.title || sub.name,
+                    items: sub.items || []
+                }));
+                setSubcategories(formattedSubcategories);
+                setLoadingSubcategories(false);
+                return;
+            }
+
+            // If no subcategories in category data, try API endpoint
+            try {
+                const response = await axios.get(`${API_URL}/categories/${categoryId}/subcategories`);
+
+                if (response.data.success) {
+                    const subcategoriesData = response.data.subcategories || response.data.data || [];
+
+                    if (subcategoriesData.length > 0) {
+                        const formatted = subcategoriesData.map(sub => ({
+                            _id: sub._id || sub.id,
+                            numericId: sub.numericId || sub.id,
+                            name: sub.title || sub.name,
+                            title: sub.title || sub.name,
+                            items: sub.items || []
+                        }));
+                        setSubcategories(formatted);
+                    }
+                }
+            } catch (apiError) {
+                console.log('Subcategories API endpoint not available:', apiError.message);
+                // If API fails, check if there's a different structure
+                if (selectedCategory) {
+                    // Check for alternative subcategory field names
+                    const altSubcategories = selectedCategory.subCategories || selectedCategory.sub_categories || [];
+                    if (altSubcategories.length > 0) {
+                        const formattedSubcategories = altSubcategories.map((sub, index) => ({
+                            _id: sub._id || `sub-alt-${index}-${Date.now()}`,
+                            numericId: sub.numericId || index + 1,
+                            name: sub.title || sub.name,
+                            title: sub.title || sub.name,
+                            items: sub.items || []
+                        }));
+                        setSubcategories(formattedSubcategories);
+                    }
+                }
             }
         } catch (error) {
             console.error('Error fetching subcategories:', error);
             setSubcategories([]);
+        } finally {
+            setLoadingSubcategories(false);
         }
+    };
+
+    const handleCategoryChange = (e) => {
+        const categoryId = e.target.value;
+        setProductData({
+            ...productData,
+            categoryId: categoryId,
+            subcategoryId: ''
+        });
+    };
+
+    const handleSubcategoryChange = (e) => {
+        setProductData({
+            ...productData,
+            subcategoryId: e.target.value
+        });
     };
 
     const handleImageUpload = async (e) => {
         const files = Array.from(e.target.files);
         if (files.length === 0) return;
 
-        // Check total images won't exceed 10
         if (images.length + files.length > 10) {
             alert('Maximum 10 images allowed. Please select fewer files.');
             return;
@@ -149,10 +221,8 @@ const AddProduct = () => {
                 });
 
                 if (response.data.success) {
-                    // Ensure we have the correct image URL
                     let imageUrl = response.data.imageUrl;
 
-                    // If it's a relative path, convert to absolute URL
                     if (imageUrl && imageUrl.startsWith('/')) {
                         const baseUrl = API_URL.replace('/api', '');
                         imageUrl = `${baseUrl}${imageUrl}`;
@@ -177,7 +247,7 @@ const AddProduct = () => {
         if (uploadedImages.length > 0) {
             setImages(prev => [...prev, ...uploadedImages]);
         }
-        e.target.value = ''; // Clear file input
+        e.target.value = '';
     };
 
     const removeImage = (index) => {
@@ -227,7 +297,6 @@ const AddProduct = () => {
             return;
         }
 
-        // Check if all variations have valid data
         const invalidVariations = variations.filter(v =>
             !v.name?.trim() || !v.options || v.options.length === 0 || v.options.every(o => !o.trim())
         );
@@ -256,8 +325,7 @@ const AddProduct = () => {
                             [variation.name]: option
                         },
                         name: variantName,
-                        // REMOVED SKU generation - let backend handle it
-                        sku: '', // Empty SKU, backend will generate
+                        sku: '',
                         price: variation.affectsPrice ? '' : productData.price || 0,
                         stock: productData.inventory.stock || 0,
                         image: images[0] || '',
@@ -308,7 +376,6 @@ const AddProduct = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Validate form
         const validationErrors = validateProduct();
         if (validationErrors.length > 0) {
             alert(validationErrors.join('\n'));
@@ -325,29 +392,22 @@ const AddProduct = () => {
                 return;
             }
 
-            // Clean image URLs (remove base URL if present)
             const cleanedImages = images.map(img => {
                 const baseUrl = API_URL.replace('/api', '');
                 return img.replace(baseUrl, '');
             });
 
-            // Prepare data for submission
             const dataToSubmit = {
-                // Basic information
                 name: productData.name.trim(),
                 categoryId: productData.categoryId,
                 subcategoryId: productData.subcategoryId || null,
                 brand: productData.brand.trim() || '',
                 description: productData.description.trim(),
-
-                // Construction specific
                 materialType: productData.materialType || 'other',
                 grade: productData.grade || '',
                 color: productData.color || '',
                 finish: productData.finish || '',
                 application: productData.application.filter(app => app.trim()),
-
-                // Technical specifications
                 technicalSpecs: {
                     thickness: productData.technicalSpecs.thickness || '',
                     weight: productData.technicalSpecs.weight || '',
@@ -356,15 +416,9 @@ const AddProduct = () => {
                     fireResistant: Boolean(productData.technicalSpecs.fireResistant),
                     thermalInsulation: Boolean(productData.technicalSpecs.thermalInsulation)
                 },
-
-                // Pricing
                 price: parseFloat(productData.price),
                 originalPrice: productData.originalPrice ? parseFloat(productData.originalPrice) : undefined,
-
-                // Images
                 images: cleanedImages,
-
-                // Inventory - DO NOT include SKU, let backend generate it
                 inventory: {
                     stock: parseInt(productData.inventory.stock) || 0,
                     lowStockThreshold: parseInt(productData.inventory.lowStockThreshold) || 10,
@@ -373,8 +427,6 @@ const AddProduct = () => {
                     bulkDiscount: Boolean(productData.inventory.bulkDiscount),
                     bulkTiers: productData.inventory.bulkTiers || []
                 },
-
-                // Shipping
                 shipping: productData.shipping.weight ? {
                     weight: productData.shipping.weight,
                     dimensions: {
@@ -384,33 +436,23 @@ const AddProduct = () => {
                     },
                     fragile: Boolean(productData.shipping.fragile)
                 } : undefined,
-
-                // Unit and packaging
                 unitType: productData.unitType || 'piece',
                 packaging: {
                     type: productData.packaging.type || 'box',
                     quantityPerPackage: parseInt(productData.packaging.quantityPerPackage) || 1
                 },
-
-                // Status
                 status: productData.status || 'draft',
-
-                // Certifications and warranty
                 certifications: productData.certifications.filter(c => c.trim()),
                 warranty: (productData.warranty.duration || productData.warranty.type) ? {
                     duration: productData.warranty.duration || '',
                     type: productData.warranty.type || ''
                 } : undefined,
-
-                // SEO and tags
                 tags: productData.tags.filter(tag => tag.trim()),
                 seo: {
                     title: productData.seo.title || '',
                     description: productData.seo.description || '',
                     keywords: productData.seo.keywords || []
                 },
-
-                // Variations and variants
                 variations: variations
                     .filter(v => v.name && v.name.trim() && v.options && v.options.some(o => o.trim()))
                     .map(v => ({
@@ -419,12 +461,9 @@ const AddProduct = () => {
                         options: v.options.filter(o => o.trim()),
                         affectsPrice: Boolean(v.affectsPrice)
                     })),
-
-                // Variants - send empty SKUs or omit them completely
                 variants: variants.map(v => ({
                     name: v.name || productData.name,
-                    // DO NOT send SKU or send empty string - backend will generate
-                    sku: '', // Empty SKU
+                    sku: '',
                     price: parseFloat(v.price) || parseFloat(productData.price),
                     stock: parseInt(v.stock) || 0,
                     attributes: v.attributes || {},
@@ -433,7 +472,6 @@ const AddProduct = () => {
                 }))
             };
 
-            // Clean undefined fields
             Object.keys(dataToSubmit).forEach(key => {
                 if (dataToSubmit[key] === undefined ||
                     dataToSubmit[key] === null ||
@@ -444,7 +482,6 @@ const AddProduct = () => {
                 }
             });
 
-            // Clean nested objects
             if (dataToSubmit.shipping && Object.keys(dataToSubmit.shipping).length === 0) {
                 delete dataToSubmit.shipping;
             }
@@ -462,7 +499,7 @@ const AddProduct = () => {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-                timeout: 30000 // 30 second timeout
+                timeout: 30000
             });
 
             if (response.data.success) {
@@ -477,7 +514,6 @@ const AddProduct = () => {
             let errorMessage = 'Failed to create product. Please try again.';
 
             if (error.response) {
-                // Server responded with error
                 console.error('Server response:', error.response.data);
 
                 if (error.response.status === 401) {
@@ -494,10 +530,8 @@ const AddProduct = () => {
                     errorMessage = error.response.data.errors.join('\n');
                 }
             } else if (error.request) {
-                // Request made but no response
                 errorMessage = 'No response from server. Please check your connection.';
             } else {
-                // Other errors
                 errorMessage = error.message || 'An unexpected error occurred.';
             }
 
@@ -507,7 +541,6 @@ const AddProduct = () => {
         }
     };
 
-    // Add bulk discount tier
     const addBulkTier = () => {
         setProductData(prev => ({
             ...prev,
@@ -521,7 +554,6 @@ const AddProduct = () => {
         }));
     };
 
-    // Add application area
     const addApplication = () => {
         setProductData(prev => ({
             ...prev,
@@ -529,7 +561,6 @@ const AddProduct = () => {
         }));
     };
 
-    // Add certification
     const addCertification = () => {
         setProductData(prev => ({
             ...prev,
@@ -537,19 +568,16 @@ const AddProduct = () => {
         }));
     };
 
-    // Handle tag input
     const handleTagsChange = (e) => {
         const value = e.target.value;
         const tagsArray = value.split(',').map(tag => tag.trim()).filter(tag => tag);
         setProductData(prev => ({ ...prev, tags: tagsArray }));
     };
 
-    // Format tags for display
     const getTagsDisplay = () => {
         return Array.isArray(productData.tags) ? productData.tags.join(', ') : productData.tags || '';
     };
 
-    // Update application field
     const updateApplication = (index, value) => {
         setProductData(prev => {
             const updated = [...prev.application];
@@ -558,7 +586,6 @@ const AddProduct = () => {
         });
     };
 
-    // Update certification field
     const updateCertification = (index, value) => {
         setProductData(prev => {
             const updated = [...prev.certifications];
@@ -567,7 +594,6 @@ const AddProduct = () => {
         });
     };
 
-    // Update bulk tier
     const updateBulkTier = (index, field, value) => {
         setProductData(prev => {
             const updatedTiers = [...prev.inventory.bulkTiers];
@@ -582,7 +608,6 @@ const AddProduct = () => {
         });
     };
 
-    // Remove bulk tier
     const removeBulkTier = (index) => {
         setProductData(prev => ({
             ...prev,
@@ -593,7 +618,6 @@ const AddProduct = () => {
         }));
     };
 
-    // Remove application
     const removeApplication = (index) => {
         setProductData(prev => ({
             ...prev,
@@ -601,7 +625,6 @@ const AddProduct = () => {
         }));
     };
 
-    // Remove certification
     const removeCertification = (index) => {
         setProductData(prev => ({
             ...prev,
@@ -609,7 +632,6 @@ const AddProduct = () => {
         }));
     };
 
-    // Update variant field
     const updateVariant = (index, field, value) => {
         setVariants(prev => {
             const updated = [...prev];
@@ -715,7 +737,7 @@ const AddProduct = () => {
                             <select
                                 required
                                 value={productData.categoryId}
-                                onChange={(e) => setProductData({ ...productData, categoryId: e.target.value })}
+                                onChange={handleCategoryChange}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 disabled={loadingCategories}
                             >
@@ -737,17 +759,30 @@ const AddProduct = () => {
                             </label>
                             <select
                                 value={productData.subcategoryId}
-                                onChange={(e) => setProductData({ ...productData, subcategoryId: e.target.value })}
+                                onChange={handleSubcategoryChange}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                disabled={!productData.categoryId || subcategories.length === 0}
+                                disabled={!productData.categoryId || loadingSubcategories}
                             >
                                 <option value="">Select Subcategory</option>
-                                {subcategories.map((subcategory) => (
-                                    <option key={subcategory._id || subcategory.id} value={subcategory._id || subcategory.id}>
-                                        {subcategory.name}
-                                    </option>
-                                ))}
+                                {loadingSubcategories ? (
+                                    <option value="" disabled>Loading subcategories...</option>
+                                ) : subcategories.length > 0 ? (
+                                    subcategories.map((subcategory) => (
+                                        <option key={subcategory._id || subcategory.id || subcategory.numericId}
+                                            value={subcategory._id || subcategory.id || subcategory.numericId}>
+                                            {subcategory.title || subcategory.name}
+                                        </option>
+                                    ))
+                                ) : (
+                                    <option value="" disabled>No subcategories available</option>
+                                )}
                             </select>
+                            {loadingSubcategories && (
+                                <p className="text-xs text-gray-500 mt-1">Loading subcategories...</p>
+                            )}
+                            {!loadingSubcategories && productData.categoryId && subcategories.length === 0 && (
+                                <p className="text-xs text-gray-500 mt-1">No subcategories found for this category</p>
+                            )}
                         </div>
                     </div>
 

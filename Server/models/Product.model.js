@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-// validator: at least 1 image
+// validator: at least one image
 const arrayLimit = (val) => Array.isArray(val) && val.length > 0;
 
 const productSchema = new mongoose.Schema(
@@ -28,6 +28,12 @@ const productSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Category',
             required: true
+        },
+
+        subcategoryId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Category',
+            default: null
         },
 
         materialType: {
@@ -88,17 +94,20 @@ const productSchema = new mongoose.Schema(
 
         unitType: {
             type: String,
-            enum: ['piece', 'kg', 'ton', 'bag'],
+            enum: ['piece', 'kg', 'ton', 'bag', 'meter', 'roll'],
             default: 'piece'
         },
 
         packaging: {
             type: {
                 type: String,
-                enum: ['box', 'bag', 'bundle'],
+                enum: ['box', 'bag', 'bundle', 'roll', 'pallet', 'crate', 'loose'],
                 default: 'box'
             },
-            quantityPerPackage: { type: Number, default: 1 }
+            quantityPerPackage: {
+                type: Number,
+                default: 1
+            }
         },
 
         sellerId: {
