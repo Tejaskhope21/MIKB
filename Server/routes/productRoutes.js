@@ -2,28 +2,62 @@ import express from 'express';
 import {
     getProducts,
     getProduct,
+    getProductByNumericId,
     createProduct,
     updateProduct,
     deleteProduct,
     getSellerProducts,
-    bulkUpdateProducts
+    bulkUpdateProducts,
+    getProductsByCategory,
+    searchProducts
 } from '../controllers/productController.js';
+
 import { protect, authorize } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
 // Public routes
 router.get('/', getProducts);
+router.get('/search', searchProducts);
 router.get('/:id', getProduct);
+router.get('/by-numeric-id/:numericId', getProductByNumericId);
+router.get('/category/:categoryId', getProductsByCategory);
 
-// Protected routes - all require authentication
-router.use(protect);
+// Protected routes
+router.post(
+    '/',
+    protect,
+    authorize('seller', 'admin'),
+    createProduct
+);
 
-// Seller specific routes
-router.get('/seller/my-products', authorize('admin', 'seller'), getSellerProducts);
-router.post('/', authorize('admin', 'seller'), createProduct);
-router.put('/:id', authorize('admin', 'seller'), updateProduct);
-router.delete('/:id', authorize('admin', 'seller'), deleteProduct);
-router.post('/bulk-update', authorize('admin', 'seller'), bulkUpdateProducts);
+router.put(
+    '/:id',
+    protect,
+    authorize('seller', 'admin'),
+    updateProduct
+);
+
+router.delete(
+    '/:id',
+    protect,
+    authorize('seller', 'admin'),
+    deleteProduct
+);
+
+// Seller-specific routes
+router.get(
+    '/seller/my-products',
+    protect,
+    authorize('seller', 'admin'),
+    getSellerProducts
+);
+
+router.put(
+    '/bulk/update',
+    protect,
+    authorize('seller', 'admin'),
+    bulkUpdateProducts
+);
 
 export default router;

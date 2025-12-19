@@ -1,104 +1,124 @@
 import Product from '../models/Product.model.js';
+import mongoose from 'mongoose';
 
-// Validation helper
-const validateProductData = (data) => {
-    const errors = [];
+/* =========================
+   CREATE PRODUCT
+========================= */
+export const createProduct = async (req, res) => {
+    try {
+        const product = await Product.create({
+            ...req.body,
+            sellerId: req.user._id // ✅ IMPORTANT FIX
+        });
 
-    // Required fields
-    if (!data.name || !data.name.trim()) {
-        errors.push('Product name is required');
-    }
-    if (!data.categoryId) {
-        errors.push('Category is required');
-    }
-    if (!data.price || isNaN(parseFloat(data.price)) || parseFloat(data.price) <= 0) {
-        errors.push('Valid price is required');
-    }
-    if (!data.description || !data.description.trim()) {
-        errors.push('Description is required');
-    }
-    if (!data.images || !Array.isArray(data.images) || data.images.length === 0) {
-        errors.push('At least one image is required');
-    }
+        res.status(201).json({
+            success: true,
+            message: 'Product created successfully',
+            data: product
+        });
+    } catch (error) {
+        console.error('Product create error:', error.message);
 
-    // Validate images array
-    if (data.images && Array.isArray(data.images)) {
-        data.images.forEach((img, index) => {
-            if (typeof img !== 'string' || !img.trim()) {
-                errors.push(`Image at position ${index + 1} is invalid`);
-            }
+        res.status(500).json({
+            success: false,
+            message: 'Failed to create product',
+            error: error.message
         });
     }
-
-    return errors;
 };
 
-// Get all products
+/* =========================
+   GET ALL PRODUCTS
+========================= */
 export const getProducts = async (req, res) => {
     try {
-        const { page = 1, limit = 20, search, categoryId, status, minPrice, maxPrice } = req.query;
+        // Extract query parameters
+        const { categoryId, limit, exclude } = req.query;
 
-        let filter = {};
+        // Build filter object
+        const filter = {};
 
-        if (search) {
-            filter.$or = [
-                { name: { $regex: search, $options: 'i' } },
-                { brand: { $regex: search, $options: 'i' } },
-                { description: { $regex: search, $options: 'i' } }
-            ];
+        if (categoryId) {
+            // Check if it's an ObjectId or numericId for category
+            if (mongoose.Types.ObjectId.isValid(categoryId)) {
+                filter.categoryId = categoryId;
+            } else {
+                // Try to find category by numericId and then use its _id
+                // For now, just filter by categoryId as string
+                filter.categoryId = categoryId;
+            }
         }
 
-        if (categoryId) filter.categoryId = categoryId;
-        if (status) filter.status = status;
-
-        if (minPrice || maxPrice) {
-            filter.price = {};
-            if (minPrice) filter.price.$gte = Number(minPrice);
-            if (maxPrice) filter.price.$lte = Number(maxPrice);
+        // Apply status filter if not provided in query
+        if (!req.query.status) {
+            filter.status = 'published';
         }
 
-        // For seller, only show their products
-        if (req.user && req.user.role === 'seller') {
-            filter.sellerId = req.user._id;
+        let query = Product.find(filter)
+            .sort({ createdAt: -1 })
+            .populate('sellerId', 'name storeName')
+            .populate('categoryId', 'name color icon');
+
+        // Apply limit if provided
+        if (limit && !isNaN(parseInt(limit))) {
+            query = query.limit(parseInt(limit));
         }
 
-        const skip = (parseInt(page) - 1) * parseInt(limit);
+        // Exclude specific product if provided
+        if (exclude) {
+            if (mongoose.Types.ObjectId.isValid(exclude)) {
+                query = query.where('_id').ne(exclude);
+            } else {
+                query = query.where('numericId').ne(parseInt(exclude));
+            }
+        }
 
-        const [products, total] = await Promise.all([
-            Product.find(filter)
-                .sort({ createdAt: -1 })
-                .skip(skip)
-                .limit(parseInt(limit))
-                .populate('sellerId', 'name email'),
-            Product.countDocuments(filter)
-        ]);
+        const products = await query;
 
         res.json({
             success: true,
             count: products.length,
-            total,
-            pagination: {
-                page: parseInt(page),
-                limit: parseInt(limit),
-                totalPages: Math.ceil(total / limit)
-            },
             products
         });
     } catch (error) {
-        console.error('Get products error:', error);
+        console.error('Get products error:', error.message);
         res.status(500).json({
             success: false,
             message: 'Failed to fetch products',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            error: error.message
         });
     }
 };
 
-// Get single product
+/* =========================
+   GET SINGLE PRODUCT (FIXED - Handles both _id and numericId)
+========================= */
 export const getProduct = async (req, res) => {
     try {
-        const product = await Product.findById(req.params.id)
-            .populate('sellerId', 'name email');
+        const id = req.params.id;
+        let product;
+
+        // Check if it's a MongoDB ObjectId (24 hex characters)
+        if (mongoose.Types.ObjectId.isValid(id) && /^[0-9a-fA-F]{24}$/.test(id)) {
+            // It's an ObjectId - find by _id
+            product = await Product.findById(id)
+                .populate('sellerId', 'name storeName')
+                .populate('categoryId', 'name color icon description');
+        } else {
+            // It's a numericId - find by numericId
+            const numericId = parseInt(id);
+
+            if (isNaN(numericId)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid product ID. Must be a valid ObjectId or numeric ID.'
+                });
+            }
+
+            product = await Product.findOne({ numericId: numericId })
+                .populate('sellerId', 'name storeName')
+                .populate('categoryId', 'name color icon description');
+        }
 
         if (!product) {
             return res.status(404).json({
@@ -112,158 +132,69 @@ export const getProduct = async (req, res) => {
             product
         });
     } catch (error) {
-        console.error('Get product error:', error);
+        console.error('Get product error:', error.message);
         res.status(500).json({
             success: false,
             message: 'Failed to fetch product',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            error: error.message
         });
     }
 };
 
-// Create product
-export const createProduct = async (req, res) => {
+/* =========================
+   GET PRODUCT BY NUMERIC ID (Additional endpoint)
+========================= */
+export const getProductByNumericId = async (req, res) => {
     try {
-        console.log('Creating product for user:', req.user?._id);
-        console.log('Product data received:', JSON.stringify(req.body, null, 2));
+        const numericId = parseInt(req.params.numericId);
 
-        // Validate required fields
-        const validationErrors = validateProductData(req.body);
-        if (validationErrors.length > 0) {
+        if (isNaN(numericId)) {
             return res.status(400).json({
                 success: false,
-                message: 'Validation failed',
-                errors: validationErrors
+                message: 'Invalid numeric ID'
             });
         }
 
-        // Prepare product data
-        const productData = {
-            name: req.body.name.trim(),
-            categoryId: req.body.categoryId,
-            subcategoryId: req.body.subcategoryId || null,
-            brand: req.body.brand?.trim() || undefined,
-            description: req.body.description.trim(),
-            materialType: req.body.materialType || 'other',
-            grade: req.body.grade || undefined,
-            color: req.body.color || undefined,
-            finish: req.body.finish || undefined,
-            application: req.body.application?.filter(app => app.trim()) || [],
-            technicalSpecs: req.body.technicalSpecs || {},
-            price: parseFloat(req.body.price),
-            originalPrice: req.body.originalPrice ? parseFloat(req.body.originalPrice) : undefined,
-            images: req.body.images,
-            inventory: {
-                stock: parseInt(req.body.inventory?.stock) || 0,
-                lowStockThreshold: parseInt(req.body.inventory?.lowStockThreshold) || 10,
-                moq: parseInt(req.body.inventory?.moq) || 1,
-                manageStock: req.body.inventory?.manageStock !== false,
-                bulkDiscount: req.body.inventory?.bulkDiscount || false,
-                bulkTiers: req.body.inventory?.bulkTiers || []
-            },
-            unitType: req.body.unitType || 'piece',
-            packaging: req.body.packaging || {
-                type: 'box',
-                quantityPerPackage: 1
-            },
-            shipping: req.body.shipping || undefined,
-            status: req.body.status || 'draft',
-            certifications: req.body.certifications?.filter(c => c.trim()) || [],
-            warranty: req.body.warranty || undefined,
-            returnPolicy: req.body.returnPolicy || undefined,
-            tags: req.body.tags?.filter(tag => tag.trim()) || [],
-            seo: req.body.seo || {},
-            variations: req.body.variations?.filter(v => v.name && v.options?.length > 0) || [],
-            variants: req.body.variants?.map(variant => ({
-                name: variant.name || req.body.name,
-                sku: variant.sku || '',
-                price: parseFloat(variant.price) || parseFloat(req.body.price),
-                stock: parseInt(variant.stock) || 0,
-                attributes: variant.attributes || {},
-                image: variant.image || req.body.images?.[0] || '',
-                specifications: variant.specifications || {}
-            })) || [],
-            sellerId: req.user._id,
-            storeName: req.user.storeName || req.user.name
-        };
+        const product = await Product.findOne({ numericId })
+            .populate('sellerId', 'name storeName')
+            .populate('categoryId', 'name color icon description');
 
-        // Clean up undefined fields
-        Object.keys(productData).forEach(key => {
-            if (productData[key] === undefined) {
-                delete productData[key];
-            }
-        });
-
-        // Clean nested objects
-        if (productData.shipping && Object.keys(productData.shipping).length === 0) {
-            delete productData.shipping;
-        }
-        if (productData.warranty && Object.keys(productData.warranty).length === 0) {
-            delete productData.warranty;
-        }
-        if (productData.seo && Object.keys(productData.seo).length === 0) {
-            delete productData.seo;
+        if (!product) {
+            return res.status(404).json({
+                success: false,
+                message: 'Product not found'
+            });
         }
 
-        console.log('Final product data:', JSON.stringify(productData, null, 2));
-
-        // Create and save product
-        const product = new Product(productData);
-        await product.save();
-
-        // Populate seller info
-        const populatedProduct = await Product.findById(product._id)
-            .populate('sellerId', 'name email');
-
-        res.status(201).json({
+        res.json({
             success: true,
-            message: 'Product created successfully',
-            product: populatedProduct
+            product
         });
-
     } catch (error) {
-        console.error('Create product error:', error);
-
-        // Handle duplicate SKU
-        if (error.code === 11000) {
-            return res.status(400).json({
-                success: false,
-                message: 'SKU already exists',
-                details: error.keyValue
-            });
-        }
-
-        // Handle validation errors
-        if (error.name === 'ValidationError') {
-            const messages = Object.values(error.errors).map(err => err.message);
-            return res.status(400).json({
-                success: false,
-                message: 'Validation error',
-                errors: messages
-            });
-        }
-
-        // Handle CastError (invalid ObjectId)
-        if (error.name === 'CastError') {
-            return res.status(400).json({
-                success: false,
-                message: `Invalid ${error.path}: ${error.value}`
-            });
-        }
-
-        // Generic error
         res.status(500).json({
             success: false,
-            message: 'Failed to create product',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            message: 'Failed to fetch product by numeric ID'
         });
     }
 };
 
-// Update product
+/* =========================
+   UPDATE PRODUCT
+========================= */
 export const updateProduct = async (req, res) => {
     try {
-        const product = await Product.findById(req.params.id);
+        const id = req.params.id;
+        let product;
+
+        // Find product by either _id or numericId
+        if (mongoose.Types.ObjectId.isValid(id) && /^[0-9a-fA-F]{24}$/.test(id)) {
+            product = await Product.findById(id);
+        } else {
+            const numericId = parseInt(id);
+            if (!isNaN(numericId)) {
+                product = await Product.findOne({ numericId });
+            }
+        }
 
         if (!product) {
             return res.status(404).json({
@@ -272,49 +203,52 @@ export const updateProduct = async (req, res) => {
             });
         }
 
-        // Check permission
+        // Authorization check
         if (req.user.role !== 'admin' && product.sellerId.toString() !== req.user._id.toString()) {
             return res.status(403).json({
                 success: false,
-                message: 'Not authorized to update this product'
+                message: 'Not authorized'
             });
         }
 
-        // Update product
-        const updatedProduct = await Product.findByIdAndUpdate(
-            req.params.id,
-            { ...req.body, updatedAt: Date.now() },
+        // Update the product
+        const updated = await Product.findByIdAndUpdate(
+            product._id,
+            req.body,
             { new: true, runValidators: true }
-        ).populate('sellerId', 'name email');
+        );
 
         res.json({
             success: true,
-            message: 'Product updated successfully',
-            product: updatedProduct
+            message: 'Product updated',
+            product: updated
         });
+
     } catch (error) {
-        console.error('Update product error:', error);
-
-        if (error.name === 'ValidationError') {
-            const messages = Object.values(error.errors).map(err => err.message);
-            return res.status(400).json({
-                success: false,
-                message: 'Validation error',
-                errors: messages
-            });
-        }
-
         res.status(400).json({
             success: false,
-            message: error.message || 'Failed to update product'
+            message: error.message
         });
     }
 };
 
-// Delete product
+/* =========================
+   DELETE PRODUCT
+========================= */
 export const deleteProduct = async (req, res) => {
     try {
-        const product = await Product.findById(req.params.id);
+        const id = req.params.id;
+        let product;
+
+        // Find product by either _id or numericId
+        if (mongoose.Types.ObjectId.isValid(id) && /^[0-9a-fA-F]{24}$/.test(id)) {
+            product = await Product.findById(id);
+        } else {
+            const numericId = parseInt(id);
+            if (!isNaN(numericId)) {
+                product = await Product.findOne({ numericId });
+            }
+        }
 
         if (!product) {
             return res.status(404).json({
@@ -323,36 +257,91 @@ export const deleteProduct = async (req, res) => {
             });
         }
 
-        // Check permission
         if (req.user.role !== 'admin' && product.sellerId.toString() !== req.user._id.toString()) {
             return res.status(403).json({
                 success: false,
-                message: 'Not authorized to delete this product'
+                message: 'Not authorized'
             });
         }
 
-        await Product.findByIdAndDelete(req.params.id);
+        await product.deleteOne();
 
         res.json({
             success: true,
-            message: 'Product deleted successfully'
+            message: 'Product deleted'
         });
+
     } catch (error) {
-        console.error('Delete product error:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to delete product',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            message: 'Failed to delete product'
         });
     }
 };
 
-// Get seller's products
+/* =========================
+   SELLER PRODUCTS
+========================= */
 export const getSellerProducts = async (req, res) => {
     try {
         const products = await Product.find({ sellerId: req.user._id })
-            .populate('sellerId', 'name email')
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .populate('categoryId', 'name');
+
+        res.json({
+            success: true,
+            products
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch seller products'
+        });
+    }
+};
+
+/* =========================
+   BULK UPDATE
+========================= */
+export const bulkUpdateProducts = async (req, res) => {
+    try {
+        const { productIds, updates } = req.body;
+
+        await Product.updateMany(
+            { _id: { $in: productIds } },
+            { $set: updates }
+        );
+
+        res.json({
+            success: true,
+            message: 'Products updated'
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: 'Bulk update failed'
+        });
+    }
+};
+
+/* =========================
+   PRODUCTS BY CATEGORY
+========================= */
+export const getProductsByCategory = async (req, res) => {
+    try {
+        const categoryId = req.params.categoryId;
+        let filter = { status: 'published' };
+
+        // Check if categoryId is ObjectId or numericId
+        if (mongoose.Types.ObjectId.isValid(categoryId) && /^[0-9a-fA-F]{24}$/.test(categoryId)) {
+            filter.categoryId = categoryId;
+        } else {
+            // Try to find category by numericId
+            filter['categoryId.numericId'] = parseInt(categoryId);
+        }
+
+        const products = await Product.find(filter)
+            .populate('categoryId', 'name');
 
         res.json({
             success: true,
@@ -360,69 +349,72 @@ export const getSellerProducts = async (req, res) => {
             products
         });
     } catch (error) {
-        console.error('Get seller products error:', error);
+        console.error('Products by category error:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to fetch seller products',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            message: 'Failed to fetch category products'
         });
     }
 };
 
-// Bulk update products
-export const bulkUpdateProducts = async (req, res) => {
+/* =========================
+   SEARCH PRODUCTS
+========================= */
+export const searchProducts = async (req, res) => {
     try {
-        const { productIds, updates } = req.body;
+        const { query, category, minPrice, maxPrice, page = 1, limit = 20 } = req.query;
 
-        if (!productIds || !Array.isArray(productIds) || productIds.length === 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'Product IDs are required'
-            });
+        const searchFilter = { status: 'published' };
+
+        // Text search
+        if (query) {
+            searchFilter.$or = [
+                { name: { $regex: query, $options: 'i' } },
+                { description: { $regex: query, $options: 'i' } },
+                { brand: { $regex: query, $options: 'i' } }
+            ];
         }
 
-        // Verify ownership for seller
-        if (req.user.role === 'seller') {
-            const products = await Product.find({
-                _id: { $in: productIds },
-                sellerId: req.user._id
-            });
-
-            if (products.length !== productIds.length) {
-                return res.status(403).json({
-                    success: false,
-                    message: 'Not authorized to update some products'
-                });
+        // Category filter
+        if (category) {
+            if (mongoose.Types.ObjectId.isValid(category)) {
+                searchFilter.categoryId = category;
+            } else {
+                searchFilter['categoryId.numericId'] = parseInt(category);
             }
         }
 
-        const result = await Product.updateMany(
-            { _id: { $in: productIds } },
-            { $set: updates },
-            { multi: true }
-        );
+        // Price range filter
+        if (minPrice || maxPrice) {
+            searchFilter.price = {};
+            if (minPrice) searchFilter.price.$gte = parseFloat(minPrice);
+            if (maxPrice) searchFilter.price.$lte = parseFloat(maxPrice);
+        }
+
+        // Calculate pagination
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+
+        const products = await Product.find(searchFilter)
+            .skip(skip)
+            .limit(parseInt(limit))
+            .populate('categoryId', 'name')
+            .sort({ createdAt: -1 });
+
+        const total = await Product.countDocuments(searchFilter);
 
         res.json({
             success: true,
-            message: `${result.modifiedCount} products updated`,
-            modifiedCount: result.modifiedCount
+            count: products.length,
+            total,
+            page: parseInt(page),
+            pages: Math.ceil(total / parseInt(limit)),
+            products
         });
     } catch (error) {
-        console.error('Bulk update error:', error);
-        res.status(400).json({
+        console.error('Search products error:', error);
+        res.status(500).json({
             success: false,
-            message: 'Failed to update products',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            message: 'Failed to search products'
         });
     }
-};
-
-export default {
-    getProducts,
-    getProduct,
-    createProduct,
-    updateProduct,
-    deleteProduct,
-    getSellerProducts,
-    bulkUpdateProducts
 };
