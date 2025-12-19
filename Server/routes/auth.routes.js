@@ -1,70 +1,49 @@
 import express from 'express';
 import {
-    userRegister,
-    userLogin,
-    sellerRegister,
-    sellerLogin,
-    adminLogin,
-    getMe
-} from '../controllers/auth.controller.js';
+    getCategories,
+    getCategory,
+    createCategory,
+    updateCategory,
+    deleteCategory,
+    fixDuplicateIndex,
+    checkExistingData
+} from '../controllers/categoryController.js';
 
 import {
     protect,
-    checkActive
+    authorize
 } from '../middleware/auth.middleware.js';
-
-import {
-    validate,
-    registerValidation,
-    sellerRegisterValidation
-} from '../middleware/validation.middleware.js';
 
 const router = express.Router();
 
-/* =======================
-   PUBLIC ROUTES
-======================= */
+/* ---------- PUBLIC ROUTES ---------- */
+router.get('/', getCategories);
+router.get('/:id', getCategory);
 
-// USER AUTH
+/* ---------- UTILITY ROUTES (for debugging) ---------- */
+router.get('/debug/check-data', checkExistingData);
+router.get('/debug/fix-index', fixDuplicateIndex);
+
+/* ---------- ADMIN PROTECTED ROUTES ---------- */
 router.post(
-    '/user/register',
-    validate(registerValidation),
-    userRegister
+    '/',
+    protect,
+    authorize('admin'),
+    createCategory
 );
 
-router.post(
-    '/user/login',
-    userLogin
+router.put(
+    '/:id',
+    protect,
+    authorize('admin'),
+    updateCategory
 );
 
-// SELLER AUTH
-router.post(
-    '/seller/register',
-    validate([...registerValidation, ...sellerRegisterValidation]),
-    sellerRegister
-);
-
-router.post(
-    '/seller/login',
-    sellerLogin
-);
-
-// ADMIN AUTH
-router.post(
-    '/admin/login',
-    adminLogin
-);
-
-/* =======================
-   PROTECTED ROUTES
-======================= */
-
-// GET CURRENT USER (USER / SELLER / ADMIN)
-router.get(
-    '/me',
-    protect,        // ✅ middleware (DO NOT CALL)
-    checkActive,    // ✅ middleware (DO NOT CALL)
-    getMe
+router.delete(
+    '/:id',
+    protect,
+    authorize('admin'),
+    deleteCategory
 );
 
 export default router;
