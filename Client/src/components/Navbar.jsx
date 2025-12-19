@@ -112,7 +112,7 @@ export default function Navbar({ user, onLogout }) {
 
                     {/* Right Side Icons */}
                     <div className="hidden md:flex items-center space-x-6 text-white">
-                        <Link to="/sellerhome" className="hover:text-gray-300 transition-colors font-medium">
+                        <Link to="/login" className="hover:text-gray-300 transition-colors font-medium">
                             Sell+
                         </Link>
                         <Link to="/investor" className="hover:text-gray-300 transition-colors font-medium">
@@ -252,7 +252,7 @@ export default function Navbar({ user, onLogout }) {
                                 </>
                             )}
 
-                            <Link to="/sellerhome" className="block py-2 hover:text-gray-300 font-medium" onClick={() => setMenuOpen(false)}>
+                            <Link to="/login" className="block py-2 hover:text-gray-300 font-medium" onClick={() => setMenuOpen(false)}>
                                 Become a Supplier
                             </Link>
                             <Link to="/investor" className="block py-2 hover:text-gray-300 font-medium" onClick={() => setMenuOpen(false)}>
