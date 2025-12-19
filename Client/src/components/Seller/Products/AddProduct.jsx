@@ -31,10 +31,6 @@ const AddProduct = () => {
         color: '',
         finish: '',
         application: [],
-        coverage: {
-            areaPerUnit: '',
-            unit: 'sq.ft'
-        },
         technicalSpecs: {
             thickness: '',
             weight: '',
@@ -49,7 +45,6 @@ const AddProduct = () => {
             stock: 0,
             lowStockThreshold: 10,
             manageStock: true,
-            backorders: 'no',
             moq: 1,
             bulkDiscount: false,
             bulkTiers: []
@@ -61,36 +56,25 @@ const AddProduct = () => {
                 width: '',
                 height: ''
             },
-            fragile: false,
-            specialHandling: false
+            fragile: false
         },
-        unit: 'unit',
         unitType: 'piece',
         packaging: {
             type: 'box',
-            quantityPerPackage: 1,
-            packageDimensions: {
-                length: '',
-                width: '',
-                height: ''
-            }
+            quantityPerPackage: 1
         },
         status: 'draft',
         certifications: [],
         warranty: {
             duration: '',
-            type: '',
-            terms: ''
+            type: ''
         },
-        returnPolicy: '',
         tags: [],
         seo: {
             title: '',
             description: '',
             keywords: []
-        },
-        variations: [],
-        variants: []
+        }
     });
 
     // Fetch categories on component mount
@@ -205,8 +189,7 @@ const AddProduct = () => {
             name: '',
             type: 'size',
             options: [''],
-            affectsPrice: false,
-            affectsSku: true
+            affectsPrice: false
         }]);
     };
 
@@ -273,7 +256,8 @@ const AddProduct = () => {
                             [variation.name]: option
                         },
                         name: variantName,
-                        sku: generateSKU(option, variation.type),
+                        // REMOVED SKU generation - let backend handle it
+                        sku: '', // Empty SKU, backend will generate
                         price: variation.affectsPrice ? '' : productData.price || 0,
                         stock: productData.inventory.stock || 0,
                         image: images[0] || '',
@@ -289,14 +273,6 @@ const AddProduct = () => {
         });
 
         setVariants(generatedVariants);
-    };
-
-    const generateSKU = (option, type) => {
-        const prefix = productData.name.substring(0, 3).toUpperCase().replace(/\s/g, '') || 'PRD';
-        const typeCode = type.substring(0, 1).toUpperCase();
-        const optionCode = option.substring(0, 3).toUpperCase().replace(/\s/g, '');
-        const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-        return `${prefix}-${typeCode}${optionCode}-${random}`;
     };
 
     const validateProduct = () => {
@@ -388,7 +364,7 @@ const AddProduct = () => {
                 // Images
                 images: cleanedImages,
 
-                // Inventory
+                // Inventory - DO NOT include SKU, let backend generate it
                 inventory: {
                     stock: parseInt(productData.inventory.stock) || 0,
                     lowStockThreshold: parseInt(productData.inventory.lowStockThreshold) || 10,
@@ -444,9 +420,11 @@ const AddProduct = () => {
                         affectsPrice: Boolean(v.affectsPrice)
                     })),
 
+                // Variants - send empty SKUs or omit them completely
                 variants: variants.map(v => ({
                     name: v.name || productData.name,
-                    sku: v.sku || '',
+                    // DO NOT send SKU or send empty string - backend will generate
+                    sku: '', // Empty SKU
                     price: parseFloat(v.price) || parseFloat(productData.price),
                     stock: parseInt(v.stock) || 0,
                     attributes: v.attributes || {},
@@ -1207,7 +1185,7 @@ const AddProduct = () => {
 
                     {variations.map((variation, vIndex) => (
                         <div key={vIndex} className="mb-4 p-4 border border-gray-200 rounded-lg">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                         Variation Name
@@ -1246,17 +1224,6 @@ const AddProduct = () => {
                                             className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2"
                                         />
                                         <span className="text-sm text-gray-700">Affects Price</span>
-                                    </label>
-                                </div>
-                                <div className="flex items-center">
-                                    <label className="flex items-center">
-                                        <input
-                                            type="checkbox"
-                                            checked={variation.affectsSku}
-                                            onChange={(e) => updateVariation(vIndex, 'affectsSku', e.target.checked)}
-                                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2"
-                                        />
-                                        <span className="text-sm text-gray-700">Unique SKU</span>
                                     </label>
                                 </div>
                             </div>
@@ -1324,7 +1291,6 @@ const AddProduct = () => {
                                     <thead className="bg-gray-50">
                                         <tr>
                                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Variant</th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
                                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
                                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock</th>
                                         </tr>
@@ -1343,14 +1309,6 @@ const AddProduct = () => {
                                                             </span>
                                                         ))}
                                                     </div>
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <input
-                                                        type="text"
-                                                        value={variant.sku}
-                                                        onChange={(e) => updateVariant(index, 'sku', e.target.value)}
-                                                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                                                    />
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <div className="flex items-center">
