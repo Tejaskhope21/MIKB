@@ -25,6 +25,8 @@ import Analytics from '../components/Seller/Analytics/Analytics'
 import Reviews from '../components/Seller/Reviews/Reviews'
 import Inventory from '../components/Seller/Inventory/Inventory'
 import StoreSettings from '../components/Seller/Settings/StoreSettings'
+import InvestorPage from '../pages/Investor/InvestorPage'
+import MaterialRequirementPage from '../pages/MaterialRequirement/MaterialRequirementPage'
 import CategoryDetailsPage from '../pages/Category/CategoryDetailsPage'
 import BrandsPage from '../pages/Brands/BrandPage'
 
@@ -36,6 +38,8 @@ const AppRoutes = () => {
                 <Route element={<MainLayout />}>
                     <Route path="/" element={<Home />} />
                     <Route path="/products" element={<ProductsPage />} />
+                    <Route path="/investor" element={<InvestorPage />} />
+                    <Route path="/post-requirement" element={<MaterialRequirementPage />} />
                     <Route path="/products/category/:categoryId" element={<ProductsPage />} />
                     <Route path="/product/:productId" element={<ProductDetailsPage />} />
                     <Route path="/cart" element={<CartPage />} />
