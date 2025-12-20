@@ -6,7 +6,11 @@ import {
     updateCategory,
     deleteCategory,
     fixDuplicateIndex,
-    checkExistingData
+    checkExistingData,
+    getSubcategoriesByCategory,
+    getSubcategoryDetails,
+    getProductsBySubcategory
+
 } from '../controllers/categoryController.js';
 
 import {
@@ -24,6 +28,11 @@ router.get('/:id', getCategory);
 router.get('/debug/check-data', checkExistingData);
 router.get('/debug/fix-index', fixDuplicateIndex);
 
+
+// Subcategory routes 
+router.get('/:categoryId/subcategories', getSubcategoriesByCategory);
+router.get('/:categoryId/subcategories/:subcategoryId', getSubcategoryDetails);
+router.get('/:categoryId/subcategories/:subcategoryId/products', getProductsBySubcategory);
 /* ---------- ADMIN PROTECTED ROUTES ---------- */
 router.post(
     '/',
