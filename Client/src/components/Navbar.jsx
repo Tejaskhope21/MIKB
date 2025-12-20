@@ -412,7 +412,7 @@ export default function Navbar({ user, onLogout }) {
 
                     {/* Right Side Icons */}
                     <div className="hidden md:flex items-center space-x-6 text-white z-10">
-                        <Link to="/sell" className="hover:text-gray-300 transition-colors font-medium">
+                        <Link to="/login" className="hover:text-gray-300 transition-colors font-medium">
                             Sell
                         </Link>
                         <Link to="/investors" className="hover:text-gray-300 transition-colors font-medium">
