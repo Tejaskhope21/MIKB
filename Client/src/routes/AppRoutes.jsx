@@ -29,6 +29,7 @@ import InvestorPage from '../pages/Investor/InvestorPage'
 import MaterialRequirementPage from '../pages/MaterialRequirement/MaterialRequirementPage'
 import CategoryDetailsPage from '../pages/Category/CategoryDetailsPage'
 import BrandsPage from '../pages/Brands/BrandPage'
+import AllProductsPage from '../pages/Products/AllProductsPage'
 
 const AppRoutes = () => {
     return (
@@ -37,7 +38,7 @@ const AppRoutes = () => {
                 {/* Public routes with MainLayout */}
                 <Route element={<MainLayout />}>
                     <Route path="/" element={<Home />} />
-                    <Route path="/products" element={<ProductsPage />} />
+                    <Route path="/products" element={<AllProductsPage />} />
                     <Route path="/investor" element={<InvestorPage />} />
                     <Route path="/post-requirement" element={<MaterialRequirementPage />} />
                     <Route path="/products/category/:categoryId" element={<ProductsPage />} />

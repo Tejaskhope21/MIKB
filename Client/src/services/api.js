@@ -259,3 +259,6 @@ export const fetchCategoryById = async (id) => {
         throw err;
     }
 };
+
+// Add these API functions to your services/api.js
+

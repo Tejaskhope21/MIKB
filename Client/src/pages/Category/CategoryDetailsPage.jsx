@@ -39,12 +39,23 @@ const CategoryDetailsPage = () => {
         }
     }, [categoryId]);
 
-    const handleSubcategoryClick = (subcategoryId, subcategoryName) => {
+    const handleAllProductsClick = () => {
+        // Navigate to products page with category filter
+        navigate(`/products?category=${categoryId}`);
+    };
+
+    const handleSubcategoryClick = (subcategoryId) => {
+        // Navigate to products page with category and subcategory in query params
         navigate(`/products?category=${categoryId}&subcategory=${subcategoryId}`);
     };
 
-    const handleAllProductsClick = () => {
-        navigate(`/products?category=${categoryId}`);
+    // Alternative: Navigate to dedicated subcategory page if you have one
+    const handleSubcategoryCardClick = (subcategoryId, subcategoryName) => {
+        // Navigate to products page with subcategory filter
+        navigate(`/products?category=${categoryId}&subcategory=${subcategoryId}`);
+        
+        // OR if you want to use a dedicated route for subcategory:
+        // navigate(`/products/category/${categoryId}?subcategory=${subcategoryId}`);
     };
 
     // SKELETON LOADING COMPONENT
@@ -110,18 +121,18 @@ const CategoryDetailsPage = () => {
                             {error || 'The category you are looking for does not exist.'}
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                            <Link
-                                to="/"
+                            <button
+                                onClick={() => navigate('/')}
                                 className="px-6 py-3 bg-[#800000] text-white rounded-lg hover:bg-[#600000] transition-colors"
                             >
                                 Back to Home
-                            </Link>
-                            <Link
-                                to="/products"
+                            </button>
+                            <button
+                                onClick={() => navigate('/products')}
                                 className="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
                             >
                                 Browse All Products
-                            </Link>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -134,13 +145,13 @@ const CategoryDetailsPage = () => {
             {/* Banner */}
             <div className="relative h-64 bg-gradient-to-r from-[#800000] to-[#a52a2a] text-white">
                 <div className="max-w-7xl mx-auto px-4 h-full flex flex-col justify-center">
-                    <Link 
-                        to="/" 
-                        className="inline-flex items-center text-white/80 hover:text-white mb-4 transition-colors"
+                    <button 
+                        onClick={() => navigate('/')}
+                        className="inline-flex items-center text-white/80 hover:text-white mb-4 transition-colors w-fit"
                     >
                         <ArrowLeft className="w-4 h-4 mr-2" />
                         Back to Home
-                    </Link>
+                    </button>
                     <div className="space-y-2">
                         <h1 className="text-3xl md:text-4xl font-bold">{category.name}</h1>
                         <p className="text-white/90 max-w-2xl">
@@ -186,34 +197,39 @@ const CategoryDetailsPage = () => {
                         <>
                             <h3 className="text-xl font-bold text-gray-700 mb-6">Or browse by specific subcategory</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                {category.subcategories.map(sub => (
-                                    <div 
-                                        key={sub.numericId || sub.id || sub._id}
-                                        className="bg-white rounded-xl shadow hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden group cursor-pointer hover:border-[#800000]"
-                                        onClick={() => handleSubcategoryClick(sub.numericId || sub.id || sub._id, sub.title || sub.name)}
-                                    >
-                                        <div className="relative h-48 bg-gradient-to-br from-[#80000010] to-[#a52a2a10] flex items-center justify-center group-hover:from-[#80000020] group-hover:to-[#a52a2a20] transition-all">
-                                            <div className="text-5xl">{sub.icon || '🏗️'}</div>
-                                            <div className="absolute inset-0 bg-[#800000] opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
-                                        </div>
-                                        <div className="p-6">
-                                            <h3 className="font-bold text-gray-800 text-lg text-center mb-2">
-                                                {sub.title || sub.name || 'Subcategory'}
-                                            </h3>
-                                            <p className="text-gray-600 text-sm text-center mb-4">
-                                                {sub.description || `Browse ${sub.title || sub.name} products`}
-                                            </p>
-                                            <div className="text-center">
-                                                <span className="inline-flex items-center text-[#800000] text-sm font-medium">
-                                                    View products
-                                                    <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                                    </svg>
-                                                </span>
+                                {category.subcategories.map(sub => {
+                                    const subcategoryId = sub.numericId || sub.id || sub._id;
+                                    const subcategoryName = sub.title || sub.name || 'Subcategory';
+                                    
+                                    return (
+                                        <div 
+                                            key={subcategoryId}
+                                            className="bg-white rounded-xl shadow hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden group cursor-pointer hover:border-[#800000]"
+                                            onClick={() => handleSubcategoryCardClick(subcategoryId, subcategoryName)}
+                                        >
+                                            <div className="relative h-48 bg-gradient-to-br from-[#80000010] to-[#a52a2a10] flex items-center justify-center group-hover:from-[#80000020] group-hover:to-[#a52a2a20] transition-all">
+                                                <div className="text-5xl">{sub.icon || '🏗️'}</div>
+                                                <div className="absolute inset-0 bg-[#800000] opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+                                            </div>
+                                            <div className="p-6">
+                                                <h3 className="font-bold text-gray-800 text-lg text-center mb-2">
+                                                    {subcategoryName}
+                                                </h3>
+                                                <p className="text-gray-600 text-sm text-center mb-4">
+                                                    {sub.description || `Browse ${subcategoryName} products`}
+                                                </p>
+                                                <div className="text-center">
+                                                    <span className="inline-flex items-center text-[#800000] text-sm font-medium">
+                                                        View products
+                                                        <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                        </svg>
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </>
                     ) : (
@@ -221,6 +237,22 @@ const CategoryDetailsPage = () => {
                             <p className="text-gray-500">No subcategories available for this category.</p>
                         </div>
                     )}
+                </div>
+
+                {/* Bottom Navigation */}
+                <div className="flex flex-col sm:flex-row gap-4 justify-between items-center pt-8 border-t border-gray-200">
+                    <button
+                        onClick={() => navigate('/products')}
+                        className="px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors w-full sm:w-auto"
+                    >
+                        View All Products
+                    </button>
+                    <button
+                        onClick={() => navigate('/')}
+                        className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors w-full sm:w-auto"
+                    >
+                        Back to Home
+                    </button>
                 </div>
             </div>
         </div>
