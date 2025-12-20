@@ -10,7 +10,7 @@ import { useSearchParams } from 'react-router-dom';
 
 // Vite-compatible environment variable access
 // Only variables prefixed with VITE_ are exposed to the client
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://bricks-backend-navy.vercel.app/api';
 
 const UserProfilePage = () => {
   const [searchParams] = useSearchParams();

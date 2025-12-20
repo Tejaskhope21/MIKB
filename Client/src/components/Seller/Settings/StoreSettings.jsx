@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Save, Store, Mail, Phone, MapPin, Globe, Banknote, Truck, Shield, CreditCard } from 'lucide-react';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://bricks-backend-navy.vercel.app/api';
 
 const StoreSettings = () => {
     const [loading, setLoading] = useState(true);
@@ -192,8 +192,8 @@ const StoreSettings = () => {
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             className={`flex items-center gap-2 px-4 py-2 border-b-2 transition-colors ${activeTab === tab.id
-                                    ? 'border-blue-600 text-blue-600'
-                                    : 'border-transparent text-gray-600 hover:text-gray-800'
+                                ? 'border-blue-600 text-blue-600'
+                                : 'border-transparent text-gray-600 hover:text-gray-800'
                                 }`}
                         >
                             <Icon className="w-4 h-4" />

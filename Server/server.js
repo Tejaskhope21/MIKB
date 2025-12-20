@@ -5,9 +5,14 @@ import morgan from 'morgan';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+// =====================
+// DATABASE
+// =====================
 import connectDB from './config/database.js';
 
-// Routes
+// =====================
+// ROUTES
+// =====================
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
 import adminRoutes from './routes/admin.routes.js';
@@ -15,39 +20,67 @@ import categoryRoutes from './routes/categoryRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import sellerRoutes from './routes/seller.routes.js';
 import orderRoutes from './routes/order.routes.js';
-import uploadRoutes from "./routes/uploadRoutes.js";
-import searchRoutes from "./routes/search.routes.js"
+import uploadRoutes from './routes/uploadRoutes.js';
+import searchRoutes from './routes/search.routes.js';
 
-// Load env
+// =====================
+// ENV CONFIG
+// =====================
 dotenv.config();
 
+// =====================
+// APP INIT
+// =====================
 const app = express();
 
-// ES module dirname
+// =====================
+// ES MODULE FIX
+// =====================
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-/* ======================
-   Database
-====================== */
+// =====================
+// CONNECT DATABASE
+// =====================
 connectDB();
 
-/* ======================
-   CORS
-====================== */
-app.use(cors({
-    origin: [
-        'http://localhost:5173',
-        'http://localhost:5174',
-        'http://localhost:3000',
-        process.env.FRONTEND_URL
-    ].filter(Boolean),
-    credentials: true,
-}));
+// =====================
+// MIDDLEWARE
+// =====================
 
-/* ======================
-   Security Headers
-====================== */
+// ---------- CORS ----------
+app.use(
+    cors({
+        origin: [
+            // Local
+            'http://localhost:3000',
+            'http://localhost:5173',
+            'http://localhost:5174',
+
+            // Production Frontends
+            'https://bricksitnow.netlify.app',
+            'https://bricks-com.vercel.app',
+            'https://bricksitnow.co.in',
+
+            // Optional ENV
+            process.env.FRONTEND_URL
+        ].filter(Boolean),
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization']
+    })
+);
+
+// ---------- Body Parsers ----------
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// ---------- Logger ----------
+if (process.env.NODE_ENV !== 'production') {
+    app.use(morgan('dev'));
+}
+
+// ---------- Basic Security Headers ----------
 app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'DENY');
@@ -55,38 +88,15 @@ app.use((req, res, next) => {
     next();
 });
 
-/* ======================
-   Logging
-====================== */
-if (process.env.NODE_ENV === 'development') {
-    app.use(morgan('dev'));
-}
-
-/* ======================
-   Body Parsers
-====================== */
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-
-/* ======================
-   Request Logger (DEV)
-====================== */
-if (process.env.NODE_ENV === 'development') {
-    app.use((req, res, next) => {
-        console.log(`${new Date().toISOString()} - ${req.method} ${req.originalUrl}`);
-        next();
-    });
-}
-
-/* ======================
-   Health
-====================== */
+// =====================
+// HEALTH CHECK
+// =====================
 app.get('/health', (req, res) => {
-    res.json({
+    res.status(200).json({
         success: true,
         status: 'OK',
         uptime: process.uptime(),
-        timestamp: new Date().toISOString(),
+        timestamp: new Date().toISOString()
     });
 });
 
@@ -94,15 +104,15 @@ app.get('/api/status', (req, res) => {
     res.json({
         success: true,
         message: 'API is running',
-        environment: process.env.NODE_ENV || 'development',
+        environment: process.env.NODE_ENV || 'development'
     });
 });
 
-/* ======================
-   Routes
-====================== */
+// =====================
+// ROUTES
+// =====================
 
-// Cloudinary uploads
+// Upload
 app.use('/api/upload', uploadRoutes);
 
 // Versioned APIs
@@ -113,66 +123,65 @@ app.use('/api/v1/seller', sellerRoutes);
 app.use('/api/v1/categories', categoryRoutes);
 app.use('/api/v1/products', productRoutes);
 app.use('/api/v1/orders', orderRoutes);
-app.use('/api/v1/search',searchRoutes);
+app.use('/api/v1/search', searchRoutes);
 
-// Legacy support
+// Legacy APIs (Backward Compatibility)
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/seller', sellerRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
-app.use('/api/search',searchRoutes);
+app.use('/api/search', searchRoutes);
 
-/* ======================
-   Root
-====================== */
+// =====================
+// ROOT
+// =====================
 app.get('/', (req, res) => {
     res.json({
         success: true,
         message: 'BuilderSmart Backend API',
         version: '1.0.0',
-        endpoints: {
-            upload: '/api/upload',
-            products: '/api/v1/products',
-            categories: '/api/v1/categories',
+        docs: {
             health: '/health',
-        },
+            products: '/api/v1/products',
+            categories: '/api/v1/categories'
+        }
     });
 });
 
-/* ======================
-   404 Handler
-====================== */
+// =====================
+// 404 HANDLER
+// =====================
 app.use((req, res) => {
     res.status(404).json({
         success: false,
-        message: `Route not found: ${req.method} ${req.originalUrl}`,
+        message: `Route not found: ${req.method} ${req.originalUrl}`
     });
 });
 
-/* ======================
-   Global Error Handler
-====================== */
+// =====================
+// GLOBAL ERROR HANDLER
+// =====================
 app.use((err, req, res, next) => {
-    console.error('Global Error:', err);
+    console.error('❌ GLOBAL ERROR:', err);
 
     res.status(err.statusCode || 500).json({
         success: false,
         message: err.message || 'Internal Server Error',
-        ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+        ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
     });
 });
 
-/* ======================
-   Server
-====================== */
+// =====================
+// SERVER (RENDER / VPS SAFE)
+// =====================
 const PORT = process.env.PORT || 5000;
-const HOST = process.env.HOST || 'localhost';
 
-app.listen(PORT, HOST, () => {
+app.listen(PORT, () => {
     console.log('\n' + '='.repeat(60));
-    console.log(`🚀 Server running at http://${HOST}:${PORT}`);
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log('='.repeat(60));
 });
 
