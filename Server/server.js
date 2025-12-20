@@ -58,9 +58,9 @@ app.use(
             'http://localhost:5174',
 
             // Production Frontends
-            // 'https://bricksitnow.netlify.app',
-            // 'https://bricks-com.vercel.app',
-            // 'https://bricksitnow.co.in',
+            'https://bricksitnow.netlify.app',
+            'https://bricks-com.vercel.app',
+            'https://bricksitnow.co.in',
 
             // Optional ENV
             process.env.FRONTEND_URL
