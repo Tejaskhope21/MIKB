@@ -226,17 +226,346 @@ export const formatSearchResult = (item, type) => {
     }
 };
 // Get all categories
-export const fetchCategories = async () => {
+// export const fetchCategories = async () => {
+//     try {
+//         const data = await safeFetch(`${API_BASE_URL}/categories`);
+//         return data.categories || data || [];
+//     } catch (err) {
+//         console.error('fetchCategories error:', err);
+//         throw err;
+//     }
+// };
+
+// Get products with optional filters
+// export const fetchProducts = async (params = {}) => {
+//     try {
+//         const query = new URLSearchParams(params).toString();
+//         const url = query ? `${API_BASE_URL}/products?${query}` : `${API_BASE_URL}/products`;
+//         const data = await safeFetch(url);
+//         return data.products || data || [];
+//     } catch (err) {
+//         console.error('fetchProducts error:', err);
+//         throw err;
+//     }
+// };
+
+// Get single category by numericId
+// export const fetchCategoryById = async (id) => {
+//     try {
+//         const data = await safeFetch(`${API_BASE_URL}/categories/${id}`);
+//         return data.category || data;
+//     } catch (err) {
+//         console.error('fetchCategoryById error:', err);
+//         throw err;
+//     }
+// };
+// -------------------------------------------------------------------------------//
+
+
+
+
+// * =========================
+//    SUBCATEGORY API FUNCTIONS
+// ========================= */
+// Update your fetchSubcategories function in api.js
+export const fetchSubcategories = async (categoryId) => {
     try {
-        const data = await safeFetch(`${API_BASE_URL}/categories`);
-        return data.categories || data || [];
+        // First try the new endpoint
+        const data = await safeFetch(`${API_BASE_URL}/categories/${categoryId}/subcategories`);
+        
+        if (data.success === false && data.message.includes('Route not found')) {
+            console.log('Subcategories endpoint not found, fetching category directly...');
+            
+            // Fallback: get category and extract subcategories
+            const categoryData = await fetchCategoryDetails(categoryId);
+            
+            if (categoryData && categoryData.subcategories) {
+                // Get product counts for each subcategory
+                const allProducts = await fetchProductsByCategory(categoryId);
+                
+                const subcategoriesWithCount = categoryData.subcategories.map(sub => {
+                    // Count products in this subcategory
+                    const productCount = allProducts.filter(product => {
+                        return product.subcategoryId === sub.numericId ||
+                               product.subcategoryId === sub._id?.toString() ||
+                               product.subcategory?.numericId === sub.numericId ||
+                               product.subcategory?._id === sub._id;
+                    }).length;
+                    
+                    return {
+                        _id: sub._id,
+                        numericId: sub.numericId,
+                        title: sub.title,
+                        items: sub.items || [],
+                        description: sub.description || `Browse ${sub.title} products`,
+                        productCount: productCount
+                    };
+                });
+                
+                return subcategoriesWithCount;
+            }
+            
+            return [];
+        }
+        
+        return data.subcategories || data || [];
     } catch (err) {
-        console.error('fetchCategories error:', err);
+        console.error('fetchSubcategories error:', err);
+        return [];
+    }
+};
+
+// Update fetchSubcategoryDetails with fallback
+export const fetchSubcategoryDetails = async (categoryId, subcategoryId) => {
+    try {
+        const data = await safeFetch(`${API_BASE_URL}/categories/${categoryId}/subcategories/${subcategoryId}`);
+        
+        if (data.success === false && data.message.includes('Route not found')) {
+            console.log('Subcategory details endpoint not found, using fallback...');
+            
+            // Fallback: get all subcategories and find the right one
+            const subcategories = await fetchSubcategories(categoryId);
+            const subcategory = subcategories.find(sub => 
+                sub._id === subcategoryId ||
+                sub.numericId?.toString() === subcategoryId
+            );
+            
+            if (subcategory) {
+                return subcategory;
+            }
+            
+            return {
+                _id: subcategoryId,
+                numericId: subcategoryId,
+                title: `Subcategory ${subcategoryId}`,
+                name: `Subcategory ${subcategoryId}`,
+                description: `Browse products in this subcategory`,
+                productCount: 0
+            };
+        }
+        
+        return data.subcategory || data;
+    } catch (err) {
+        console.error('fetchSubcategoryDetails error:', err);
+        // Fallback
+        const subcategories = await fetchSubcategories(categoryId);
+        const subcategory = subcategories.find(sub => 
+            sub._id === subcategoryId ||
+            sub.numericId?.toString() === subcategoryId
+        );
+        
+        return subcategory || {
+            _id: subcategoryId,
+            numericId: subcategoryId,
+            title: `Subcategory ${subcategoryId}`,
+            name: `Subcategory ${subcategoryId}`,
+            description: `Browse products in this subcategory`,
+            productCount: 0
+        };
+    }
+};
+
+// Keep your existing fetchProductsBySubcategory as it has fallback logic
+
+export const fetchProductsBySubcategory = async (categoryId, subcategoryId, filters = {}) => {
+    try {
+        const queryParams = new URLSearchParams();
+        
+        Object.entries(filters).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== '') {
+                queryParams.append(key, value);
+            }
+        });
+
+        const url = `${API_BASE_URL}/categories/${categoryId}/subcategories/${subcategoryId}/products?${queryParams.toString()}`;
+        
+        const data = await safeFetch(url);
+        
+        if (data.success === false) {
+            console.warn('fetchProductsBySubcategory failed:', data.message);
+            return await fallbackProductsBySubcategory(categoryId, subcategoryId, filters);
+        }
+        
+        return {
+            products: data.products || [],
+            total: data.total || 0,
+            brands: data.brands || [],
+            minPrice: data.minPrice || 0,
+            maxPrice: data.maxPrice || 0,
+            page: data.page || 1,
+            pages: data.pages || 1
+        };
+    } catch (err) {
+        console.error('fetchProductsBySubcategory error:', err);
+        return await fallbackProductsBySubcategory(categoryId, subcategoryId, filters);
+    }
+};
+
+const fallbackProductsBySubcategory = async (categoryId, subcategoryId, filters = {}) => {
+    try {
+        const allProducts = await fetchProductsByCategory(categoryId);
+        
+        let filteredProducts = allProducts.filter(product => {
+            return product.subcategoryId === subcategoryId ||
+                   product.subcategoryId?.toString() === subcategoryId ||
+                   product.subcategory?._id === subcategoryId ||
+                   product.subcategory?.id === subcategoryId ||
+                   product.subcategory?.numericId?.toString() === subcategoryId;
+        });
+        
+        if (filters.minPrice) {
+            filteredProducts = filteredProducts.filter(p => 
+                (p.price || 0) >= parseFloat(filters.minPrice)
+            );
+        }
+        if (filters.maxPrice) {
+            filteredProducts = filteredProducts.filter(p => 
+                (p.price || 0) <= parseFloat(filters.maxPrice)
+            );
+        }
+        if (filters.brand) {
+            filteredProducts = filteredProducts.filter(p => 
+                p.brand === filters.brand
+            );
+        }
+        if (filters.search) {
+            const query = filters.search.toLowerCase();
+            filteredProducts = filteredProducts.filter(p =>
+                p.name?.toLowerCase().includes(query) ||
+                p.description?.toLowerCase().includes(query) ||
+                p.brand?.toLowerCase().includes(query)
+            );
+        }
+        
+        if (filters.sortBy) {
+            filteredProducts = sortProducts(filteredProducts, filters.sortBy);
+        }
+        
+        const brands = [...new Set(filteredProducts
+            .filter(p => p.brand)
+            .map(p => p.brand)
+            .sort())];
+        
+        return {
+            products: filteredProducts,
+            total: filteredProducts.length,
+            brands: brands,
+            minPrice: filters.minPrice || 0,
+            maxPrice: filters.maxPrice || 0,
+            page: 1,
+            pages: 1
+        };
+    } catch (err) {
+        console.error('fallbackProductsBySubcategory error:', err);
+        return {
+            products: [],
+            total: 0,
+            brands: [],
+            minPrice: 0,
+            maxPrice: 0,
+            page: 1,
+            pages: 0
+        };
+    }
+};
+
+const sortProducts = (products, sortBy) => {
+    return [...products].sort((a, b) => {
+        switch (sortBy) {
+            case 'price-low':
+                return (a.price || 0) - (b.price || 0);
+            case 'price-high':
+                return (b.price || 0) - (a.price || 0);
+            case 'rating':
+                return (b.rating || 0) - (a.rating || 0);
+            case 'discount':
+                const discountA = a.discount || a.discountPercentage || 0;
+                const discountB = b.discount || b.discountPercentage || 0;
+                return discountB - discountA;
+            case 'name-asc':
+                return (a.name || '').localeCompare(b.name || '');
+            case 'name-desc':
+                return (b.name || '').localeCompare(a.name || '');
+            default:
+                return 0;
+        }
+    });
+};
+
+// export const fetchSubcategoryDetails = async (categoryId, subcategoryId) => {
+//     try {
+//         const data = await safeFetch(`${API_BASE_URL}/categories/${categoryId}/subcategories/${subcategoryId}`);
+        
+//         if (data.success === false) {
+//             console.warn('fetchSubcategoryDetails failed:', data.message);
+//             return await fallbackSubcategoryDetails(categoryId, subcategoryId);
+//         }
+        
+//         return data.subcategory || data;
+//     } catch (err) {
+//         console.error('fetchSubcategoryDetails error:', err);
+//         return await fallbackSubcategoryDetails(categoryId, subcategoryId);
+//     }
+// };
+
+const fallbackSubcategoryDetails = async (categoryId, subcategoryId) => {
+    try {
+        const subcategories = await fetchSubcategories(categoryId);
+        
+        const subcategory = subcategories.find(sub => 
+            sub._id === subcategoryId ||
+            sub.id === subcategoryId ||
+            sub.numericId?.toString() === subcategoryId
+        );
+        
+        if (subcategory) {
+            return subcategory;
+        }
+        
+        return {
+            _id: subcategoryId,
+            id: subcategoryId,
+            numericId: subcategoryId,
+            title: `Subcategory ${subcategoryId}`,
+            name: `Subcategory ${subcategoryId}`,
+            description: `Browse products in this subcategory`
+        };
+    } catch (err) {
+        console.error('fallbackSubcategoryDetails error:', err);
+        return {
+            _id: subcategoryId,
+            id: subcategoryId,
+            numericId: subcategoryId,
+            title: `Subcategory ${subcategoryId}`,
+            name: `Subcategory ${subcategoryId}`,
+            description: `Browse products in this subcategory`
+        };
+    }
+};
+
+/* =========================
+   CATEGORY & PRODUCT API FUNCTIONS
+========================= */
+export const fetchProductsByCategory = async (categoryId) => {
+    try {
+        const data = await safeFetch(`${API_BASE_URL}/products/category/${categoryId}?showAll=true`);
+        return data.products || data || [];
+    } catch (err) {
+        console.error('fetchProductsByCategory error:', err);
         throw err;
     }
 };
 
-// Get products with optional filters
+export const fetchCategoryDetails = async (categoryId) => {
+    try {
+        const data = await safeFetch(`${API_BASE_URL}/categories/${categoryId}`);
+        return data.category || data;
+    } catch (err) {
+        console.error('fetchCategoryDetails error:', err);
+        throw err;
+    }
+};
+
 export const fetchProducts = async (params = {}) => {
     try {
         const query = new URLSearchParams(params).toString();
@@ -249,7 +578,16 @@ export const fetchProducts = async (params = {}) => {
     }
 };
 
-// Get single category by numericId
+export const fetchCategories = async () => {
+    try {
+        const data = await safeFetch(`${API_BASE_URL}/categories`);
+        return data.categories || data || [];
+    } catch (err) {
+        console.error('fetchCategories error:', err);
+        throw err;
+    }
+};
+
 export const fetchCategoryById = async (id) => {
     try {
         const data = await safeFetch(`${API_BASE_URL}/categories/${id}`);
@@ -259,6 +597,3 @@ export const fetchCategoryById = async (id) => {
         throw err;
     }
 };
-
-// Add these API functions to your services/api.js
-

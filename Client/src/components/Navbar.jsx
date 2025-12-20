@@ -138,29 +138,42 @@ export default function Navbar({ user, onLogout }) {
         }
     };
 
-    // FIXED: Updated navigation to match your route structure
+    // Fixed navigation to match your route structure
     const handleAutocompleteSelect = (type, item) => {
         setSearchQuery('');
         setShowAutocomplete(false);
+        setMenuOpen(false); // Close mobile menu on select
         
         switch (type) {
             case 'product':
-                navigate(`/product/${item._id || item.id || item.numericId}`);
+                // Use numericId or _id for product
+                const productId = item.numericId || item._id || item.id;
+                navigate(`/product/${productId}`);
                 break;
             case 'category':
-                // Navigate to category page
-                navigate(`/category/${item._id || item.id || item.numericId}`);
+                // Navigate to category page - use numericId or _id
+                const categoryId = item.numericId || item._id || item.id;
+                navigate(`/products/category/${categoryId}`, { 
+                    state: { categoryName: item.name } 
+                });
                 break;
             case 'subcategory':
-                // FIXED: Use the correct route pattern for your setup
-                if (item.categoryId || item.category?._id || item.category?.id) {
-                    const categoryId = item.categoryId || item.category?._id || item.category?.id;
-                    const subcategoryId = item._id || item.id || item.numericId;
-                    // Use /products/category/:categoryId with subcategory query parameter
-                    navigate(`/products/category/${categoryId}?subcategory=${subcategoryId}`);
+                // Handle subcategory navigation
+                const subcategoryId = item._id || item.id || item.numericId;
+                const categoryIdForSub = item.categoryId || item.category?._id || item.category?.id || item.category?.numericId;
+                
+                if (categoryIdForSub) {
+                    // Navigate to category page with subcategory filter
+                    navigate(`/products/category/${categoryIdForSub}`, {
+                        state: { 
+                            categoryName: item.category?.name || 'Category',
+                            subcategoryName: item.title || item.name,
+                            filter: item.title || item.name
+                        }
+                    });
                 } else {
-                    // Fallback to search if no category info
-                    navigate(`/search?q=${encodeURIComponent(item.title || item.name)}&type=subcategory&id=${item._id || item.numericId}`);
+                    // Fallback to search
+                    navigate(`/search?q=${encodeURIComponent(item.title || item.name)}`);
                 }
                 break;
             default:
@@ -177,23 +190,38 @@ export default function Navbar({ user, onLogout }) {
     const profileItems = user ? [
         { label: "My Profile", path: "/profile" },
         { label: "My Orders", path: "/orders" },
-        { label: "My Addresses", path: "/profile?tab=addresses" },
+        { label: "My Addresses", path: "/profile/addresses" },
         { label: "Logout", action: handleLogout, icon: <FiLogOut className="mr-2" /> }
     ] : [
         { label: "Sign In", path: "/login" },
         { label: "Sign Up", path: "/register" }
     ];
 
+    // Helper to get valid image URL
+    const getValidImageUrl = (imageUrl) => {
+        if (!imageUrl) return null;
+        
+        if (imageUrl.startsWith('http') || imageUrl.startsWith('data:image')) {
+            return imageUrl;
+        }
+        
+        if (imageUrl.startsWith('/')) {
+            return `http://localhost:5001${imageUrl}`;
+        }
+        
+        return `http://localhost:5001/uploads/${imageUrl}`;
+    };
+
     // Check if we have successful search results
     const hasSuccessfulResults = hasSearchResults(searchResults);
 
     return (
-        <header className="top-0 z-50 bg-[#800000] shadow-lg relative">
+        <header className="sticky top-0 z-50 bg-[#800000] shadow-lg">
             <div className="w-full">
                 {/* Top Navbar */}
-                <nav className="h-[80px] px-4 md:px-6 flex items-center justify-between relative">
+                <nav className="h-[80px] px-4 md:px-6 flex items-center justify-between">
                     {/* Logo */}
-                    <Link to="/" className="flex items-center h-full z-10">
+                    <Link to="/" className="flex items-center h-full">
                         <img
                             src={logo}
                             alt="Logo"
@@ -202,7 +230,7 @@ export default function Navbar({ user, onLogout }) {
                     </Link>
 
                     {/* Desktop Navigation Center */}
-                    <div className="hidden lg:flex items-center space-x-8 text-white mx-8 z-10">
+                    <div className="hidden lg:flex items-center space-x-8 text-white mx-8">
                         <Link to="/" className="hover:text-gray-300 transition-colors font-medium">
                             Home
                         </Link>
@@ -215,21 +243,21 @@ export default function Navbar({ user, onLogout }) {
                     </div>
 
                     {/* Search Bar (Desktop) with Autocomplete */}
-                    <div className="hidden lg:flex flex-1 max-w-xl mx-4 relative z-[9999]" ref={searchRef}>
+                    <div className="hidden lg:flex flex-1 max-w-xl mx-4 relative" ref={searchRef}>
                         <form onSubmit={handleSearch} className="w-full relative">
                             <div className="relative">
                                 <input
                                     ref={searchInputRef}
                                     type="text"
                                     placeholder="Search products, brands, categories..."
-                                    className="w-full h-12 px-4 pr-12 rounded-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-transparent shadow-sm relative z-10"
+                                    className="w-full h-12 px-4 pr-12 rounded-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-transparent shadow-sm"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     onFocus={() => setShowAutocomplete(true)}
                                 />
                                 <button
                                     type="submit"
-                                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 z-10"
+                                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
                                 >
                                     <FiSearch size={20} />
                                 </button>
@@ -263,9 +291,10 @@ export default function Navbar({ user, onLogout }) {
                                                                 <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center flex-shrink-0 border border-gray-200">
                                                                     {product.images?.[0] ? (
                                                                         <img 
-                                                                            src={product.images[0]} 
+                                                                            src={getValidImageUrl(product.images[0])} 
                                                                             alt={product.name}
                                                                             className="w-10 h-10 object-contain"
+                                                                            onError={(e) => e.target.src = "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=100&h=100&fit=crop"}
                                                                         />
                                                                     ) : (
                                                                         <FiPackage className="text-gray-400" size={20} />
@@ -281,16 +310,16 @@ export default function Navbar({ user, onLogout }) {
                                                                                 {product.brand}
                                                                             </span>
                                                                         )}
-                                                                        {product.categoryName && (
+                                                                        {product.materialType && (
                                                                             <span className="text-xs text-gray-500">
-                                                                                in {product.categoryName}
+                                                                                in {product.materialType}
                                                                             </span>
                                                                         )}
                                                                     </div>
                                                                 </div>
                                                                 {product.price && (
                                                                     <div className="text-sm font-semibold text-[#800000] whitespace-nowrap">
-                                                                        ₹{product.price || product.sellingPrice}
+                                                                        ₹{product.price.toLocaleString()}
                                                                     </div>
                                                                 )}
                                                             </button>
@@ -318,7 +347,7 @@ export default function Navbar({ user, onLogout }) {
                                                                         {category.name}
                                                                     </div>
                                                                     <div className="text-xs text-gray-500 mt-1">
-                                                                        {category.productCount || category.count || 'Multiple'} products
+                                                                        Browse all products in this category
                                                                     </div>
                                                                 </div>
                                                             </button>
@@ -333,7 +362,7 @@ export default function Navbar({ user, onLogout }) {
                                                             Subcategories ({searchResults.subcategories.length})
                                                         </div>
                                                         {searchResults.subcategories.map((subcategory) => {
-                                                            const categoryName = subcategory.category?.name || subcategory.categoryName || 'Category';
+                                                            const categoryName = subcategory.category?.name || 'Category';
                                                             const subcategoryName = subcategory.title || subcategory.name;
                                                             return (
                                                                 <button
@@ -352,11 +381,6 @@ export default function Navbar({ user, onLogout }) {
                                                                             <span className="text-xs text-gray-500">
                                                                                 in {categoryName}
                                                                             </span>
-                                                                            {(subcategory.productCount || subcategory.count) && (
-                                                                                <span className="text-xs text-gray-500">
-                                                                                    • {subcategory.productCount || subcategory.count} products
-                                                                                </span>
-                                                                            )}
                                                                         </div>
                                                                     </div>
                                                                 </button>
@@ -411,10 +435,13 @@ export default function Navbar({ user, onLogout }) {
                     </div>
 
                     {/* Right Side Icons */}
-                    <div className="hidden md:flex items-center space-x-6 text-white z-10">
-                        <Link to="/login" className="hover:text-gray-300 transition-colors font-medium">
+                    <div className="hidden md:flex items-center space-x-6 text-white">
+                        <button 
+                            onClick={() => navigate('/login')}
+                            className="hover:text-gray-300 transition-colors font-medium cursor-pointer"
+                        >
                             Sell
-                        </Link>
+                        </button>
                         <Link to="/investors" className="hover:text-gray-300 transition-colors font-medium">
                             Investors
                         </Link>
@@ -423,7 +450,7 @@ export default function Navbar({ user, onLogout }) {
                         <Link to="/cart" className="relative hover:text-gray-300 transition-colors">
                             <FiShoppingCart size={22} />
                             {cartCount > 0 && (
-                                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold z-20">
+                                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
                                     {cartCount > 99 ? '99+' : cartCount}
                                 </span>
                             )}
@@ -433,7 +460,7 @@ export default function Navbar({ user, onLogout }) {
                         <div className="relative">
                             <button
                                 ref={profileButtonRef}
-                                className="flex items-center gap-2 hover:text-gray-300 transition-colors z-10"
+                                className="flex items-center gap-2 hover:text-gray-300 transition-colors"
                                 onClick={() => setDropdownOpen(!dropdownOpen)}
                                 onMouseEnter={() => setDropdownOpen(true)}
                             >
@@ -449,7 +476,7 @@ export default function Navbar({ user, onLogout }) {
                             {dropdownOpen && (
                                 <div
                                     ref={dropdownRef}
-                                    className="absolute top-full right-0 mt-2 bg-white text-gray-800 shadow-lg rounded-sm border w-60 z-[9998]"
+                                    className="absolute top-full right-0 mt-2 bg-white text-gray-800 shadow-lg rounded-sm border w-60 z-50"
                                     onMouseEnter={() => setDropdownOpen(true)}
                                     onMouseLeave={() => setDropdownOpen(false)}
                                 >
@@ -491,7 +518,7 @@ export default function Navbar({ user, onLogout }) {
                         {/* Post Requirement Button */}
                         <button
                             onClick={() => navigate('/post-requirement')}
-                            className="bg-white text-[#800000] px-4 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors shadow-sm hover:shadow z-10"
+                            className="bg-white text-[#800000] px-4 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors shadow-sm hover:shadow"
                         >
                             Post Requirement
                         </button>
@@ -499,7 +526,7 @@ export default function Navbar({ user, onLogout }) {
 
                     {/* Mobile Menu Button */}
                     <button
-                        className="md:hidden text-white z-10"
+                        className="md:hidden text-white"
                         onClick={() => setMenuOpen(!menuOpen)}
                         aria-label={menuOpen ? "Close menu" : "Open menu"}
                     >
@@ -509,7 +536,7 @@ export default function Navbar({ user, onLogout }) {
 
                 {/* Mobile Menu */}
                 {menuOpen && (
-                    <div className="md:hidden bg-[#800000] border-t border-gray-600 px-4 py-4 space-y-4 absolute top-full left-0 right-0 z-[9999]">
+                    <div className="md:hidden bg-[#800000] border-t border-gray-600 px-4 py-4 space-y-4">
                         {/* Mobile Search */}
                         <div className="relative mb-4" ref={searchRef}>
                             <form onSubmit={handleSearch}>
@@ -517,14 +544,14 @@ export default function Navbar({ user, onLogout }) {
                                     <input
                                         type="text"
                                         placeholder="Search products..."
-                                        className="w-full h-12 px-4 pr-12 rounded-lg bg-white text-gray-900 border-0 focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-transparent z-10"
+                                        className="w-full h-12 px-4 pr-12 rounded-lg bg-white text-gray-900 border-0 focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-transparent"
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                         onFocus={() => setShowAutocomplete(true)}
                                     />
                                     <button
                                         type="submit"
-                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 z-10"
+                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600"
                                     >
                                         <FiSearch size={20} />
                                     </button>
@@ -533,7 +560,7 @@ export default function Navbar({ user, onLogout }) {
                             
                             {/* Mobile Autocomplete */}
                             {showAutocomplete && searchQuery.length > 0 && (
-                                <div className="absolute top-full left-0 right-0 mt-1 bg-white shadow-2xl rounded-lg border border-gray-300 z-[9999] max-h-[400px] overflow-y-auto">
+                                <div className="absolute top-full left-0 right-0 mt-1 bg-white shadow-2xl rounded-lg border border-gray-300 z-50 max-h-[400px] overflow-y-auto">
                                     {isSearching ? (
                                         <div className="p-4 text-center text-gray-500">
                                             <AiOutlineLoading3Quarters className="animate-spin inline-block mr-2" />
@@ -611,7 +638,7 @@ export default function Navbar({ user, onLogout }) {
                         </div>
 
                         {/* Mobile Links */}
-                        <div className="space-y-3 text-white relative z-10">
+                        <div className="space-y-3 text-white">
                             <Link to="/" className="block py-2 hover:text-gray-300 font-medium" onClick={() => setMenuOpen(false)}>
                                 Home
                             </Link>
@@ -622,9 +649,15 @@ export default function Navbar({ user, onLogout }) {
                                 Brands
                             </Link>
 
-                            <Link to="/sell" className="block py-2 hover:text-gray-300 font-medium" onClick={() => setMenuOpen(false)}>
+                            <button 
+                                onClick={() => {
+                                    navigate('/sell');
+                                    setMenuOpen(false);
+                                }}
+                                className="block py-2 hover:text-gray-300 font-medium w-full text-left"
+                            >
                                 Sell
-                            </Link>
+                            </button>
                             <Link to="/investors" className="block py-2 hover:text-gray-300 font-medium" onClick={() => setMenuOpen(false)}>
                                 Investors
                             </Link>
@@ -636,6 +669,9 @@ export default function Navbar({ user, onLogout }) {
                                     </Link>
                                     <Link to="/orders" className="block py-2 hover:text-gray-300 font-medium" onClick={() => setMenuOpen(false)}>
                                         My Orders
+                                    </Link>
+                                    <Link to="/profile/addresses" className="block py-2 hover:text-gray-300 font-medium" onClick={() => setMenuOpen(false)}>
+                                        My Addresses
                                     </Link>
                                 </>
                             )}
@@ -659,7 +695,7 @@ export default function Navbar({ user, onLogout }) {
                                 </button>
                             )}
 
-                            <Link to="/cart" className="block py-2 hover:text-gray-300 flex items-center gap-2 font-medium" onClick={() => setMenuOpen(false)}>
+                            <Link to="/cart" className=" py-2 hover:text-gray-300 flex items-center gap-2 font-medium" onClick={() => setMenuOpen(false)}>
                                 Cart
                                 {cartCount > 0 && (
                                     <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full font-bold">

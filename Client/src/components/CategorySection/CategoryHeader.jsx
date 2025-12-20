@@ -1,6 +1,6 @@
 // components/CategoryHeader.jsx
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom'; // Add useNavigate
 import { fetchCategories } from '../../services/api';
 import "../../index.css"
 
@@ -9,13 +9,14 @@ const CategoryHeader = () => {
     const [hoveredIndex, setHoveredIndex] = useState(null);
     const [isSubHovered, setIsSubHovered] = useState(false);
     const [error, setError] = useState(null);
+    const navigate = useNavigate(); // Add useNavigate hook
 
     useEffect(() => {
         fetchCategories()
             .then(data => {
                 const enriched = data.map(cat => ({
                     ...cat,
-                    id: cat.numericId || cat.id
+                    id: cat.numericId || cat.id || cat._id
                 }));
                 setCategories(enriched);
             })
@@ -24,6 +25,24 @@ const CategoryHeader = () => {
                 setError('Failed to load categories menu');
             });
     }, []);
+
+    // Function to handle category click
+    const handleCategoryClick = (categoryId, categoryName) => {
+        navigate(`/products/category/${categoryId}`, { 
+            state: { categoryName: categoryName }
+        });
+    };
+
+    // Function to handle subcategory item click
+    const handleSubcategoryClick = (categoryId, subcategoryName, categoryName) => {
+        navigate(`/products/category/${categoryId}`, { 
+            state: { 
+                categoryName: categoryName,
+                subcategoryName: subcategoryName,
+                filter: subcategoryName
+            }
+        });
+    };
 
     if (error) {
         return <nav className="bg-white shadow-md py-4 text-center text-red-600 text-sm">{error}</nav>;
@@ -43,6 +62,7 @@ const CategoryHeader = () => {
                             className="relative"
                         >
                             <button 
+                                onClick={() => handleCategoryClick(cat.id, cat.name)}
                                 className={`px-4 py-2 text-sm font-medium whitespace-nowrap rounded-md transition-colors ${
                                     hoveredIndex === i 
                                         ? "text-[#800000] bg-red-50" 
@@ -67,14 +87,15 @@ const CategoryHeader = () => {
                     style={{ 
                         top: "100%",
                         maxHeight: "70vh",
-                        zIndex: 40, // Lower than search dropdown (z-[9999])
+                        zIndex: 40,
                     }}
                 >
                     <div className="container mx-auto px-4 py-6">
                         <div className="flex justify-between items-start mb-4">
                             <h2 className="text-xl font-bold text-gray-800">{categories[hoveredIndex].name}</h2>
                             <Link 
-                                to={`/products/category/${categories[hoveredIndex].id}`} 
+                                to={`/products/category/${categories[hoveredIndex].id}`}
+                                state={{ categoryName: categories[hoveredIndex].name }}
                                 className="text-[#800000] hover:text-red-700 font-medium flex items-center gap-1"
                             >
                                 View All Products →
@@ -102,12 +123,16 @@ const CategoryHeader = () => {
                                         >
                                             {group.items.map((item, j) => (
                                                 <li key={j}>
-                                                    <Link 
-                                                        to={`/products/category/${categories[hoveredIndex].id}`} 
-                                                        className="text-gray-600 hover:text-[#800000] hover:underline block py-1 transition-colors"
+                                                    <button
+                                                        onClick={() => handleSubcategoryClick(
+                                                            categories[hoveredIndex].id, 
+                                                            item, 
+                                                            categories[hoveredIndex].name
+                                                        )}
+                                                        className="text-gray-600 hover:text-[#800000] hover:underline block py-1 transition-colors w-full text-left"
                                                     >
                                                         {item}
-                                                    </Link>
+                                                    </button>
                                                 </li>
                                             ))}
                                         </ul>

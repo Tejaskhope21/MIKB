@@ -48,6 +48,31 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+
+// ---------- CORS ----------
+app.use(
+    cors({
+        origin: [
+            // Local
+            'http://localhost:3000',
+            'http://localhost:5173',
+            'http://localhost:5174',
+
+            // Production Frontends
+            // 'https://bricksitnow.netlify.app',
+            // 'https://bricks-com.vercel.app',
+            // 'https://bricksitnow.co.in',
+
+            // Optional ENV
+            process.env.FRONTEND_URL
+        ].filter(Boolean),
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization']
+    })
+);
+
+// ---------- Body Parsers ----------
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true }));
 
