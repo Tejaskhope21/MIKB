@@ -198,7 +198,7 @@ const CheckoutPage = () => {
                             {addresses.length === 0 ? (
                                 <div className="text-center py-8">
                                     <p className="text-gray-600 mb-4">No addresses found</p>
-                                    <Link to="/profile/addresses" className="text-[#800000] hover:text-[#900000] font-medium">
+                                    <Link to="/profile?tab=addresses" className="text-[#800000] hover:text-[#900000] font-medium">
                                         Add New Address
                                     </Link>
                                 </div>
@@ -208,8 +208,8 @@ const CheckoutPage = () => {
                                         <div
                                             key={address._id}
                                             className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${selectedAddress === address._id
-                                                    ? 'border-[#800000] bg-red-50'
-                                                    : 'border-gray-200 hover:border-gray-300'
+                                                ? 'border-[#800000] bg-red-50'
+                                                : 'border-gray-200 hover:border-gray-300'
                                                 }`}
                                             onClick={() => setSelectedAddress(address._id)}
                                         >
@@ -239,7 +239,7 @@ const CheckoutPage = () => {
                             )}
 
                             <div className="mt-6 pt-6 border-t">
-                                <Link to="/profile/addresses" className="inline-flex items-center text-[#800000] hover:text-[#900000] font-medium">
+                                <Link to="/profile?tab=addresses" className="inline-flex items-center text-[#800000] hover:text-[#900000] font-medium">
                                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                     </svg>

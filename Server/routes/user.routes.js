@@ -1,30 +1,30 @@
 import express from 'express';
+import { protect } from '../middleware/auth.middleware.js';
 import {
+    getUserProfile,
+    updateUserProfile,
+    getAddresses,
     addAddress,
     updateAddress,
-    deleteAddress,
     setDefaultAddress,
-    getAddresses,
-    updateProfile
+    deleteAddress
 } from '../controllers/user.controller.js';
-import { protect, authorize, checkActive } from '../middleware/auth.middleware.js';
-import { validate, addressValidation } from '../middleware/validation.middleware.js';
 
 const router = express.Router();
 
-// All routes require authentication
-router.use(protect);
-router.use(checkActive);
-router.use(authorize('USER'));
+// =====================
+// USER PROFILE
+// =====================
+router.get('/profile', protect, getUserProfile);
+router.put('/profile', protect, updateUserProfile);
 
-/* ================= PROFILE ================= */
-router.put('/profile', updateProfile);
-
-/* ================= ADDRESSES ================= */
-router.get('/addresses', getAddresses);
-router.post('/addresses', validate(addressValidation), addAddress);
-router.put('/addresses/:addressId', validate(addressValidation), updateAddress);
-router.delete('/addresses/:addressId', deleteAddress);
-router.patch('/addresses/:addressId/default', setDefaultAddress);
+// =====================
+// USER ADDRESSES
+// =====================
+router.get('/addresses', protect, getAddresses);
+router.post('/addresses', protect, addAddress);
+router.put('/addresses/:addressId', protect, updateAddress);
+router.patch('/addresses/:addressId/default', protect, setDefaultAddress);
+router.delete('/addresses/:addressId', protect, deleteAddress);
 
 export default router;
