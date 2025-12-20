@@ -293,7 +293,7 @@ const CategorySection = () => {
                                 return (
                                     <Link
                                         key={category.id}
-                                        to={`/products/category/${category.id}`}
+                                        to={`/category/${category.id}`}
                                         className="flex-shrink-0 w-40 sm:w-44 md:w-48 lg:w-52 xl:w-56"
                                     >
                                         {/* Category Card - REMOVED rounded-xl */}

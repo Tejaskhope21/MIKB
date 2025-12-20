@@ -27,6 +27,8 @@ import Inventory from '../components/Seller/Inventory/Inventory'
 import StoreSettings from '../components/Seller/Settings/StoreSettings'
 import InvestorPage from '../pages/Investor/InvestorPage'
 import MaterialRequirementPage from '../pages/MaterialRequirement/MaterialRequirementPage'
+import CategoryDetailsPage from '../pages/Category/CategoryDetailsPage'
+import BrandsPage from '../pages/Brands/BrandPage'
 
 const AppRoutes = () => {
     return (
@@ -41,6 +43,8 @@ const AppRoutes = () => {
                     <Route path="/products/category/:categoryId" element={<ProductsPage />} />
                     <Route path="/product/:productId" element={<ProductDetailsPage />} />
                     <Route path="/cart" element={<CartPage />} />
+                    <Route path="/category/:categoryId" element={<CategoryDetailsPage />} />
+                    <Route path="/brands" element={<BrandsPage />} />
                     <Route path="/checkout" element={
                         <ProtectedRoute>
                             <CheckoutPage />

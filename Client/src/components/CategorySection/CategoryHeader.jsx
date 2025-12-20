@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+// components/CategoryHeader.jsx
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchCategories } from '../../services/api';
 import "../../index.css"
+
 const CategoryHeader = () => {
     const [categories, setCategories] = useState([]);
     const [hoveredIndex, setHoveredIndex] = useState(null);
@@ -31,7 +33,6 @@ const CategoryHeader = () => {
         <nav 
             className="relative bg-white shadow-md"
             onMouseLeave={() => !isSubHovered && setHoveredIndex(null)}
-            style={{ zIndex: 30 }}
         >
             <div className="container mx-auto px-4">
                 <div className="flex overflow-x-auto py-3 space-x-1 scrollbar-hide">
@@ -65,8 +66,8 @@ const CategoryHeader = () => {
                     }}
                     style={{ 
                         top: "100%",
-                        zIndex: 30,
                         maxHeight: "70vh",
+                        zIndex: 40, // Lower than search dropdown (z-[9999])
                     }}
                 >
                     <div className="container mx-auto px-4 py-6">
@@ -82,7 +83,7 @@ const CategoryHeader = () => {
                         
                         {/* Scrollable container - scrollbar hidden */}
                         <div 
-                            className="overflow-y-auto pr-1 scrollbar-hide" // Hide scrollbar
+                            className="overflow-y-auto pr-1 scrollbar-hide"
                             style={{ 
                                 maxHeight: "55vh",
                             }}
@@ -94,7 +95,7 @@ const CategoryHeader = () => {
                                             {group.title}
                                         </h3>
                                         <ul 
-                                            className="space-y-2 overflow-y-auto scrollbar-hide" // Hide scrollbar
+                                            className="space-y-2 overflow-y-auto scrollbar-hide"
                                             style={{ 
                                                 maxHeight: "280px",
                                             }}
