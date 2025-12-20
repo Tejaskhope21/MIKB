@@ -104,7 +104,7 @@ const HomePage = () => {
 
     return (
         <div className="min-h-screen">
-            <div className="sticky top-0 z-0 bg-white shadow-sm">
+            <div className="sticky top-0 z-30 bg-white shadow-sm">
                 <div className="container mx-auto">
                     <CategoryHeader />
                 </div>

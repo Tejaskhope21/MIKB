@@ -37,7 +37,6 @@ export default function Navbar({ user, onLogout }) {
         };
         updateCartCount();
         
-        // Listen for cart updates if your context provides it
         const interval = setInterval(updateCartCount, 1000);
         return () => clearInterval(interval);
     }, [getCartCount]);
@@ -139,8 +138,9 @@ export default function Navbar({ user, onLogout }) {
         }
     };
 
+    // FIXED: Updated navigation to match your route structure
     const handleAutocompleteSelect = (type, item) => {
-        setSearchQuery(item.name || item.title || item.productName || '');
+        setSearchQuery('');
         setShowAutocomplete(false);
         
         switch (type) {
@@ -148,13 +148,19 @@ export default function Navbar({ user, onLogout }) {
                 navigate(`/product/${item._id || item.id || item.numericId}`);
                 break;
             case 'category':
+                // Navigate to category page
                 navigate(`/category/${item._id || item.id || item.numericId}`);
                 break;
             case 'subcategory':
-                if (item.category || item.categoryId) {
-                    navigate(`/category/${item.category || item.categoryId}?subcategory=${item._id || item.numericId}`);
+                // FIXED: Use the correct route pattern for your setup
+                if (item.categoryId || item.category?._id || item.category?.id) {
+                    const categoryId = item.categoryId || item.category?._id || item.category?.id;
+                    const subcategoryId = item._id || item.id || item.numericId;
+                    // Use /products/category/:categoryId with subcategory query parameter
+                    navigate(`/products/category/${categoryId}?subcategory=${subcategoryId}`);
                 } else {
-                    navigate(`/search?q=${encodeURIComponent(searchQuery)}&type=subcategory&id=${item._id || item.numericId}`);
+                    // Fallback to search if no category info
+                    navigate(`/search?q=${encodeURIComponent(item.title || item.name)}&type=subcategory&id=${item._id || item.numericId}`);
                 }
                 break;
             default:
@@ -208,7 +214,7 @@ export default function Navbar({ user, onLogout }) {
                         </Link>
                     </div>
 
-                    {/* Search Bar (Desktop) with Autocomplete - UPDATED Z-INDEX */}
+                    {/* Search Bar (Desktop) with Autocomplete */}
                     <div className="hidden lg:flex flex-1 max-w-xl mx-4 relative z-[9999]" ref={searchRef}>
                         <form onSubmit={handleSearch} className="w-full relative">
                             <div className="relative">
@@ -228,7 +234,7 @@ export default function Navbar({ user, onLogout }) {
                                     <FiSearch size={20} />
                                 </button>
                                 
-                                {/* Autocomplete Dropdown - HIGH Z-INDEX */}
+                                {/* Autocomplete Dropdown */}
                                 {showAutocomplete && (
                                     <div className="absolute top-full left-0 right-0 mt-1 bg-white shadow-2xl rounded-lg border border-gray-300 z-[9999] max-h-[500px] overflow-y-auto">
                                         {isSearching ? (
@@ -246,7 +252,7 @@ export default function Navbar({ user, onLogout }) {
                                                 {searchResults.products.length > 0 && (
                                                     <div className="border-b border-gray-100">
                                                         <div className="px-4 py-3 bg-gray-50 text-gray-700 text-sm font-semibold">
-                                                            Products
+                                                            Products ({searchResults.products.length})
                                                         </div>
                                                         {searchResults.products.map((product) => (
                                                             <button
@@ -292,11 +298,11 @@ export default function Navbar({ user, onLogout }) {
                                                     </div>
                                                 )}
                                                 
-                                                {/* Categories & Subcategories */}
-                                                {(searchResults.categories.length > 0 || searchResults.subcategories.length > 0) && (
-                                                    <div className="border-b border-gray-100 last:border-b-0">
+                                                {/* Categories Section */}
+                                                {searchResults.categories.length > 0 && (
+                                                    <div className="border-b border-gray-100">
                                                         <div className="px-4 py-3 bg-gray-50 text-gray-700 text-sm font-semibold">
-                                                            Categories
+                                                            Categories ({searchResults.categories.length})
                                                         </div>
                                                         {searchResults.categories.map((category) => (
                                                             <button
@@ -304,29 +310,63 @@ export default function Navbar({ user, onLogout }) {
                                                                 onClick={() => handleAutocompleteSelect('category', category)}
                                                                 className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 group border-b border-gray-50 last:border-b-0"
                                                             >
-                                                                <FiGrid className="text-gray-400" size={20} />
-                                                                <div className="font-medium text-gray-800 group-hover:text-[#800000]">
-                                                                    {category.name}
+                                                                <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center flex-shrink-0">
+                                                                    <FiGrid className="text-blue-500" size={20} />
                                                                 </div>
-                                                            </button>
-                                                        ))}
-                                                        {searchResults.subcategories.map((subcategory) => (
-                                                            <button
-                                                                key={subcategory._id || subcategory.id || subcategory.numericId}
-                                                                onClick={() => handleAutocompleteSelect('subcategory', subcategory)}
-                                                                className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 pl-10 group border-b border-gray-50 last:border-b-0"
-                                                            >
-                                                                <FiTag className="text-gray-400" size={16} />
-                                                                <div className="font-medium text-gray-800 group-hover:text-[#800000]">
-                                                                    {subcategory.title || subcategory.name}
+                                                                <div className="flex-1">
+                                                                    <div className="font-medium text-gray-800 group-hover:text-[#800000]">
+                                                                        {category.name}
+                                                                    </div>
+                                                                    <div className="text-xs text-gray-500 mt-1">
+                                                                        {category.productCount || category.count || 'Multiple'} products
+                                                                    </div>
                                                                 </div>
                                                             </button>
                                                         ))}
                                                     </div>
                                                 )}
+                                                
+                                                {/* Subcategories Section */}
+                                                {searchResults.subcategories.length > 0 && (
+                                                    <div className="border-b border-gray-100 last:border-b-0">
+                                                        <div className="px-4 py-3 bg-gray-50 text-gray-700 text-sm font-semibold">
+                                                            Subcategories ({searchResults.subcategories.length})
+                                                        </div>
+                                                        {searchResults.subcategories.map((subcategory) => {
+                                                            const categoryName = subcategory.category?.name || subcategory.categoryName || 'Category';
+                                                            const subcategoryName = subcategory.title || subcategory.name;
+                                                            return (
+                                                                <button
+                                                                    key={subcategory._id || subcategory.id || subcategory.numericId}
+                                                                    onClick={() => handleAutocompleteSelect('subcategory', subcategory)}
+                                                                    className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 group border-b border-gray-50 last:border-b-0"
+                                                                >
+                                                                    <div className="w-10 h-10 bg-green-50 rounded-full flex items-center justify-center flex-shrink-0">
+                                                                        <FiTag className="text-green-500" size={16} />
+                                                                    </div>
+                                                                    <div className="flex-1">
+                                                                        <div className="font-medium text-gray-800 group-hover:text-[#800000]">
+                                                                            {subcategoryName}
+                                                                        </div>
+                                                                        <div className="flex items-center gap-2 mt-1">
+                                                                            <span className="text-xs text-gray-500">
+                                                                                in {categoryName}
+                                                                            </span>
+                                                                            {(subcategory.productCount || subcategory.count) && (
+                                                                                <span className="text-xs text-gray-500">
+                                                                                    • {subcategory.productCount || subcategory.count} products
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
 
                                                 {/* View all results */}
-                                                {/* {searchResults.totalResults > 0 && (
+                                                {(searchResults.totalResults > 0 || searchQuery.length > 0) && (
                                                     <div className="border-t border-gray-200 p-4 bg-gray-50">
                                                         <button
                                                             onClick={() => {
@@ -335,13 +375,13 @@ export default function Navbar({ user, onLogout }) {
                                                             }}
                                                             className="w-full text-center text-[#800000] font-medium hover:underline py-2 flex items-center justify-center gap-2"
                                                         >
-                                                            View all {searchResults.totalResults} results
+                                                            View all results for "{searchQuery}"
                                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                                                             </svg>
                                                         </button>
                                                     </div>
-                                                )} */}
+                                                )}
                                             </>
                                         ) : searchQuery.length > 0 ? (
                                             <div className="p-8 text-center">
@@ -349,10 +389,19 @@ export default function Navbar({ user, onLogout }) {
                                                 <p className="text-gray-600 font-medium">No results found for</p>
                                                 <p className="text-gray-800 font-semibold mt-2 text-lg">"{searchQuery}"</p>
                                                 <p className="text-gray-500 text-sm mt-3">Try different keywords or check spelling</p>
+                                                <button
+                                                    onClick={() => {
+                                                        setShowAutocomplete(false);
+                                                        navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+                                                    }}
+                                                    className="mt-4 text-[#800000] font-medium hover:underline"
+                                                >
+                                                    Search anyway →
+                                                </button>
                                             </div>
                                         ) : (
                                             <div className="p-6 text-center text-gray-500">
-                                                Start typing to search products...
+                                                Start typing to search products, categories, or subcategories...
                                             </div>
                                         )}
                                     </div>
@@ -482,7 +531,7 @@ export default function Navbar({ user, onLogout }) {
                                 </div>
                             </form>
                             
-                            {/* Mobile Autocomplete - HIGH Z-INDEX */}
+                            {/* Mobile Autocomplete */}
                             {showAutocomplete && searchQuery.length > 0 && (
                                 <div className="absolute top-full left-0 right-0 mt-1 bg-white shadow-2xl rounded-lg border border-gray-300 z-[9999] max-h-[400px] overflow-y-auto">
                                     {isSearching ? (
@@ -492,18 +541,54 @@ export default function Navbar({ user, onLogout }) {
                                         </div>
                                     ) : hasSuccessfulResults ? (
                                         <div className="py-2">
-                                            {searchResults.products.slice(0, 5).map((product) => (
-                                                <button
-                                                    key={product._id || product.id || product.numericId}
-                                                    onClick={() => handleAutocompleteSelect('product', product)}
-                                                    className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 border-b border-gray-100 last:border-b-0"
-                                                >
-                                                    <div className="font-medium text-gray-800">
-                                                        {product.name || product.productName}
+                                            {/* Mobile Products */}
+                                            {searchResults.products.length > 0 && (
+                                                <div className="border-b border-gray-100">
+                                                    <div className="px-4 py-2 bg-gray-50 text-gray-700 text-sm font-semibold">
+                                                        Products
                                                     </div>
-                                                </button>
-                                            ))}
-                                            {searchResults.totalResults > 5 && (
+                                                    {searchResults.products.slice(0, 3).map((product) => (
+                                                        <button
+                                                            key={product._id || product.id || product.numericId}
+                                                            onClick={() => {
+                                                                handleAutocompleteSelect('product', product);
+                                                                setMenuOpen(false);
+                                                            }}
+                                                            className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 border-b border-gray-100 last:border-b-0"
+                                                        >
+                                                            <div className="font-medium text-gray-800 truncate">
+                                                                {product.name || product.productName}
+                                                            </div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            {/* Mobile Categories */}
+                                            {searchResults.categories.length > 0 && (
+                                                <div className="border-b border-gray-100">
+                                                    <div className="px-4 py-2 bg-gray-50 text-gray-700 text-sm font-semibold">
+                                                        Categories
+                                                    </div>
+                                                    {searchResults.categories.slice(0, 2).map((category) => (
+                                                        <button
+                                                            key={category._id || category.id || category.numericId}
+                                                            onClick={() => {
+                                                                handleAutocompleteSelect('category', category);
+                                                                setMenuOpen(false);
+                                                            }}
+                                                            className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 border-b border-gray-100 last:border-b-0"
+                                                        >
+                                                            <div className="font-medium text-gray-800">
+                                                                {category.name}
+                                                            </div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            {/* View all results button */}
+                                            {searchResults.totalResults > 0 && (
                                                 <button
                                                     onClick={() => {
                                                         setShowAutocomplete(false);

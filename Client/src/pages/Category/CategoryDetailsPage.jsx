@@ -1,26 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { fetchCategoryById, fetchProducts } from '../../services/api';
-import { ArrowLeft, Search } from 'lucide-react';
+import { fetchCategoryById } from '../../services/api';
+import { ArrowLeft } from 'lucide-react';
 
 const CategoryDetailsPage = () => {
     const { categoryId } = useParams();
     const navigate = useNavigate();
     const [category, setCategory] = useState(null);
-    const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [sortBy, setSortBy] = useState('default');
-    const [selectedSubcategory, setSelectedSubcategory] = useState(null);
 
     useEffect(() => {
         const loadData = async () => {
             try {
                 const cat = await fetchCategoryById(categoryId);
                 setCategory(cat);
-
-                const prods = await fetchProducts({ categoryId: cat.numericId || categoryId, search: '', sort: sortBy });
-                setProducts(prods);
             } catch (err) {
                 if (err.message.includes('not found')) navigate('/categories');
             } finally {
@@ -30,16 +23,14 @@ const CategoryDetailsPage = () => {
         loadData();
     }, [categoryId, navigate]);
 
-    // Re-fetch on filters
-    useEffect(() => {
-        if (!category) return;
-        fetchProducts({
-            categoryId: category.numericId || categoryId,
-            subcategoryId: selectedSubcategory,
-            search: searchTerm,
-            sort: sortBy
-        }).then(setProducts);
-    }, [searchTerm, sortBy, selectedSubcategory, category]);
+    const handleSubcategoryClick = (subcategoryId, subcategoryName) => {
+        // Navigate to products page with category and subcategory filters
+        navigate(`/products?category=${categoryId}&subcategory=${subcategoryId}`);
+    };
+
+    const handleAllProductsClick = () => {
+        navigate(`/products?category=${categoryId}`);
+    };
 
     if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
     if (!category) return <div className="text-center py-20">Category not found</div>;
@@ -64,145 +55,70 @@ const CategoryDetailsPage = () => {
             </div>
 
             <div className="max-w-7xl mx-auto px-4 py-8">
-                <div className="flex flex-col lg:flex-row gap-8">
-                    {/* Sidebar Filters */}
-                    <div className="lg:w-1/4 space-y-6">
-                        <div className="bg-white rounded-xl shadow p-6">
-                            <h3 className="text-lg font-semibold text-gray-800 mb-4">FILTERS</h3>
-                            
-                            {/* Search */}
-                            <div className="mb-6">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Search products
-                                </label>
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                    <input
-                                        type="text"
-                                        placeholder="Search products..."
-                                        value={searchTerm}
-                                        onChange={e => setSearchTerm(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000] focus:outline-none"
-                                    />
+                {/* Subcategories Grid */}
+                <div className="mb-12">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-6">Browse by Subcategory</h2>
+                    
+                    {/* All Products Card */}
+                    <div className="mb-8">
+                        <div 
+                            className="bg-white rounded-xl shadow hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden group cursor-pointer"
+                            onClick={handleAllProductsClick}
+                        >
+                            <div className="flex flex-col md:flex-row items-center">
+                                <div className="md:w-1/4 h-48 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                                    <div className="text-6xl">📦</div>
                                 </div>
-                            </div>
-
-                            {/* Subcategories Filter */}
-                            <div>
-                                <h4 className="font-medium text-gray-800 mb-3">SUBCATEGORIES</h4>
-                                <div className="space-y-2">
-                                    <button
-                                        onClick={() => setSelectedSubcategory(null)}
-                                        className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors ${!selectedSubcategory ? 'bg-[#800000] text-white' : 'hover:bg-gray-100 text-gray-700'}`}
-                                    >
-                                        All Products
-                                    </button>
-                                    {category.subcategories?.map(sub => (
-                                        <button
-                                            key={sub.numericId || sub.id}
-                                            onClick={() => setSelectedSubcategory(sub.numericId || sub.id)}
-                                            className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors ${selectedSubcategory === (sub.numericId || sub.id) ? 'bg-[#800000] text-white' : 'hover:bg-gray-100 text-gray-700'}`}
-                                        >
-                                            {sub.title || sub.name}
-                                        </button>
-                                    ))}
+                                <div className="md:w-3/4 p-8">
+                                    <h3 className="text-2xl font-bold text-gray-800 mb-3">All {category.name} Products</h3>
+                                    <p className="text-gray-600 text-lg">
+                                        Browse our complete collection of {category.name.toLowerCase()} materials and supplies
+                                    </p>
+                                    <div className="mt-6 flex items-center text-[#800000] font-medium">
+                                        <span>View all products</span>
+                                        <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                        </svg>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Main Content */}
-                    <div className="lg:w-3/4">
-                        {/* Horizontal Subcategory Filter */}
-                        {category.subcategories?.length > 0 && (
-                            <div className="bg-white rounded-xl shadow p-4 mb-6">
-                                <h4 className="font-medium text-gray-800 mb-3">Filter by Subcategory</h4>
-                                <div className="flex flex-wrap gap-2">
-                                    <button
-                                        onClick={() => setSelectedSubcategory(null)}
-                                        className={`px-4 py-2 rounded-lg transition-colors ${!selectedSubcategory ? 'bg-[#800000] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                    {/* Subcategory Cards */}
+                    {category.subcategories?.length > 0 && (
+                        <>
+                            <h3 className="text-xl font-bold text-gray-700 mb-6">Or browse by specific subcategory</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                {category.subcategories.map(sub => (
+                                    <div 
+                                        key={sub.numericId || sub.id}
+                                        className="bg-white rounded-xl shadow hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden group cursor-pointer hover:border-[#800000]"
+                                        onClick={() => handleSubcategoryClick(sub.numericId || sub.id, sub.title || sub.name)}
                                     >
-                                        All Products
-                                    </button>
-                                    {category.subcategories.map(sub => (
-                                        <button
-                                            key={sub.numericId || sub.id}
-                                            onClick={() => setSelectedSubcategory(sub.numericId || sub.id)}
-                                            className={`px-4 py-2 rounded-lg transition-colors ${selectedSubcategory === (sub.numericId || sub.id) ? 'bg-[#800000] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-                                        >
-                                            {sub.title || sub.name}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Sorting and Results Header */}
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6">
-                            <div className="text-gray-600 mb-4 sm:mb-0">
-                                Showing {products.length} product{products.length !== 1 ? 's' : ''}
-                            </div>
-                            <select
-                                value={sortBy}
-                                onChange={e => setSortBy(e.target.value)}
-                                className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000] focus:outline-none"
-                            >
-                                <option value="default">Sort by: Default</option>
-                                <option value="price-low">Price: Low to High</option>
-                                <option value="price-high">Price: High to Low</option>
-                                <option value="rating">Highest Rated</option>
-                            </select>
-                        </div>
-
-                        {/* Products Grid */}
-                        {products.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {products.map(product => (
-                                    <div
-                                        key={product.numericId || product.id}
-                                        className="bg-white rounded-xl shadow hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden group"
-                                    >
-                                        <div className="relative overflow-hidden">
-                                            <img
-                                                src={product.image || 'https://via.placeholder.com/400x300?text=No+Image'}
-                                                alt={product.name}
-                                                className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                                            />
+                                        <div className="relative h-48 bg-gradient-to-br from-[#80000010] to-[#a52a2a10] flex items-center justify-center group-hover:from-[#80000020] group-hover:to-[#a52a2a20] transition-all">
+                                            <div className="text-5xl">{sub.icon || '🏗️'}</div>
+                                            <div className="absolute inset-0 bg-[#800000] opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
                                         </div>
-                                        <div className="p-4">
-                                            <h3 className="font-bold text-gray-800 text-lg truncate">{product.name}</h3>
-                                            <p className="text-gray-600 text-sm mt-1 truncate">{product.brand}</p>
-                                            <div className="flex items-center justify-between mt-4">
-                                                <div>
-                                                    <p className="text-xl font-bold text-[#800000]">₹{product.price}</p>
-                                                    {product.originalPrice && (
-                                                        <p className="text-sm text-gray-400 line-through">₹{product.originalPrice}</p>
-                                                    )}
-                                                </div>
+                                        <div className="p-6">
+                                            <h3 className="font-bold text-gray-800 text-lg text-center mb-2">{sub.title || sub.name}</h3>
+                                            <p className="text-gray-600 text-sm text-center mb-4">
+                                                {sub.description || `Browse ${sub.title || sub.name} products`}
+                                            </p>
+                                            <div className="text-center">
+                                                <span className="inline-flex items-center text-[#800000] text-sm font-medium">
+                                                    View products
+                                                    <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                    </svg>
+                                                </span>
                                             </div>
-                                            <button className="w-full mt-4 bg-[#800000] hover:bg-[#600000] text-white py-2.5 rounded-lg transition-colors font-medium">
-                                                Add to Cart
-                                            </button>
                                         </div>
                                     </div>
                                 ))}
                             </div>
-                        ) : (
-                            <div className="bg-white rounded-xl shadow p-12 text-center">
-                                <div className="text-6xl mb-4 text-gray-300">🏗️</div>
-                                <h3 className="text-xl font-medium text-gray-700 mb-3">No Products Found</h3>
-                                <p className="text-gray-500 mb-6 max-w-md mx-auto">
-                                    No products available in {category.name} category
-                                </p>
-                                <Link
-                                    to="/products"
-                                    className="inline-flex items-center px-6 py-3 bg-[#800000] text-white rounded-lg hover:bg-[#600000] transition-colors font-medium"
-                                >
-                                    View All Products
-                                </Link>
-                            </div>
-                        )}
-                    </div>
+                        </>
+                    )}
                 </div>
             </div>
         </div>
