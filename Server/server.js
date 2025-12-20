@@ -24,7 +24,7 @@ import uploadRoutes from './routes/uploadRoutes.js';
 import searchRoutes from './routes/search.routes.js';
 
 // =====================
-// ENV SETUP
+// ENV CONFIG
 // =====================
 dotenv.config();
 
@@ -34,13 +34,13 @@ dotenv.config();
 const app = express();
 
 // =====================
-// ES MODULE DIRNAME
+// ES MODULE FIX
 // =====================
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // =====================
-// CONNECT DB
+// CONNECT DATABASE
 // =====================
 connectDB();
 
@@ -52,18 +52,22 @@ connectDB();
 app.use(
     cors({
         origin: [
+            // Local
             'http://localhost:3000',
             'http://localhost:5173',
             'http://localhost:5174',
 
-            // ✅ Production frontends
+            // Production Frontends
+            'https://bricksitnow.netlify.app',
             'https://bricks-com.vercel.app',
             'https://bricksitnow.co.in',
 
-            // Optional env override
+            // Optional ENV
             process.env.FRONTEND_URL
         ].filter(Boolean),
-        credentials: true
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization']
     })
 );
 
@@ -76,7 +80,7 @@ if (process.env.NODE_ENV !== 'production') {
     app.use(morgan('dev'));
 }
 
-// ---------- Security Headers ----------
+// ---------- Basic Security Headers ----------
 app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'DENY');
@@ -85,7 +89,7 @@ app.use((req, res, next) => {
 });
 
 // =====================
-// HEALTH & STATUS
+// HEALTH CHECK
 // =====================
 app.get('/health', (req, res) => {
     res.status(200).json({
@@ -121,7 +125,7 @@ app.use('/api/v1/products', productRoutes);
 app.use('/api/v1/orders', orderRoutes);
 app.use('/api/v1/search', searchRoutes);
 
-// Legacy APIs (backward compatibility)
+// Legacy APIs (Backward Compatibility)
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
@@ -138,7 +142,7 @@ app.get('/', (req, res) => {
         success: true,
         message: 'BuilderSmart Backend API',
         version: '1.0.0',
-        endpoints: {
+        docs: {
             health: '/health',
             products: '/api/v1/products',
             categories: '/api/v1/categories'
@@ -170,7 +174,7 @@ app.use((err, req, res, next) => {
 });
 
 // =====================
-// SERVER (RENDER SAFE)
+// SERVER (RENDER / VPS SAFE)
 // =====================
 const PORT = process.env.PORT || 5000;
 
