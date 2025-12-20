@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from "../../context/CartContext";
 
 const CartPage = () => {
@@ -11,8 +11,11 @@ const CartPage = () => {
         getCartTotal
     } = useCart();
 
+    const navigate = useNavigate();
+
     const handleCheckout = () => {
-        alert('Proceeding to checkout!');
+        if (cartItems.length === 0) return;
+        navigate('/checkout');
     };
 
     if (cartItems.length === 0) {
@@ -35,6 +38,11 @@ const CartPage = () => {
         );
     }
 
+    const subtotal = getCartTotal();
+    const shipping = subtotal > 5000 ? 0 : 150;
+    const tax = subtotal * 0.18;
+    const total = subtotal + tax + shipping;
+
     return (
         <div className="min-h-screen bg-gray-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -44,7 +52,6 @@ const CartPage = () => {
                     {/* Cart Items */}
                     <div className="lg:w-2/3">
                         <div className="bg-white rounded-lg shadow overflow-hidden">
-                            {/* Cart Header */}
                             <div className="border-b border-gray-200 p-4 flex justify-between items-center">
                                 <h2 className="text-lg font-semibold text-gray-800">
                                     {cartItems.length} {cartItems.length === 1 ? 'Item' : 'Items'} in Cart
@@ -57,7 +64,6 @@ const CartPage = () => {
                                 </button>
                             </div>
 
-                            {/* Cart Items List */}
                             <div className="divide-y divide-gray-200">
                                 {cartItems.map(item => (
                                     <div key={item.id} className="p-4">
@@ -94,7 +100,8 @@ const CartPage = () => {
                                                         <div className="flex items-center border border-gray-300 rounded-lg">
                                                             <button
                                                                 onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                                                                className="w-10 h-10 flex items-center justify-center hover:bg-gray-100"
+                                                                disabled={item.quantity <= 1}
+                                                                className="w-10 h-10 flex items-center justify-center hover:bg-gray-100 disabled:opacity-50"
                                                             >
                                                                 -
                                                             </button>
@@ -124,7 +131,6 @@ const CartPage = () => {
                             </div>
                         </div>
 
-                        {/* Continue Shopping */}
                         <div className="mt-6">
                             <Link
                                 to="/"
@@ -143,39 +149,29 @@ const CartPage = () => {
                         <div className="bg-white rounded-lg shadow p-6 sticky top-6">
                             <h2 className="text-xl font-bold text-gray-900 mb-6">Order Summary</h2>
 
-                            {/* Price Details */}
                             <div className="space-y-4 mb-6">
                                 <div className="flex justify-between">
                                     <span className="text-gray-600">Subtotal</span>
-                                    <span className="font-medium">₹{getCartTotal().toLocaleString()}</span>
+                                    <span className="font-medium">₹{subtotal.toLocaleString()}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-gray-600">Shipping</span>
                                     <span className="font-medium">
-                                        {getCartTotal() > 5000 ? 'FREE' : '₹150'}
+                                        {shipping === 0 ? 'FREE' : `₹${shipping}`}
                                     </span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-gray-600">Tax (GST 18%)</span>
-                                    <span className="font-medium">
-                                        ₹{(getCartTotal() * 0.18).toLocaleString()}
-                                    </span>
+                                    <span className="font-medium">₹{tax.toLocaleString('en-IN', { minimumFractionDigits: 0 })}</span>
                                 </div>
                                 <div className="border-t pt-4">
                                     <div className="flex justify-between text-lg font-bold">
                                         <span>Total Amount</span>
-                                        <span>
-                                            ₹{(
-                                                getCartTotal() +
-                                                (getCartTotal() * 0.18) +
-                                                (getCartTotal() > 5000 ? 0 : 150)
-                                            ).toLocaleString()}
-                                        </span>
+                                        <span>₹{total.toLocaleString()}</span>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Checkout Button */}
                             <button
                                 onClick={handleCheckout}
                                 className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg mb-4 transition"
@@ -183,26 +179,15 @@ const CartPage = () => {
                                 Proceed to Checkout
                             </button>
 
-                            {/* Payment Methods */}
                             <div className="border-t pt-6">
                                 <h3 className="font-medium text-gray-700 mb-3">Payment Methods</h3>
                                 <div className="flex items-center space-x-4">
-                                    <div className="w-10 h-6 bg-blue-500 rounded flex items-center justify-center text-white text-xs font-bold">
-                                        VISA
-                                    </div>
-                                    <div className="w-10 h-6 bg-yellow-500 rounded flex items-center justify-center text-white text-xs font-bold">
-                                        MC
-                                    </div>
-                                    <div className="w-10 h-6 bg-green-500 rounded flex items-center justify-center text-white text-xs font-bold">
-                                        UPI
-                                    </div>
-                                    <div className="w-10 h-6 bg-red-500 rounded flex items-center justify-center text-white text-xs font-bold">
-                                        COD
-                                    </div>
+                                    <div className="w-10 h-6 bg-red-500 rounded flex items-center justify-center text-white text-xs font-bold">COD</div>
+                                    <div className="w-10 h-6 bg-blue-500 rounded flex items-center justify-center text-white text-xs font-bold">BANK</div>
+                                    <div className="w-10 h-6 bg-green-500 rounded flex items-center justify-center text-white text-xs font-bold">UPI</div>
                                 </div>
                             </div>
 
-                            {/* Security Info */}
                             <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                                 <div className="flex items-center text-blue-600 mb-2">
                                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -211,7 +196,7 @@ const CartPage = () => {
                                     <span className="font-medium">Secure Checkout</span>
                                 </div>
                                 <p className="text-sm text-gray-600">
-                                    Your payment information is encrypted and secure. We never store your credit card details.
+                                    Your payment information is encrypted and secure.
                                 </p>
                             </div>
                         </div>
