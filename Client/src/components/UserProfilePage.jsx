@@ -1,4 +1,4 @@
-// components/UserProfilePage.jsx
+// src/components/UserProfilePage.jsx
 import React, { useState, useEffect } from 'react';
 import {
   User, Mail, Phone, MapPin, Edit2, Save, X,
@@ -8,9 +8,11 @@ import {
 import axios from 'axios';
 import { useSearchParams } from 'react-router-dom';
 
-// Vite-compatible environment variable access
-// Only variables prefixed with VITE_ are exposed to the client
-const API_URL = import.meta.env.VITE_API_URL || 'https://bricks-backend-navy.vercel.app/api';
+// Automatic API URL - Local ya Production detect karega
+const API_URL =
+  window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:5000/api'
+    : 'https://bricks-backend-navy.vercel.app/api';
 
 const UserProfilePage = () => {
   const [searchParams] = useSearchParams();
@@ -42,7 +44,7 @@ const UserProfilePage = () => {
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Get token from localStorage
+  // Auth header with token
   const getAuthHeader = () => {
     const token = localStorage.getItem('token');
     return {
@@ -54,7 +56,6 @@ const UserProfilePage = () => {
   };
 
   useEffect(() => {
-    // Check if there's a tab parameter in URL
     const tabParam = searchParams.get('tab');
     if (tabParam && ['profile', 'addresses', 'orders', 'payments'].includes(tabParam)) {
       setActiveTab(tabParam);
@@ -85,8 +86,8 @@ const UserProfilePage = () => {
       if (response.data.success) {
         setUser(response.data.user);
         setProfileData({
-          name: response.data.user.name,
-          email: response.data.user.email,
+          name: response.data.user.name || '',
+          email: response.data.user.email || '',
           phone: response.data.user.phone || ''
         });
       }
@@ -106,7 +107,7 @@ const UserProfilePage = () => {
       const response = await axios.get(`${API_URL}/user/addresses`, getAuthHeader());
 
       if (response.data.success) {
-        setAddresses(response.data.addresses);
+        setAddresses(response.data.addresses || []);
       }
     } catch (error) {
       console.error('Error fetching addresses:', error);
@@ -238,7 +239,7 @@ const UserProfilePage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Success/Error Messages */}
+      {/* Success Message */}
       {success && (
         <div className="fixed top-4 right-4 z-50 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded shadow-lg">
           <div className="flex items-center">
@@ -248,6 +249,7 @@ const UserProfilePage = () => {
         </div>
       )}
 
+      {/* Error Message */}
       {error && (
         <div className="fixed top-4 right-4 z-50 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded shadow-lg">
           <div className="flex items-center">
@@ -267,7 +269,7 @@ const UserProfilePage = () => {
                   <User className="h-8 w-8 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-800">{user?.name}</h2>
+                  <h2 className="text-xl font-bold text-gray-800">{user?.name || 'User'}</h2>
                   <p className="text-gray-600 text-sm">{user?.email}</p>
                   <div className="flex items-center mt-1">
                     <Shield className="h-3 w-3 text-green-500 mr-1" />
@@ -306,20 +308,20 @@ const UserProfilePage = () => {
               </button>
             </div>
 
-            {/* Stats */}
+            {/* Account Overview */}
             <div className="bg-gradient-to-r from-[#800000] to-[#a00000] rounded-xl shadow p-6 text-white">
               <h3 className="font-semibold mb-4 text-lg">Account Overview</h3>
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-red-100">Member Since</span>
                   <span className="font-medium">
-                    {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+                    {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-IN') : 'N/A'}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-red-100">Last Login</span>
                   <span className="font-medium">
-                    {user?.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
+                    {user?.lastLogin ? new Date(user.lastLogin).toLocaleDateString('en-IN') : 'Never'}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -333,7 +335,7 @@ const UserProfilePage = () => {
             </div>
           </div>
 
-          {/* Main Content */}
+          {/* Main Content Area */}
           <div className="md:w-3/4">
             {/* Profile Tab */}
             {activeTab === 'profile' && (
@@ -377,7 +379,7 @@ const UserProfilePage = () => {
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
                         />
                       ) : (
-                        <p className="text-gray-900 font-medium text-lg">{user?.name}</p>
+                        <p className="text-gray-900 font-medium text-lg">{user?.name || 'Not set'}</p>
                       )}
                     </div>
 
@@ -414,7 +416,6 @@ const UserProfilePage = () => {
                           onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
                           placeholder="Enter 10-digit phone number"
-                          pattern="[0-9]{10}"
                         />
                       ) : (
                         <p className="text-gray-900">{user?.phone || 'Not provided'}</p>
@@ -426,7 +427,7 @@ const UserProfilePage = () => {
                         <button
                           onClick={handleProfileUpdate}
                           disabled={isSubmitting}
-                          className="inline-flex items-center px-6 py-3 bg-[#800000] text-white font-medium rounded-lg hover:bg-[#900000] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#800000] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          className="inline-flex items-center px-6 py-3 bg-[#800000] text-white font-medium rounded-lg hover:bg-[#900000] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                           <Save className="h-4 w-4 mr-2" />
                           {isSubmitting ? 'Saving...' : 'Save Changes'}
@@ -463,62 +464,60 @@ const UserProfilePage = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
                         <input
                           type="text"
-                          placeholder="Enter full name"
                           value={newAddress.fullName}
                           onChange={(e) => setNewAddress({ ...newAddress, fullName: e.target.value })}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+                          placeholder="Enter full name"
                         />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
                         <input
                           type="tel"
-                          placeholder="10-digit number"
                           value={newAddress.phone}
                           onChange={(e) => setNewAddress({ ...newAddress, phone: e.target.value })}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
-                          pattern="[0-9]{10}"
+                          placeholder="10-digit number"
                         />
                       </div>
                       <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Address Line *</label>
                         <input
                           type="text"
-                          placeholder="House number, street, area"
                           value={newAddress.addressLine}
                           onChange={(e) => setNewAddress({ ...newAddress, addressLine: e.target.value })}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+                          placeholder="House number, street, area"
                         />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">City *</label>
                         <input
                           type="text"
-                          placeholder="City"
                           value={newAddress.city}
                           onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+                          placeholder="City"
                         />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">State *</label>
                         <input
                           type="text"
-                          placeholder="State"
                           value={newAddress.state}
                           onChange={(e) => setNewAddress({ ...newAddress, state: e.target.value })}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+                          placeholder="State"
                         />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Pincode *</label>
                         <input
                           type="text"
-                          placeholder="6-digit pincode"
                           value={newAddress.pincode}
                           onChange={(e) => setNewAddress({ ...newAddress, pincode: e.target.value })}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
-                          pattern="[0-9]{6}"
+                          placeholder="6-digit pincode"
                         />
                       </div>
                       <div>
@@ -543,6 +542,7 @@ const UserProfilePage = () => {
                         </label>
                       </div>
                     </div>
+
                     <div className="flex space-x-3 mt-6">
                       <button
                         onClick={() => {
@@ -588,7 +588,8 @@ const UserProfilePage = () => {
                       {addresses.map((address) => (
                         <div
                           key={address._id}
-                          className={`border rounded-xl p-5 transition-all ${address.isDefault ? 'border-[#800000] border-2 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}
+                          className={`border rounded-xl p-5 transition-all ${address.isDefault ? 'border-[#800000] border-2 bg-red-50' : 'border-gray-200 hover:border-gray-300'
+                            }`}
                         >
                           <div className="flex justify-between items-start mb-3">
                             <div>

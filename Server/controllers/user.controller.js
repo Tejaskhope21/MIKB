@@ -1,84 +1,140 @@
 import User from '../models/User.model.js';
 
-/* ================= ADD USER ADDRESS ================= */
-export const addAddress = async (req, res) => {
+// =====================
+// GET USER PROFILE
+// =====================
+export const getUserProfile = async (req, res, next) => {
     try {
-        const user = await User.findById(req.userId);
+        const user = await User.findById(req.user.id).select('-password');
 
         if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: 'User not found'
-            });
+            return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        const address = {
-            ...req.body,
-            isDefault: user.addresses.length === 0
-        };
+        res.json({ success: true, user });
+    } catch (error) {
+        next(error);
+    }
+};
 
-        user.addresses.push(address);
+// =====================
+// UPDATE USER PROFILE
+// =====================
+export const updateUserProfile = async (req, res, next) => {
+    try {
+        const updatedUser = await User.findByIdAndUpdate(
+            req.user.id,
+            req.body,
+            { new: true }
+        ).select('-password');
+
+        res.json({ success: true, user: updatedUser });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// =====================
+// GET ADDRESSES
+// =====================
+export const getAddresses = async (req, res, next) => {
+    try {
+        const user = await User.findById(req.user.id).select('addresses');
+
+        res.json({
+            success: true,
+            addresses: user.addresses || []
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// =====================
+// ADD ADDRESS
+// =====================
+export const addAddress = async (req, res, next) => {
+    try {
+        const user = await User.findById(req.user.id);
+
+        user.addresses.push(req.body);
+        await user.save();
+
+        res.status(201).json({
+            success: true,
+            message: 'Address added successfully',
+            addresses: user.addresses
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// =====================
+// UPDATE ADDRESS
+// =====================
+export const updateAddress = async (req, res, next) => {
+    try {
+        const { addressId } = req.params;
+        const user = await User.findById(req.user.id);
+
+        const address = user.addresses.id(addressId);
+        if (!address) {
+            return res.status(404).json({ success: false, message: 'Address not found' });
+        }
+
+        Object.assign(address, req.body);
         await user.save();
 
         res.json({
             success: true,
-            addresses: user.addresses,
-            message: 'Address added successfully'
+            message: 'Address updated',
+            addresses: user.addresses
         });
-
     } catch (error) {
-        console.error('Add address error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error'
-        });
+        next(error);
     }
 };
 
-/* ================= UPDATE ADDRESS ================= */
-export const updateAddress = async (req, res) => {
+// =====================
+// SET DEFAULT ADDRESS
+// =====================
+export const setDefaultAddress = async (req, res, next) => {
     try {
         const { addressId } = req.params;
-        const user = await User.findById(req.userId);
+        const user = await User.findById(req.user.id);
 
-        const addressIndex = user.addresses.findIndex(
-            addr => addr._id.toString() === addressId
-        );
+        // Reset all addresses to not default
+        user.addresses.forEach(addr => {
+            addr.isDefault = false;
+        });
 
-        if (addressIndex === -1) {
-            return res.status(404).json({
-                success: false,
-                message: 'Address not found'
-            });
+        // Set the selected address as default
+        const address = user.addresses.id(addressId);
+        if (!address) {
+            return res.status(404).json({ success: false, message: 'Address not found' });
         }
 
-        user.addresses[addressIndex] = {
-            ...user.addresses[addressIndex].toObject(),
-            ...req.body
-        };
-
+        address.isDefault = true;
         await user.save();
 
         res.json({
             success: true,
-            addresses: user.addresses,
-            message: 'Address updated successfully'
+            message: 'Default address updated',
+            addresses: user.addresses
         });
-
     } catch (error) {
-        console.error('Update address error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error'
-        });
+        next(error);
     }
 };
 
-/* ================= DELETE ADDRESS ================= */
-export const deleteAddress = async (req, res) => {
+// =====================
+// DELETE ADDRESS
+// =====================
+export const deleteAddress = async (req, res, next) => {
     try {
         const { addressId } = req.params;
-        const user = await User.findById(req.userId);
+        const user = await User.findById(req.user.id);
 
         user.addresses = user.addresses.filter(
             addr => addr._id.toString() !== addressId
@@ -88,92 +144,10 @@ export const deleteAddress = async (req, res) => {
 
         res.json({
             success: true,
-            addresses: user.addresses,
-            message: 'Address deleted successfully'
-        });
-
-    } catch (error) {
-        console.error('Delete address error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error'
-        });
-    }
-};
-
-/* ================= SET DEFAULT ADDRESS ================= */
-export const setDefaultAddress = async (req, res) => {
-    try {
-        const { addressId } = req.params;
-        const user = await User.findById(req.userId);
-
-        user.addresses.forEach(addr => {
-            addr.isDefault = addr._id.toString() === addressId;
-        });
-
-        await user.save();
-
-        res.json({
-            success: true,
-            addresses: user.addresses,
-            message: 'Default address updated'
-        });
-
-    } catch (error) {
-        console.error('Set default address error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error'
-        });
-    }
-};
-
-/* ================= GET USER ADDRESSES ================= */
-export const getAddresses = async (req, res) => {
-    try {
-        const user = await User.findById(req.userId).select('addresses');
-
-        res.json({
-            success: true,
+            message: 'Address deleted',
             addresses: user.addresses
         });
-
     } catch (error) {
-        console.error('Get addresses error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error'
-        });
-    }
-};
-
-/* ================= UPDATE USER PROFILE ================= */
-export const updateProfile = async (req, res) => {
-    try {
-        const updates = req.body;
-
-        // Remove restricted fields
-        delete updates.role;
-        delete updates.password;
-        delete updates.isSellerVerified;
-
-        const user = await User.findByIdAndUpdate(
-            req.userId,
-            updates,
-            { new: true, runValidators: true }
-        ).select('-password');
-
-        res.json({
-            success: true,
-            user,
-            message: 'Profile updated successfully'
-        });
-
-    } catch (error) {
-        console.error('Update profile error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error'
-        });
+        next(error);
     }
 };
