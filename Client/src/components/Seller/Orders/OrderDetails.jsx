@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Package, Truck, CheckCircle, User, MapPin, Phone, Mail, Calendar, CreditCard, Printer, MessageSquare } from 'lucide-react';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://bricks-backend-navy.vercel.app/api';
 
 const OrderDetails = () => {
     const { orderId } = useParams();
@@ -150,14 +150,14 @@ const OrderDetails = () => {
                                     return (
                                         <div key={step.status} className="flex flex-col items-center relative z-10">
                                             <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 ${step.completed ? 'bg-green-100 text-green-600' :
-                                                    step.current ? 'bg-blue-100 text-blue-600' :
-                                                        'bg-gray-100 text-gray-400'
+                                                step.current ? 'bg-blue-100 text-blue-600' :
+                                                    'bg-gray-100 text-gray-400'
                                                 }`}>
                                                 <Icon className="w-6 h-6" />
                                             </div>
                                             <span className={`text-sm font-medium ${step.completed ? 'text-green-700' :
-                                                    step.current ? 'text-blue-700' :
-                                                        'text-gray-500'
+                                                step.current ? 'text-blue-700' :
+                                                    'text-gray-500'
                                                 }`}>
                                                 {step.label}
                                             </span>
@@ -181,8 +181,8 @@ const OrderDetails = () => {
                                     onClick={() => updateOrderStatus(status)}
                                     disabled={updating || order.status === status}
                                     className={`px-4 py-2 rounded-lg text-sm font-medium ${order.status === status
-                                            ? 'bg-blue-600 text-white'
-                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                        ? 'bg-blue-600 text-white'
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                         } disabled:opacity-50 disabled:cursor-not-allowed`}
                                 >
                                     Mark as {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -324,8 +324,8 @@ const OrderDetails = () => {
                             <div>
                                 <p className="text-sm text-gray-500">Payment Status</p>
                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${order.payment?.status === 'paid'
-                                        ? 'bg-green-100 text-green-800'
-                                        : 'bg-yellow-100 text-yellow-800'
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-yellow-100 text-yellow-800'
                                     }`}>
                                     {order.payment?.status || 'pending'}
                                 </span>

@@ -1,6 +1,6 @@
 // src/api/api.js
 
-const API_BASE_URL = 'http://localhost:5000/api'; // Make sure your backend runs on port 5000
+const API_BASE_URL = 'https://bricks-backend-navy.vercel.app/api'; // Make sure your backend runs on port 5000
 
 const safeFetch = async (url, options = {}) => {
     try {
@@ -29,7 +29,7 @@ const safeFetch = async (url, options = {}) => {
             throw new Error('Request timed out. Check your internet or server.');
         }
         if (error.message.includes('Failed to fetch')) {
-            throw new Error('Cannot reach the server. Is the backend running on http://localhost:5000?');
+            throw new Error('Cannot reach the server. Is the backend running on https://bricks-backend-navy.vercel.app?');
         }
         throw error;
     }
@@ -49,10 +49,10 @@ export const searchAutocomplete = async (query, limit = 8) => {
                 totalResults: 0
             };
         }
-        
+
         const url = `${API_BASE_URL}/search/autocomplete?q=${encodeURIComponent(query)}&limit=${limit}`;
         const data = await safeFetch(url);
-        
+
         // Return the data as-is if it has success: false
         if (data.success === false) {
             console.warn('Search autocomplete failed:', data.error);
@@ -66,7 +66,7 @@ export const searchAutocomplete = async (query, limit = 8) => {
                 error: data.error || 'Search failed'
             };
         }
-        
+
         // Return the full response from backend
         return {
             success: true,
@@ -96,7 +96,7 @@ export const getSearchSuggestions = async () => {
     try {
         const url = `${API_BASE_URL}/search/suggestions`;
         const data = await safeFetch(url);
-        
+
         if (data.success === false) {
             console.warn('Get search suggestions failed:', data.error);
             return {
@@ -106,7 +106,7 @@ export const getSearchSuggestions = async () => {
                 error: data.error
             };
         }
-        
+
         return {
             success: true,
             trendingSearches: data.trendingSearches || [],
@@ -137,16 +137,16 @@ export const searchProducts = async (query, params = {}) => {
                 query: ''
             };
         }
-        
+
         const searchParams = {
             q: query,
             ...params
         };
-        
+
         const queryString = new URLSearchParams(searchParams).toString();
         const url = `${API_BASE_URL}/search?${queryString}`;
         const data = await safeFetch(url);
-        
+
         if (data.success === false) {
             console.warn('Search products failed:', data.error);
             return {
@@ -160,7 +160,7 @@ export const searchProducts = async (query, params = {}) => {
                 error: data.error
             };
         }
-        
+
         return {
             success: true,
             products: data.products || [],
@@ -187,9 +187,9 @@ export const searchProducts = async (query, params = {}) => {
 
 // NEW: Check if search returned results
 export const hasSearchResults = (searchData) => {
-    return searchData.success && 
-           (searchData.products.length > 0 || 
-            searchData.categories.length > 0 || 
+    return searchData.success &&
+        (searchData.products.length > 0 ||
+            searchData.categories.length > 0 ||
             searchData.subcategories.length > 0);
 };
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Filter, Package, AlertTriangle, TrendingDown, TrendingUp, Download, Plus, Edit, RefreshCw } from 'lucide-react';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://bricks-backend-navy.vercel.app/api';
 
 const Inventory = () => {
     const [inventory, setInventory] = useState([]);

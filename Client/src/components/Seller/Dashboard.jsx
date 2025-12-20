@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://bricks-backend-navy.vercel.app/api';
 
 const SellerDashboard = () => {
     const [stats, setStats] = useState({
@@ -133,8 +133,8 @@ const SellerDashboard = () => {
                                     <div className="text-right">
                                         <p className="font-semibold text-gray-800">₹{order.total}</p>
                                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${order.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                                                order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                                    'bg-blue-100 text-blue-800'
+                                            order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                                'bg-blue-100 text-blue-800'
                                             }`}>
                                             {order.status}
                                         </span>

@@ -5,10 +5,14 @@ import morgan from 'morgan';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// DB
+// =====================
+// DATABASE
+// =====================
 import connectDB from './config/database.js';
 
-// Routes
+// =====================
+// ROUTES
+// =====================
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
 import adminRoutes from './routes/admin.routes.js';
@@ -20,7 +24,7 @@ import uploadRoutes from './routes/uploadRoutes.js';
 import searchRoutes from './routes/search.routes.js';
 
 // =====================
-// ENV CONFIG
+// ENV SETUP
 // =====================
 dotenv.config();
 
@@ -36,7 +40,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // =====================
-// DATABASE
+// CONNECT DB
 // =====================
 connectDB();
 
@@ -44,29 +48,35 @@ connectDB();
 // MIDDLEWARE
 // =====================
 
-// CORS
+// ---------- CORS ----------
 app.use(
     cors({
         origin: [
             'http://localhost:3000',
             'http://localhost:5173',
             'http://localhost:5174',
+
+            // ✅ Production frontends
+            'https://bricks-com.vercel.app',
+            'https://bricksitnow.co.in',
+
+            // Optional env override
             process.env.FRONTEND_URL
         ].filter(Boolean),
         credentials: true
     })
 );
 
-// Body parsers
+// ---------- Body Parsers ----------
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Logger
+// ---------- Logger ----------
 if (process.env.NODE_ENV !== 'production') {
     app.use(morgan('dev'));
 }
 
-// Security headers
+// ---------- Security Headers ----------
 app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'DENY');
@@ -75,7 +85,7 @@ app.use((req, res, next) => {
 });
 
 // =====================
-// HEALTH CHECK
+// HEALTH & STATUS
 // =====================
 app.get('/health', (req, res) => {
     res.status(200).json({
@@ -111,7 +121,7 @@ app.use('/api/v1/products', productRoutes);
 app.use('/api/v1/orders', orderRoutes);
 app.use('/api/v1/search', searchRoutes);
 
-// Legacy support
+// Legacy APIs (backward compatibility)
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
@@ -128,7 +138,7 @@ app.get('/', (req, res) => {
         success: true,
         message: 'BuilderSmart Backend API',
         version: '1.0.0',
-        docs: {
+        endpoints: {
             health: '/health',
             products: '/api/v1/products',
             categories: '/api/v1/categories'
@@ -150,7 +160,7 @@ app.use((req, res) => {
 // GLOBAL ERROR HANDLER
 // =====================
 app.use((err, req, res, next) => {
-    console.error('❌ ERROR:', err);
+    console.error('❌ GLOBAL ERROR:', err);
 
     res.status(err.statusCode || 500).json({
         success: false,
