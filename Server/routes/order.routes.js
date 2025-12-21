@@ -15,6 +15,7 @@ const router = express.Router();
 router.use(protect);
 
 // User routes
+router.post('/orders', protect, createOrder);
 router.post('/', authorize('USER'), createOrder);
 router.get('/my-orders', authorize('USER'), getOrders);
 router.get('/history', authorize('USER'), getOrderHistory);

@@ -171,7 +171,8 @@ const ProductDetailsPage = () => {
 
         // Prepare product data for cart
         const cartProduct = {
-            id: product.numericId || product._id,
+            id: product._id,              // 🔥 MUST be Mongo _id
+            numericId: product.numericId, // optional
             name: product.name,
             price: product.price,
             originalPrice: product.originalPrice || product.price,
@@ -179,9 +180,12 @@ const ProductDetailsPage = () => {
             image: product.images?.[0] || '',
             unit: product.unitType || 'piece',
             minOrder: product.inventory?.moq || 1,
-            inStock: (product.status === 'published' || product.inStock === true) &&
-                (product.inventory?.stock || product.quantity || 0) > 0
+            sellerId: product.sellerId,
+            inStock:
+                (product.status === 'published') &&
+                (product.inventory?.stock || 0) > 0
         };
+
 
         addToCart(cartProduct, quantity);
         openCart();
@@ -192,7 +196,8 @@ const ProductDetailsPage = () => {
         if (!product) return;
 
         const cartProduct = {
-            id: product.numericId || product._id,
+            id: product._id,              // 🔥 MUST be Mongo _id
+            numericId: product.numericId, // optional
             name: product.name,
             price: product.price,
             originalPrice: product.originalPrice || product.price,
@@ -200,9 +205,12 @@ const ProductDetailsPage = () => {
             image: product.images?.[0] || '',
             unit: product.unitType || 'piece',
             minOrder: product.inventory?.moq || 1,
-            inStock: (product.status === 'published' || product.inStock === true) &&
-                (product.inventory?.stock || product.quantity || 0) > 0
+            sellerId: product.sellerId,
+            inStock:
+                (product.status === 'published') &&
+                (product.inventory?.stock || 0) > 0
         };
+
 
         addToCart(cartProduct, quantity);
         navigate('/cart');

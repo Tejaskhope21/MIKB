@@ -1,14 +1,19 @@
 import mongoose from 'mongoose';
 
-// validator: at least one image
+/* ===============================
+   VALIDATORS
+================================ */
 const arrayLimit = (val) => Array.isArray(val) && val.length > 0;
 
+/* ===============================
+   PRODUCT SCHEMA
+================================ */
 const productSchema = new mongoose.Schema(
     {
         numericId: {
             type: Number,
             unique: true,
-            sparse: true
+            index: true
         },
 
         name: {
@@ -17,7 +22,10 @@ const productSchema = new mongoose.Schema(
             trim: true
         },
 
-        brand: String,
+        brand: {
+            type: String,
+            trim: true
+        },
 
         description: {
             type: String,
@@ -69,10 +77,14 @@ const productSchema = new mongoose.Schema(
 
         price: {
             type: Number,
-            required: true
+            required: true,
+            min: 0
         },
 
-        originalPrice: Number,
+        originalPrice: {
+            type: Number,
+            min: 0
+        },
 
         discount: {
             type: Number,
@@ -86,10 +98,23 @@ const productSchema = new mongoose.Schema(
         },
 
         inventory: {
-            stock: { type: Number, default: 0 },
-            lowStockThreshold: { type: Number, default: 10 },
-            moq: { type: Number, default: 1 },
-            manageStock: { type: Boolean, default: true }
+            stock: {
+                type: Number,
+                default: 0,
+                min: 0
+            },
+            lowStockThreshold: {
+                type: Number,
+                default: 10
+            },
+            moq: {
+                type: Number,
+                default: 1
+            },
+            manageStock: {
+                type: Boolean,
+                default: true
+            }
         },
 
         unitType: {
@@ -128,21 +153,42 @@ const productSchema = new mongoose.Schema(
             keywords: [String]
         }
     },
-    { timestamps: true }
+    {
+        timestamps: true
+    }
 );
 
-/* ===== PRE SAVE HOOK ===== */
-productSchema.pre('save', async function () {
-    if (this.originalPrice && this.originalPrice > this.price) {
-        this.discount = Math.round(
-            ((this.originalPrice - this.price) / this.originalPrice) * 100
-        );
-    }
+/* ===============================
+   PRE-SAVE HOOKS
+================================ */
+productSchema.pre('save', async function (next) {
+    try {
+        // Auto-generate numericId
+        if (!this.numericId) {
+            const lastProduct = await this.constructor
+                .findOne({}, { numericId: 1 })
+                .sort({ numericId: -1 });
 
-    if (!this.numericId) {
-        const last = await this.constructor.findOne({}, {}, { sort: { numericId: -1 } });
-        this.numericId = last ? last.numericId + 1 : 1000;
+            this.numericId = lastProduct ? lastProduct.numericId + 1 : 1000;
+        }
+
+        // Auto-calculate discount
+        if (this.originalPrice && this.originalPrice > this.price) {
+            this.discount = Math.round(
+                ((this.originalPrice - this.price) / this.originalPrice) * 100
+            );
+        } else {
+            this.discount = 0;
+        }
+
+        next();
+    } catch (error) {
+        next(error);
     }
 });
 
-export default mongoose.model('Product', productSchema);
+/* ===============================
+   EXPORT MODEL
+================================ */
+const Product = mongoose.model('Product', productSchema);
+export default Product;
