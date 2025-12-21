@@ -12,7 +12,7 @@ import { useSearchParams } from 'react-router-dom';
 const API_URL =
   window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'http://localhost:5000/api'
-    : 'https://bricks-backend-navy.vercel.app/api';
+    : 'http://localhost:5000/api';
 
 const UserProfilePage = () => {
   const [searchParams] = useSearchParams();

@@ -1,6 +1,6 @@
 // src/api/api.js
 
-const API_BASE_URL = 'https://bricks-backend-navy.vercel.app/api'; // Make sure your backend runs on port 5000
+const API_BASE_URL = 'http://localhost:5000/api'; // Make sure your backend runs on port 5000
 
 const safeFetch = async (url, options = {}) => {
     try {
@@ -29,7 +29,7 @@ const safeFetch = async (url, options = {}) => {
             throw new Error('Request timed out. Check your internet or server.');
         }
         if (error.message.includes('Failed to fetch')) {
-            throw new Error('Cannot reach the server. Is the backend running on https://bricks-backend-navy.vercel.app?');
+            throw new Error('Cannot reach the server. Is the backend running on http://localhost:5000?');
         }
         throw error;
     }
@@ -272,26 +272,26 @@ export const fetchSubcategories = async (categoryId) => {
     try {
         // First try the new endpoint
         const data = await safeFetch(`${API_BASE_URL}/categories/${categoryId}/subcategories`);
-        
+
         if (data.success === false && data.message.includes('Route not found')) {
             console.log('Subcategories endpoint not found, fetching category directly...');
-            
+
             // Fallback: get category and extract subcategories
             const categoryData = await fetchCategoryDetails(categoryId);
-            
+
             if (categoryData && categoryData.subcategories) {
                 // Get product counts for each subcategory
                 const allProducts = await fetchProductsByCategory(categoryId);
-                
+
                 const subcategoriesWithCount = categoryData.subcategories.map(sub => {
                     // Count products in this subcategory
                     const productCount = allProducts.filter(product => {
                         return product.subcategoryId === sub.numericId ||
-                               product.subcategoryId === sub._id?.toString() ||
-                               product.subcategory?.numericId === sub.numericId ||
-                               product.subcategory?._id === sub._id;
+                            product.subcategoryId === sub._id?.toString() ||
+                            product.subcategory?.numericId === sub.numericId ||
+                            product.subcategory?._id === sub._id;
                     }).length;
-                    
+
                     return {
                         _id: sub._id,
                         numericId: sub.numericId,
@@ -301,13 +301,13 @@ export const fetchSubcategories = async (categoryId) => {
                         productCount: productCount
                     };
                 });
-                
+
                 return subcategoriesWithCount;
             }
-            
+
             return [];
         }
-        
+
         return data.subcategories || data || [];
     } catch (err) {
         console.error('fetchSubcategories error:', err);
@@ -319,21 +319,21 @@ export const fetchSubcategories = async (categoryId) => {
 export const fetchSubcategoryDetails = async (categoryId, subcategoryId) => {
     try {
         const data = await safeFetch(`${API_BASE_URL}/categories/${categoryId}/subcategories/${subcategoryId}`);
-        
+
         if (data.success === false && data.message.includes('Route not found')) {
             console.log('Subcategory details endpoint not found, using fallback...');
-            
+
             // Fallback: get all subcategories and find the right one
             const subcategories = await fetchSubcategories(categoryId);
-            const subcategory = subcategories.find(sub => 
+            const subcategory = subcategories.find(sub =>
                 sub._id === subcategoryId ||
                 sub.numericId?.toString() === subcategoryId
             );
-            
+
             if (subcategory) {
                 return subcategory;
             }
-            
+
             return {
                 _id: subcategoryId,
                 numericId: subcategoryId,
@@ -343,17 +343,17 @@ export const fetchSubcategoryDetails = async (categoryId, subcategoryId) => {
                 productCount: 0
             };
         }
-        
+
         return data.subcategory || data;
     } catch (err) {
         console.error('fetchSubcategoryDetails error:', err);
         // Fallback
         const subcategories = await fetchSubcategories(categoryId);
-        const subcategory = subcategories.find(sub => 
+        const subcategory = subcategories.find(sub =>
             sub._id === subcategoryId ||
             sub.numericId?.toString() === subcategoryId
         );
-        
+
         return subcategory || {
             _id: subcategoryId,
             numericId: subcategoryId,
@@ -370,7 +370,7 @@ export const fetchSubcategoryDetails = async (categoryId, subcategoryId) => {
 export const fetchProductsBySubcategory = async (categoryId, subcategoryId, filters = {}) => {
     try {
         const queryParams = new URLSearchParams();
-        
+
         Object.entries(filters).forEach(([key, value]) => {
             if (value !== undefined && value !== null && value !== '') {
                 queryParams.append(key, value);
@@ -378,14 +378,14 @@ export const fetchProductsBySubcategory = async (categoryId, subcategoryId, filt
         });
 
         const url = `${API_BASE_URL}/categories/${categoryId}/subcategories/${subcategoryId}/products?${queryParams.toString()}`;
-        
+
         const data = await safeFetch(url);
-        
+
         if (data.success === false) {
             console.warn('fetchProductsBySubcategory failed:', data.message);
             return await fallbackProductsBySubcategory(categoryId, subcategoryId, filters);
         }
-        
+
         return {
             products: data.products || [],
             total: data.total || 0,
@@ -404,27 +404,27 @@ export const fetchProductsBySubcategory = async (categoryId, subcategoryId, filt
 const fallbackProductsBySubcategory = async (categoryId, subcategoryId, filters = {}) => {
     try {
         const allProducts = await fetchProductsByCategory(categoryId);
-        
+
         let filteredProducts = allProducts.filter(product => {
             return product.subcategoryId === subcategoryId ||
-                   product.subcategoryId?.toString() === subcategoryId ||
-                   product.subcategory?._id === subcategoryId ||
-                   product.subcategory?.id === subcategoryId ||
-                   product.subcategory?.numericId?.toString() === subcategoryId;
+                product.subcategoryId?.toString() === subcategoryId ||
+                product.subcategory?._id === subcategoryId ||
+                product.subcategory?.id === subcategoryId ||
+                product.subcategory?.numericId?.toString() === subcategoryId;
         });
-        
+
         if (filters.minPrice) {
-            filteredProducts = filteredProducts.filter(p => 
+            filteredProducts = filteredProducts.filter(p =>
                 (p.price || 0) >= parseFloat(filters.minPrice)
             );
         }
         if (filters.maxPrice) {
-            filteredProducts = filteredProducts.filter(p => 
+            filteredProducts = filteredProducts.filter(p =>
                 (p.price || 0) <= parseFloat(filters.maxPrice)
             );
         }
         if (filters.brand) {
-            filteredProducts = filteredProducts.filter(p => 
+            filteredProducts = filteredProducts.filter(p =>
                 p.brand === filters.brand
             );
         }
@@ -436,16 +436,16 @@ const fallbackProductsBySubcategory = async (categoryId, subcategoryId, filters 
                 p.brand?.toLowerCase().includes(query)
             );
         }
-        
+
         if (filters.sortBy) {
             filteredProducts = sortProducts(filteredProducts, filters.sortBy);
         }
-        
+
         const brands = [...new Set(filteredProducts
             .filter(p => p.brand)
             .map(p => p.brand)
             .sort())];
-        
+
         return {
             products: filteredProducts,
             total: filteredProducts.length,
@@ -495,12 +495,12 @@ const sortProducts = (products, sortBy) => {
 // export const fetchSubcategoryDetails = async (categoryId, subcategoryId) => {
 //     try {
 //         const data = await safeFetch(`${API_BASE_URL}/categories/${categoryId}/subcategories/${subcategoryId}`);
-        
+
 //         if (data.success === false) {
 //             console.warn('fetchSubcategoryDetails failed:', data.message);
 //             return await fallbackSubcategoryDetails(categoryId, subcategoryId);
 //         }
-        
+
 //         return data.subcategory || data;
 //     } catch (err) {
 //         console.error('fetchSubcategoryDetails error:', err);
@@ -511,17 +511,17 @@ const sortProducts = (products, sortBy) => {
 const fallbackSubcategoryDetails = async (categoryId, subcategoryId) => {
     try {
         const subcategories = await fetchSubcategories(categoryId);
-        
-        const subcategory = subcategories.find(sub => 
+
+        const subcategory = subcategories.find(sub =>
             sub._id === subcategoryId ||
             sub.id === subcategoryId ||
             sub.numericId?.toString() === subcategoryId
         );
-        
+
         if (subcategory) {
             return subcategory;
         }
-        
+
         return {
             _id: subcategoryId,
             id: subcategoryId,
@@ -665,9 +665,9 @@ export const getUserMaterialRequirements = async (params = {}) => {
         }
 
         const { page = 1, limit = 10, status, sort = '-createdAt' } = params;
-        
+
         let url = `${API_BASE_URL}/requirements/my?page=${page}&limit=${limit}&sort=${sort}`;
-        
+
         if (status) {
             url += `&status=${status}`;
         }
@@ -734,7 +734,7 @@ export const updateMaterialRequirement = async (requirementId, updateData) => {
         const formattedData = {
             ...updateData,
             // Format dates
-            deliveryDate: updateData.deliveryDate ? 
+            deliveryDate: updateData.deliveryDate ?
                 new Date(updateData.deliveryDate).toISOString() : undefined,
             // Format materials
             materials: updateData.materials?.map(material => ({

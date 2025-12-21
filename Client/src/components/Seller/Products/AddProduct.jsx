@@ -5,7 +5,7 @@ import axios from 'axios';
 
 const API_URL = import.meta.env.DEV
     ? 'http://localhost:5000/api'
-    : 'https://bricks-backend-navy.vercel.app/api';
+    : 'http://localhost:5000/api';
 const AddProduct = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);

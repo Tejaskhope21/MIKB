@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Filter, Plus, Edit, Trash2, Eye, Download, Upload, ChevronLeft, ChevronRight } from 'lucide-react';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://bricks-backend-navy.vercel.app/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const ProductList = () => {
     const [products, setProducts] = useState([]);
