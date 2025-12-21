@@ -1,6 +1,6 @@
 // src/api/api.js
 
-const API_BASE_URL = 'http://localhost:5000/api'; // Make sure your backend runs on port 5000
+const API_BASE_URL = 'https://bricks-backend-navy.vercel.app/api'; // Make sure your backend runs on port 5000
 
 const safeFetch = async (url, options = {}) => {
     try {
