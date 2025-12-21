@@ -1,26 +1,55 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import {
+    getUserMaterialRequirements,
+    getMaterialRequirementById,
+    updateMaterialRequirement,
+    cancelMaterialRequirement,
+    createMaterialRequirement,
+    deleteMaterialRequirement,
+    validatePhoneNumber
+} from '../../services/api';
 
-const MaterialRequirementPage = () => {
+const MaterialRequirementsDashboard = () => {
+    const navigate = useNavigate();
+    const [requirements, setRequirements] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [userLoading, setUserLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [userInfo, setUserInfo] = useState(null);
+    
+    // States for modals and forms
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [showDetailsModal, setShowDetailsModal] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [selectedRequirement, setSelectedRequirement] = useState(null);
+    const [deleteConfirmText, setDeleteConfirmText] = useState('');
+    const [actionLoading, setActionLoading] = useState(false);
+    
+    // Form states
     const [formData, setFormData] = useState({
-        name: '',
-        company: '',
-        phone: '',
-        email: '',
         projectType: '',
         projectLocation: '',
         deliveryDate: '',
         budgetRange: '',
+        company: '',
+        phone: '',
         materials: [
-            { id: 1, type: '', quantity: '', unit: 'MT', specification: '' }
+            { id: 1, type: '', quantity: '', unit: 'units', specification: '' }
         ],
         additionalNotes: '',
-        urgencyLevel: 'normal',
-        siteVisitRequired: false,
-        agreeTerms: false
+        urgencyLevel: 'medium',
+        siteVisitRequired: false
     });
-
-    const [isSubmitted, setIsSubmitted] = useState(false);
-    const [activeStep, setActiveStep] = useState(1);
+    
+    // Filters
+    const [filters, setFilters] = useState({
+        status: '',
+        projectType: '',
+        search: '',
+        sortBy: '-createdAt'
+    });
 
     const materialCategories = [
         'Cement',
@@ -39,7 +68,7 @@ const MaterialRequirementPage = () => {
     ];
 
     const unitOptions = [
-        'MT', 'KG', 'Ton', 'Cubic Meter', 'Square Feet', 'Number', 'Set', 'Bag'
+        'MT', 'KG', 'Ton', 'Cubic Meter', 'Square Feet', 'Number', 'Set', 'Bag', 'units'
     ];
 
     const projectTypes = [
@@ -63,14 +92,328 @@ const MaterialRequirementPage = () => {
         'Above ₹1 Cr'
     ];
 
-    const handleChange = (e) => {
-        const { name, value, type, checked } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: type === 'checkbox' ? checked : value
-        }));
+    const statusOptions = [
+        { value: '', label: 'All Status' },
+        { value: 'pending', label: 'Pending', color: 'bg-yellow-100 text-yellow-800' },
+        { value: 'in-progress', label: 'In Progress', color: 'bg-blue-100 text-blue-800' },
+        { value: 'accepted', label: 'Accepted', color: 'bg-purple-100 text-purple-800' },
+        { value: 'completed', label: 'Completed', color: 'bg-green-100 text-green-800' },
+        { value: 'cancelled', label: 'Cancelled', color: 'bg-red-100 text-red-800' }
+    ];
+
+    // Urgency levels with brown colors
+    const urgencyLevels = [
+        { value: 'low', label: 'Low', color: 'bg-amber-50 text-amber-800 border border-amber-200' },
+        { value: 'medium', label: 'Medium', color: 'bg-amber-100 text-amber-900 border border-amber-300' },
+        { value: 'high', label: 'High', color: 'bg-amber-600 text-white border border-amber-700' },
+        { value: 'urgent', label: 'Urgent', color: 'bg-red-600 text-white border border-red-700' }
+    ];
+
+    // Mock data for demonstration
+    const mockRequirements = [
+        {
+            _id: '1',
+            requirementNumber: 'REQ-176630873167-36DF',
+            projectType: 'Individual House',
+            projectLocation: 'Nagpur',
+            deliveryDate: '2025-01-07',
+            budgetRange: '₹50 Lakh - 1 Cr',
+            materials: [
+                { type: 'Cement', quantity: '12000', unit: 'units', specification: '' }
+            ],
+            status: 'cancelled',
+            urgencyLevel: 'urgent',
+            createdAt: '2025-12-21',
+            additionalNotes: '',
+            siteVisitRequired: false
+        },
+        {
+            _id: '2',
+            requirementNumber: 'REQ-176630873168-37DG',
+            projectType: 'Commercial Complex',
+            projectLocation: 'Mumbai',
+            deliveryDate: '2025-02-15',
+            budgetRange: 'Above ₹1 Cr',
+            materials: [
+                { type: 'Steel/Rebar', quantity: '50', unit: 'MT', specification: 'TMT Grade 500' },
+                { type: 'Cement', quantity: '500', unit: 'Bags', specification: 'OPC 53 Grade' }
+            ],
+            status: 'pending',
+            urgencyLevel: 'high',
+            createdAt: '2025-12-20',
+            additionalNotes: 'Need quick delivery',
+            siteVisitRequired: true
+        },
+        {
+            _id: '3',
+            requirementNumber: 'REQ-176630873169-38DH',
+            projectType: 'Residential Building',
+            projectLocation: 'Delhi',
+            deliveryDate: '2025-03-30',
+            budgetRange: '₹25-50 Lakh',
+            materials: [
+                { type: 'Bricks/Blocks', quantity: '10000', unit: 'Number', specification: 'Clay Bricks' },
+                { type: 'Tiles (Floor, Wall)', quantity: '500', unit: 'Square Feet', specification: 'Ceramic' }
+            ],
+            status: 'in-progress',
+            urgencyLevel: 'medium',
+            createdAt: '2025-12-19',
+            additionalNotes: '',
+            siteVisitRequired: false
+        }
+    ];
+
+    // Fetch user info and requirements on component mount
+    useEffect(() => {
+        const fetchUserData = async () => {
+            setUserLoading(true);
+            try {
+                const token = localStorage.getItem('token');
+                if (token) {
+                    setUserInfo({
+                        name: localStorage.getItem('userName') || 'User',
+                        email: localStorage.getItem('userEmail') || '',
+                        phone: localStorage.getItem('userPhone') || ''
+                    });
+                } else {
+                    navigate('/login');
+                }
+            } catch (err) {
+                console.error('Error fetching user data:', err);
+            } finally {
+                setUserLoading(false);
+            }
+        };
+
+        fetchUserData();
+        fetchRequirements();
+    }, [navigate]);
+
+    // Fetch requirements
+    const fetchRequirements = async () => {
+        setLoading(true);
+        setError('');
+        try {
+            // For demo, using mock data
+            setTimeout(() => {
+                setRequirements(mockRequirements);
+                setLoading(false);
+            }, 500);
+            
+        } catch (err) {
+            console.error('Error fetching requirements:', err);
+            setError('An error occurred while fetching requirements');
+            setLoading(false);
+        }
     };
 
+    // Handle create new requirement
+    const handleCreateSubmit = async (e) => {
+        e.preventDefault();
+        if (!validateForm()) return;
+
+        setActionLoading(true);
+        try {
+            // For demo, simulate API call
+            setTimeout(() => {
+                const newRequirement = {
+                    _id: Date.now().toString(),
+                    requirementNumber: `REQ-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`,
+                    ...formData,
+                    materials: formData.materials.map(({ id, ...rest }) => rest),
+                    status: 'pending',
+                    createdAt: new Date().toISOString().split('T')[0]
+                };
+                
+                setRequirements([newRequirement, ...requirements]);
+                alert('Requirement created successfully!');
+                setShowCreateModal(false);
+                resetForm();
+                setActionLoading(false);
+            }, 1000);
+
+        } catch (err) {
+            console.error('Create error:', err);
+            setError('Failed to create requirement');
+            setActionLoading(false);
+        }
+    };
+
+    // Handle update requirement
+    const handleUpdateSubmit = async (e) => {
+        e.preventDefault();
+        if (!selectedRequirement || !validateForm()) return;
+
+        setActionLoading(true);
+        try {
+            // For demo, simulate update
+            setTimeout(() => {
+                const updateData = {
+                    ...formData,
+                    materials: formData.materials.map(({ id, ...rest }) => rest)
+                };
+                const updatedRequirements = requirements.map(req =>
+                    req._id === selectedRequirement._id 
+                        ? { ...req, ...updateData }
+                        : req
+                );
+                setRequirements(updatedRequirements);
+                alert('Requirement updated successfully!');
+                setShowEditModal(false);
+                resetForm();
+                setActionLoading(false);
+            }, 1000);
+
+        } catch (err) {
+            console.error('Update error:', err);
+            setError('Failed to update requirement');
+            setActionLoading(false);
+        }
+    };
+
+    // Handle cancel requirement
+    const handleCancelRequirement = async (requirementId) => {
+        if (!window.confirm('Are you sure you want to cancel this requirement? This action cannot be undone.')) return;
+
+        setActionLoading(true);
+        try {
+            // For demo, simulate cancellation
+            setTimeout(() => {
+                const updatedRequirements = requirements.map(req =>
+                    req._id === requirementId 
+                        ? { ...req, status: 'cancelled' }
+                        : req
+                );
+                setRequirements(updatedRequirements);
+                alert('Requirement cancelled successfully!');
+                setActionLoading(false);
+            }, 1000);
+
+        } catch (err) {
+            console.error('Cancel error:', err);
+            setError('Failed to cancel requirement');
+            setActionLoading(false);
+        }
+    };
+
+    // Handle delete requirement
+    const handleDeleteRequirement = async (requirementId) => {
+        if (deleteConfirmText !== 'DELETE') {
+            setError('Please type DELETE in the confirmation box');
+            return;
+        }
+
+        setActionLoading(true);
+        try {
+            // For demo, simulate deletion
+            setTimeout(() => {
+                const updatedRequirements = requirements.filter(req => req._id !== requirementId);
+                setRequirements(updatedRequirements);
+                setShowDeleteModal(false);
+                setDeleteConfirmText('');
+                setSelectedRequirement(null);
+                alert('Requirement deleted successfully!');
+                setActionLoading(false);
+            }, 1000);
+
+        } catch (err) {
+            console.error('Delete error:', err);
+            setError('Failed to delete requirement');
+            setActionLoading(false);
+        }
+    };
+
+    // Form validation
+    const validateForm = () => {
+        if (!formData.projectType) {
+            setError('Project type is required');
+            return false;
+        }
+        if (!formData.projectLocation) {
+            setError('Project location is required');
+            return false;
+        }
+        if (!formData.deliveryDate) {
+            setError('Delivery date is required');
+            return false;
+        }
+        if (!formData.budgetRange) {
+            setError('Budget range is required');
+            return false;
+        }
+        
+        const phoneStr = String(formData.phone || '').trim();
+        if (phoneStr && !validatePhoneNumber(phoneStr)) {
+            setError('Valid 10-digit phone number is required');
+            return false;
+        }
+
+        for (const material of formData.materials) {
+            if (!material.type) {
+                setError('All materials must have a type selected');
+                return false;
+            }
+            const quantity = parseFloat(material.quantity);
+            if (isNaN(quantity) || quantity <= 0) {
+                setError('All materials must have a valid quantity greater than 0');
+                return false;
+            }
+        }
+
+        return true;
+    };
+
+    // Reset form
+    const resetForm = () => {
+        setFormData({
+            projectType: '',
+            projectLocation: '',
+            deliveryDate: '',
+            budgetRange: '',
+            company: '',
+            phone: userInfo?.phone || '',
+            materials: [
+                { id: 1, type: '', quantity: '', unit: 'units', specification: '' }
+            ],
+            additionalNotes: '',
+            urgencyLevel: 'medium',
+            siteVisitRequired: false
+        });
+        setError('');
+    };
+
+    // Open edit modal with requirement data
+    const openEditModal = (requirement) => {
+        setSelectedRequirement(requirement);
+        setFormData({
+            projectType: requirement.projectType || '',
+            projectLocation: requirement.projectLocation || '',
+            deliveryDate: requirement.deliveryDate ? new Date(requirement.deliveryDate).toISOString().split('T')[0] : '',
+            budgetRange: requirement.budgetRange || '',
+            company: requirement.company || '',
+            phone: requirement.phone || userInfo?.phone || '',
+            materials: requirement.materials?.map((mat, idx) => ({
+                id: idx + 1,
+                type: mat.type || '',
+                quantity: mat.quantity || '',
+                unit: mat.unit || 'units',
+                specification: mat.specification || ''
+            })) || [{ id: 1, type: '', quantity: '', unit: 'units', specification: '' }],
+            additionalNotes: requirement.additionalNotes || '',
+            urgencyLevel: requirement.urgencyLevel || 'medium',
+            siteVisitRequired: requirement.siteVisitRequired || false
+        });
+        setShowEditModal(true);
+    };
+
+    // Open delete modal
+    const openDeleteModal = (requirement) => {
+        setSelectedRequirement(requirement);
+        setDeleteConfirmText('');
+        setShowDeleteModal(true);
+    };
+
+    // Material row handlers
     const handleMaterialChange = (id, field, value) => {
         setFormData(prev => ({
             ...prev,
@@ -84,7 +427,7 @@ const MaterialRequirementPage = () => {
         const newId = formData.materials.length + 1;
         setFormData(prev => ({
             ...prev,
-            materials: [...prev.materials, { id: newId, type: '', quantity: '', unit: 'MT', specification: '' }]
+            materials: [...prev.materials, { id: newId, type: '', quantity: '', unit: 'units', specification: '' }]
         }));
     };
 
@@ -97,660 +440,790 @@ const MaterialRequirementPage = () => {
         }
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        console.log('Material requirement submitted:', formData);
-        setIsSubmitted(true);
-
-        // Reset form after 5 seconds
-        setTimeout(() => {
-            setIsSubmitted(false);
-            setFormData({
-                name: '',
-                company: '',
-                phone: '',
-                email: '',
-                projectType: '',
-                projectLocation: '',
-                deliveryDate: '',
-                budgetRange: '',
-                materials: [
-                    { id: 1, type: '', quantity: '', unit: 'MT', specification: '' }
-                ],
-                additionalNotes: '',
-                urgencyLevel: 'normal',
-                siteVisitRequired: false,
-                agreeTerms: false
-            });
-            setActiveStep(1);
-        }, 5000);
+    // Get status color
+    const getStatusColor = (status) => {
+        const option = statusOptions.find(opt => opt.value === status);
+        return option?.color || 'bg-gray-100 text-gray-800';
     };
 
-    const nextStep = () => {
-        setActiveStep(prev => Math.min(prev + 1, 3));
+    // Get status label
+    const getStatusLabel = (status) => {
+        const option = statusOptions.find(opt => opt.value === status);
+        return option?.label || status;
     };
 
-    const prevStep = () => {
-        setActiveStep(prev => Math.max(prev - 1, 1));
+    // Get urgency color
+    const getUrgencyColor = (urgency) => {
+        const option = urgencyLevels.find(opt => opt.value === urgency);
+        return option?.color || 'bg-gray-100 text-gray-800';
     };
 
-    const calculateEstimatedTotal = () => {
-        // This is a simplified calculation
-        const quantity = formData.materials.reduce((sum, material) => {
+    // Get urgency label
+    const getUrgencyLabel = (urgency) => {
+        const option = urgencyLevels.find(opt => opt.value === urgency);
+        return option?.label || urgency;
+    };
+
+    // Format date to match screenshot (DD/MM/YYYY)
+    const formatDate = (dateString) => {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+    };
+
+    // Format delivery date (DD/MM/YYYY)
+    const formatDeliveryDate = (dateString) => {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+    };
+
+    // Calculate estimated total for display
+    const calculateEstimatedTotal = (materials) => {
+        const quantity = materials?.reduce((sum, material) => {
             const qty = parseFloat(material.quantity) || 0;
             return sum + qty;
-        }, 0);
+        }, 0) || 0;
 
-        if (quantity === 0) return 'Add quantity to estimate';
-
-        let multiplier = 1;
-        switch (formData.budgetRange) {
-            case 'Under ₹1 Lakh': multiplier = 50000; break;
-            case '₹1-5 Lakh': multiplier = 300000; break;
-            case '₹5-10 Lakh': multiplier = 750000; break;
-            case '₹10-25 Lakh': multiplier = 1750000; break;
-            case '₹25-50 Lakh': multiplier = 3750000; break;
-            case '₹50 Lakh - 1 Cr': multiplier = 7500000; break;
-            case 'Above ₹1 Cr': multiplier = 15000000; break;
-            default: multiplier = 0;
-        }
-
-        if (multiplier === 0) return 'Select budget range';
-
-        const estimated = Math.round(quantity * (multiplier / formData.materials.length));
-        return `₹${estimated.toLocaleString('en-IN')}`;
+        if (quantity === 0) return 'N/A';
+        return `${quantity.toLocaleString('en-IN')} ${materials?.[0]?.unit || 'units'}`;
     };
 
-    return (
-        <div className="min-h-screen bg-gradient-to-b from-amber-50 to-orange-50">
-            <div className="max-w-6xl mx-auto px-4 py-8">
+    // Handle submit requirement navigation
+    const handleSubmitRequirement = () => {
+        navigate('/material-requirement');
+    };
 
+    // Loading state
+    if (userLoading || loading) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto"></div>
+                    <p className="mt-4 text-gray-600">Loading...</p>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen bg-gray-50 py-8">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-amber-900 to-brown-800 rounded-2xl shadow-2xl p-8 mb-10 text-white">
-                    <div className="flex flex-col md:flex-row justify-between items-center">
+                <div className="mb-8">
+                    
+
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
-                            <h1 className="text-4xl font-bold mb-2">Submit Material Requirement</h1>
-                            <p className="text-xl text-amber-100">Get competitive quotes from verified suppliers in Nagpur</p>
+                            <h1 className="text-2xl font-bold text-gray-900">Submit New Requirement</h1>
+                            <p className="mt-1 text-gray-600">Manage and track all your material requirements</p>
+                            <p className="mt-1 text-sm text-gray-500 italic">Delivery date is required</p>
                         </div>
-                        <div className="mt-4 md:mt-0">
-                            <div className="bg-amber-800/50 p-4 rounded-xl">
-                                <p className="text-sm">Average Response Time</p>
-                                <p className="text-2xl font-bold">2-4 Hours</p>
-                                <p className="text-sm text-amber-200">From verified suppliers</p>
-                            </div>
+                        <div className="flex items-center space-x-4">
+                            <button
+                                onClick={() => setShowCreateModal(true)}
+                                className="inline-flex items-center px-6 py-3 border border-transparent rounded-lg shadow-sm text-base font-medium text-white bg-amber-600 hover:bg-amber-700"
+                            >
+                                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                                </svg>
+                                Submit New Requirement
+                            </button>
                         </div>
                     </div>
                 </div>
 
-                {/* Success Message */}
-                {isSubmitted && (
-                    <div className="mb-8 p-6 bg-green-100 border border-green-400 text-green-800 rounded-xl">
+                {/* Error Message */}
+                {error && (
+                    <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-800 rounded-lg">
                         <div className="flex items-center">
-                            <svg className="w-8 h-8 mr-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                             </svg>
-                            <div>
-                                <p className="text-xl font-bold">Requirement Submitted Successfully!</p>
-                                <p className="mt-2">We've received your material requirements. Our team will contact you shortly with quotes from verified suppliers.</p>
-                                <p className="mt-1 text-sm">You'll receive quotes on your phone and email.</p>
-                            </div>
+                            <span>{error}</span>
                         </div>
                     </div>
                 )}
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Left Column - Form */}
-                    <div className="lg:col-span-2">
-                        {/* Progress Steps */}
-                        <div className="mb-8">
-                            <div className="flex justify-between items-center mb-4">
-                                {[1, 2, 3].map((step) => (
-                                    <div key={step} className="flex flex-col items-center">
-                                        <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg
-                      ${activeStep >= step ? 'bg-amber-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
-                                            {step}
-                                        </div>
-                                        <span className="mt-2 text-sm font-medium">
-                                            {step === 1 && 'Project Details'}
-                                            {step === 2 && 'Materials'}
-                                            {step === 3 && 'Review'}
-                                        </span>
-                                    </div>
+                {/* Filters */}
+                <div className="bg-white rounded-lg shadow p-4 mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                            <select
+                                value={filters.status}
+                                onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                            >
+                                {statusOptions.map(option => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
                                 ))}
-                            </div>
-                            <div className="h-2 bg-gray-200 rounded-full">
-                                <div className="h-full bg-amber-600 rounded-full transition-all duration-300"
-                                    style={{ width: `${(activeStep - 1) * 50}%` }}></div>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Project Type</label>
+                            <select
+                                value={filters.projectType}
+                                onChange={(e) => setFilters({ ...filters, projectType: e.target.value })}
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                            >
+                                <option value="">All Types</option>
+                                {projectTypes.map(type => (
+                                    <option key={type} value={type}>{type}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+                            <input
+                                type="text"
+                                value={filters.search}
+                                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                                placeholder="Search requirements..."
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+                            <select
+                                value={filters.sortBy}
+                                onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                            >
+                                <option value="-createdAt">Newest First</option>
+                                <option value="createdAt">Oldest First</option>
+                                <option value="urgencyLevel">Urgency</option>
+                                <option value="projectType">Project Type</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div className="mt-4 flex justify-end space-x-3">
+                        <button
+                            onClick={fetchRequirements}
+                            className="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 text-sm"
+                        >
+                            Apply Filters
+                        </button>
+                        <button
+                            onClick={() => setFilters({
+                                status: '',
+                                projectType: '',
+                                search: '',
+                                sortBy: '-createdAt'
+                            })}
+                            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-sm"
+                        >
+                            Clear Filters
+                        </button>
+                    </div>
+                </div>
+
+                {/* Horizontal Line */}
+                <div className="mb-6">
+                    <hr className="border-t border-gray-300" />
+                </div>
+
+                {/* Stats Summary */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-white rounded-lg shadow p-4">
+                        <h3 className="text-lg font-semibold text-gray-900">Total Requirements</h3>
+                        <p className="text-3xl font-bold text-amber-600 mt-2">{requirements.length}</p>
+                    </div>
+                    <div className="bg-white rounded-lg shadow p-4">
+                        <h3 className="text-lg font-semibold text-gray-900">Pending</h3>
+                        <p className="text-3xl font-bold text-yellow-600 mt-2">
+                            {requirements.filter(r => r.status === 'pending').length}
+                        </p>
+                    </div>
+                    <div className="bg-white rounded-lg shadow p-4">
+                        <h3 className="text-lg font-semibold text-gray-900">In Progress</h3>
+                        <p className="text-3xl font-bold text-blue-600 mt-2">
+                            {requirements.filter(r => r.status === 'in-progress').length}
+                        </p>
+                    </div>
+                    <div className="bg-white rounded-lg shadow p-4">
+                        <h3 className="text-lg font-semibold text-gray-900">Completed</h3>
+                        <p className="text-3xl font-bold text-green-600 mt-2">
+                            {requirements.filter(r => r.status === 'completed').length}
+                        </p>
+                    </div>
+                </div>
+
+                {/* Requirements List */}
+                <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+                    {requirements.length === 0 ? (
+                        <div className="p-8 text-center">
+                            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <h3 className="mt-2 text-sm font-medium text-gray-900">No requirements found</h3>
+                            <p className="mt-1 text-sm text-gray-500">
+                                Get started by creating a new requirement.
+                            </p>
+                            <div className="mt-6">
+                                <button
+                                    onClick={() => setShowCreateModal(true)}
+                                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-amber-600 hover:bg-amber-700"
+                                >
+                                    Create New Requirement
+                                </button>
                             </div>
                         </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            REQUIREMENT ID
+                                        </th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            PROJECT DETAILS
+                                        </th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            MATERIALS
+                                        </th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            STATUS
+                                        </th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            CREATED
+                                        </th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            ACTIONS
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {requirements.map((requirement) => (
+                                        <tr key={requirement._id} className="hover:bg-gray-50">
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="text-sm font-semibold text-gray-900">
+                                                    {requirement.requirementNumber}
+                                                </div>
+                                                <div className="text-sm font-medium text-amber-600">
+                                                    {requirement.budgetRange}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="text-sm font-semibold text-gray-900">
+                                                    {requirement.projectType}
+                                                </div>
+                                                <div className="text-sm text-gray-500">
+                                                    {requirement.projectLocation}
+                                                </div>
+                                                <div className="text-xs text-gray-500 font-medium">
+                                                    Delivery: {formatDeliveryDate(requirement.deliveryDate)}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="text-sm font-medium text-gray-900">
+                                                    {requirement.materials?.length || 0} Items
+                                                </div>
+                                                <div className="text-sm text-gray-600">
+                                                    {calculateEstimatedTotal(requirement.materials)}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex flex-col space-y-1">
+                                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(requirement.status)}`}>
+                                                        {getStatusLabel(requirement.status)}
+                                                    </span>
+                                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getUrgencyColor(requirement.urgencyLevel)}`}>
+                                                        {getUrgencyLabel(requirement.urgencyLevel).toUpperCase()}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                {formatDate(requirement.createdAt)}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                <div className="flex space-x-3">
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedRequirement(requirement);
+                                                            setShowDetailsModal(true);
+                                                        }}
+                                                        className="text-blue-600 hover:text-blue-800 font-medium"
+                                                    >
+                                                        View
+                                                    </button>
+                                                    {requirement.status === 'pending' && (
+                                                        <>
+                                                            <button
+                                                                onClick={() => openEditModal(requirement)}
+                                                                className="text-green-600 hover:text-green-800 font-medium"
+                                                            >
+                                                                Edit
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleCancelRequirement(requirement._id)}
+                                                                className="text-amber-600 hover:text-amber-800 font-medium"
+                                                            >
+                                                                Cancel
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                    <button
+                                                        onClick={() => openDeleteModal(requirement)}
+                                                        className="text-red-600 hover:text-red-800 font-medium"
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            </div>
 
-                        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-                            <form onSubmit={handleSubmit}>
-                                {/* Step 1: Project Details */}
-                                {activeStep === 1 && (
+            {/* Create Requirement Modal */}
+            {showCreateModal && (
+                <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                        <div className="px-6 py-4 border-b border-gray-200">
+                            <h3 className="text-lg font-medium text-gray-900">Create New Requirement</h3>
+                            <p className="text-sm text-gray-500 mt-1">Fill in all required fields</p>
+                        </div>
+                        <div className="px-6 py-4">
+                            <form onSubmit={handleCreateSubmit}>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <h2 className="text-2xl font-bold text-brown-900 mb-6">Project Details</h2>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div>
-                                                <label className="block text-brown-800 font-medium mb-2">
-                                                    Your Name *
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    name="name"
-                                                    value={formData.name}
-                                                    onChange={handleChange}
-                                                    required
-                                                    className="w-full p-3 border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                                                    placeholder="Enter your full name"
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-brown-800 font-medium mb-2">
-                                                    Company/Organization
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    name="company"
-                                                    value={formData.company}
-                                                    onChange={handleChange}
-                                                    className="w-full p-3 border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                                                    placeholder="Enter company name"
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-brown-800 font-medium mb-2">
-                                                    Phone Number *
-                                                </label>
-                                                <input
-                                                    type="tel"
-                                                    name="phone"
-                                                    value={formData.phone}
-                                                    onChange={handleChange}
-                                                    required
-                                                    className="w-full p-3 border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                                                    placeholder="+91 98765 43210"
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-brown-800 font-medium mb-2">
-                                                    Email Address *
-                                                </label>
-                                                <input
-                                                    type="email"
-                                                    name="email"
-                                                    value={formData.email}
-                                                    onChange={handleChange}
-                                                    required
-                                                    className="w-full p-3 border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                                                    placeholder="you@example.com"
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-brown-800 font-medium mb-2">
-                                                    Project Type *
-                                                </label>
-                                                <select
-                                                    name="projectType"
-                                                    value={formData.projectType}
-                                                    onChange={handleChange}
-                                                    required
-                                                    className="w-full p-3 border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                                                >
-                                                    <option value="">Select project type</option>
-                                                    {projectTypes.map((type, idx) => (
-                                                        <option key={idx} value={type}>{type}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-brown-800 font-medium mb-2">
-                                                    Project Location *
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    name="projectLocation"
-                                                    value={formData.projectLocation}
-                                                    onChange={handleChange}
-                                                    required
-                                                    className="w-full p-3 border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                                                    placeholder="Enter site address in Nagpur"
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-brown-800 font-medium mb-2">
-                                                    Expected Delivery Date *
-                                                </label>
-                                                <input
-                                                    type="date"
-                                                    name="deliveryDate"
-                                                    value={formData.deliveryDate}
-                                                    onChange={handleChange}
-                                                    required
-                                                    className="w-full p-3 border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-brown-800 font-medium mb-2">
-                                                    Estimated Budget Range *
-                                                </label>
-                                                <select
-                                                    name="budgetRange"
-                                                    value={formData.budgetRange}
-                                                    onChange={handleChange}
-                                                    required
-                                                    className="w-full p-3 border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                                                >
-                                                    <option value="">Select budget range</option>
-                                                    {budgetRanges.map((range, idx) => (
-                                                        <option key={idx} value={range}>{range}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <div className="mt-6">
-                                            <label className="block text-brown-800 font-medium mb-2">
-                                                Urgency Level
-                                            </label>
-                                            <div className="flex space-x-4">
-                                                {[
-                                                    { value: 'low', label: 'Low', color: 'bg-green-100 text-green-800' },
-                                                    { value: 'normal', label: 'Normal', color: 'bg-blue-100 text-blue-800' },
-                                                    { value: 'high', label: 'High', color: 'bg-orange-100 text-orange-800' },
-                                                    { value: 'urgent', label: 'Urgent', color: 'bg-red-100 text-red-800' }
-                                                ].map((level) => (
-                                                    <label key={level.value} className="flex items-center">
-                                                        <input
-                                                            type="radio"
-                                                            name="urgencyLevel"
-                                                            value={level.value}
-                                                            checked={formData.urgencyLevel === level.value}
-                                                            onChange={handleChange}
-                                                            className="mr-2"
-                                                        />
-                                                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${level.color}`}>
-                                                            {level.label}
-                                                        </span>
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        <div className="mt-6">
-                                            <label className="flex items-center">
-                                                <input
-                                                    type="checkbox"
-                                                    name="siteVisitRequired"
-                                                    checked={formData.siteVisitRequired}
-                                                    onChange={handleChange}
-                                                    className="mr-2"
-                                                />
-                                                <span className="text-brown-800">Site visit required for assessment</span>
-                                            </label>
-                                        </div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Project Type *
+                                        </label>
+                                        <select
+                                            value={formData.projectType}
+                                            onChange={(e) => setFormData({...formData, projectType: e.target.value})}
+                                            required
+                                            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                                        >
+                                            <option value="">Select project type</option>
+                                            {projectTypes.map(type => (
+                                                <option key={type} value={type}>{type}</option>
+                                            ))}
+                                        </select>
                                     </div>
-                                )}
-
-                                {/* Step 2: Materials */}
-                                {activeStep === 2 && (
                                     <div>
-                                        <div className="flex justify-between items-center mb-6">
-                                            <h2 className="text-2xl font-bold text-brown-900">Material Requirements</h2>
-                                            <button
-                                                type="button"
-                                                onClick={addMaterialRow}
-                                                className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg flex items-center"
-                                            >
-                                                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
-                                                </svg>
-                                                Add Material
-                                            </button>
-                                        </div>
-
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full">
-                                                <thead className="bg-amber-50">
-                                                    <tr>
-                                                        <th className="p-3 text-left text-brown-800 font-medium">Material Type *</th>
-                                                        <th className="p-3 text-left text-brown-800 font-medium">Quantity *</th>
-                                                        <th className="p-3 text-left text-brown-800 font-medium">Unit</th>
-                                                        <th className="p-3 text-left text-brown-800 font-medium">Specifications</th>
-                                                        <th className="p-3 text-left text-brown-800 font-medium">Action</th>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Project Location *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={formData.projectLocation}
+                                            onChange={(e) => setFormData({...formData, projectLocation: e.target.value})}
+                                            required
+                                            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                                            placeholder="Enter site address"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Delivery Date *
+                                        </label>
+                                        <input
+                                            type="date"
+                                            value={formData.deliveryDate}
+                                            onChange={(e) => setFormData({...formData, deliveryDate: e.target.value})}
+                                            required
+                                            min={new Date().toISOString().split('T')[0]}
+                                            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Budget Range *
+                                        </label>
+                                        <select
+                                            value={formData.budgetRange}
+                                            onChange={(e) => setFormData({...formData, budgetRange: e.target.value})}
+                                            required
+                                            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                                        >
+                                            <option value="">Select budget range</option>
+                                            {budgetRanges.map(range => (
+                                                <option key={range} value={range}>{range}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Urgency Level *
+                                        </label>
+                                        <select
+                                            value={formData.urgencyLevel}
+                                            onChange={(e) => setFormData({...formData, urgencyLevel: e.target.value})}
+                                            required
+                                            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                                        >
+                                            {urgencyLevels.map(level => (
+                                                <option key={level.value} value={level.value}>{level.label}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Company Name
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={formData.company}
+                                            onChange={(e) => setFormData({...formData, company: e.target.value})}
+                                            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                                            placeholder="Optional"
+                                        />
+                                    </div>
+                                </div>
+                                
+                                {/* Materials Table */}
+                                <div className="mt-6">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h4 className="text-sm font-medium text-gray-900">Materials Required *</h4>
+                                        <button
+                                            type="button"
+                                            onClick={addMaterialRow}
+                                            className="text-sm text-amber-600 hover:text-amber-700 font-medium"
+                                        >
+                                            + Add Material
+                                        </button>
+                                    </div>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full border border-gray-200">
+                                            <thead className="bg-gray-50">
+                                                <tr>
+                                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Type</th>
+                                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Quantity</th>
+                                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Unit</th>
+                                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Specifications</th>
+                                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {formData.materials.map((material) => (
+                                                    <tr key={material.id} className="border-t border-gray-200">
+                                                        <td className="px-3 py-2">
+                                                            <select
+                                                                value={material.type}
+                                                                onChange={(e) => handleMaterialChange(material.id, 'type', e.target.value)}
+                                                                required
+                                                                className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                                            >
+                                                                <option value="">Select Material</option>
+                                                                {materialCategories.map(cat => (
+                                                                    <option key={cat} value={cat}>{cat}</option>
+                                                                ))}
+                                                            </select>
+                                                        </td>
+                                                        <td className="px-3 py-2">
+                                                            <input
+                                                                type="number"
+                                                                value={material.quantity}
+                                                                onChange={(e) => handleMaterialChange(material.id, 'quantity', e.target.value)}
+                                                                required
+                                                                min="1"
+                                                                step="1"
+                                                                className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                                                placeholder="0"
+                                                            />
+                                                        </td>
+                                                        <td className="px-3 py-2">
+                                                            <select
+                                                                value={material.unit}
+                                                                onChange={(e) => handleMaterialChange(material.id, 'unit', e.target.value)}
+                                                                className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                                            >
+                                                                {unitOptions.map(unit => (
+                                                                    <option key={unit} value={unit}>{unit}</option>
+                                                                ))}
+                                                            </select>
+                                                        </td>
+                                                        <td className="px-3 py-2">
+                                                            <input
+                                                                type="text"
+                                                                value={material.specification}
+                                                                onChange={(e) => handleMaterialChange(material.id, 'specification', e.target.value)}
+                                                                className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                                                placeholder="Optional specifications"
+                                                            />
+                                                        </td>
+                                                        <td className="px-3 py-2">
+                                                            {formData.materials.length > 1 && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => removeMaterialRow(material.id)}
+                                                                    className="text-red-500 hover:text-red-700 text-sm font-medium"
+                                                                >
+                                                                    Remove
+                                                                </button>
+                                                            )}
+                                                        </td>
                                                     </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {formData.materials.map((material) => (
-                                                        <tr key={material.id} className="border-b border-amber-100">
-                                                            <td className="p-3">
-                                                                <select
-                                                                    value={material.type}
-                                                                    onChange={(e) => handleMaterialChange(material.id, 'type', e.target.value)}
-                                                                    required
-                                                                    className="w-full p-2 border border-amber-300 rounded focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                                                                >
-                                                                    <option value="">Select material</option>
-                                                                    {materialCategories.map((category, idx) => (
-                                                                        <option key={idx} value={category}>{category}</option>
-                                                                    ))}
-                                                                </select>
-                                                            </td>
-                                                            <td className="p-3">
-                                                                <input
-                                                                    type="number"
-                                                                    value={material.quantity}
-                                                                    onChange={(e) => handleMaterialChange(material.id, 'quantity', e.target.value)}
-                                                                    required
-                                                                    min="0"
-                                                                    step="0.01"
-                                                                    className="w-full p-2 border border-amber-300 rounded focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                                                                    placeholder="0.00"
-                                                                />
-                                                            </td>
-                                                            <td className="p-3">
-                                                                <select
-                                                                    value={material.unit}
-                                                                    onChange={(e) => handleMaterialChange(material.id, 'unit', e.target.value)}
-                                                                    className="w-full p-2 border border-amber-300 rounded focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                                                                >
-                                                                    {unitOptions.map((unit, idx) => (
-                                                                        <option key={idx} value={unit}>{unit}</option>
-                                                                    ))}
-                                                                </select>
-                                                            </td>
-                                                            <td className="p-3">
-                                                                <input
-                                                                    type="text"
-                                                                    value={material.specification}
-                                                                    onChange={(e) => handleMaterialChange(material.id, 'specification', e.target.value)}
-                                                                    className="w-full p-2 border border-amber-300 rounded focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                                                                    placeholder="Grade, Size, Brand, etc."
-                                                                />
-                                                            </td>
-                                                            <td className="p-3">
-                                                                {formData.materials.length > 1 && (
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => removeMaterialRow(material.id)}
-                                                                        className="text-red-500 hover:text-red-700"
-                                                                    >
-                                                                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                                                            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                                                                        </svg>
-                                                                    </button>
-                                                                )}
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-
-                                        <div className="mt-6">
-                                            <label className="block text-brown-800 font-medium mb-2">
-                                                Additional Notes / Special Requirements
-                                            </label>
-                                            <textarea
-                                                name="additionalNotes"
-                                                value={formData.additionalNotes}
-                                                onChange={handleChange}
-                                                rows="3"
-                                                className="w-full p-3 border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                                                placeholder="Any special instructions, quality requirements, delivery instructions, etc."
-                                            ></textarea>
-                                        </div>
+                                                ))}
+                                            </tbody>
+                                        </table>
                                     </div>
-                                )}
-
-                                {/* Step 3: Review */}
-                                {activeStep === 3 && (
-                                    <div>
-                                        <h2 className="text-2xl font-bold text-brown-900 mb-6">Review Your Requirement</h2>
-
-                                        <div className="space-y-6">
-                                            <div className="bg-amber-50 p-6 rounded-xl">
-                                                <h3 className="font-bold text-brown-800 text-lg mb-4">Project Information</h3>
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <div>
-                                                        <p className="text-sm text-gray-600">Name</p>
-                                                        <p className="font-medium">{formData.name || 'Not provided'}</p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-sm text-gray-600">Phone</p>
-                                                        <p className="font-medium">{formData.phone || 'Not provided'}</p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-sm text-gray-600">Project Type</p>
-                                                        <p className="font-medium">{formData.projectType || 'Not provided'}</p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-sm text-gray-600">Location</p>
-                                                        <p className="font-medium">{formData.projectLocation || 'Not provided'}</p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-sm text-gray-600">Delivery Date</p>
-                                                        <p className="font-medium">{formData.deliveryDate || 'Not provided'}</p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-sm text-gray-600">Budget Range</p>
-                                                        <p className="font-medium">{formData.budgetRange || 'Not provided'}</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="bg-amber-50 p-6 rounded-xl">
-                                                <h3 className="font-bold text-brown-800 text-lg mb-4">Material Requirements</h3>
-                                                <div className="space-y-3">
-                                                    {formData.materials.map((material, idx) => (
-                                                        <div key={material.id} className="flex justify-between items-center p-3 bg-white rounded border border-amber-200">
-                                                            <div>
-                                                                <p className="font-medium">{material.type || 'Material not specified'}</p>
-                                                                <p className="text-sm text-gray-600">
-                                                                    {material.quantity ? `${material.quantity} ${material.unit}` : 'Quantity not specified'}
-                                                                    {material.specification && ` • ${material.specification}`}
-                                                                </p>
-                                                            </div>
-                                                            <span className="text-amber-700 font-medium">
-                                                                {material.quantity ? `${material.quantity} ${material.unit}` : ''}
-                                                            </span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-
-                                                {formData.additionalNotes && (
-                                                    <div className="mt-4 p-3 bg-white rounded border border-amber-200">
-                                                        <p className="text-sm text-gray-600">Additional Notes</p>
-                                                        <p className="mt-1">{formData.additionalNotes}</p>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <div className="flex items-start mt-6">
-                                                <input
-                                                    type="checkbox"
-                                                    id="agreeTerms"
-                                                    name="agreeTerms"
-                                                    checked={formData.agreeTerms}
-                                                    onChange={handleChange}
-                                                    required
-                                                    className="mt-1 mr-2"
-                                                />
-                                                <label htmlFor="agreeTerms" className="text-sm text-gray-700">
-                                                    I agree to share my requirement with verified suppliers on BricksIT platform. I understand that suppliers may contact me with quotes and I'm interested in receiving competitive offers.
-                                                </label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Navigation Buttons */}
-                                <div className="flex justify-between mt-8 pt-6 border-t border-amber-200">
-                                    {activeStep > 1 ? (
-                                        <button
-                                            type="button"
-                                            onClick={prevStep}
-                                            className="px-6 py-3 border border-amber-300 text-amber-700 rounded-lg hover:bg-amber-50"
-                                        >
-                                            ← Back
-                                        </button>
-                                    ) : (
-                                        <div></div>
-                                    )}
-
-                                    {activeStep < 3 ? (
-                                        <button
-                                            type="button"
-                                            onClick={nextStep}
-                                            className="px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-lg"
-                                        >
-                                            Continue →
-                                        </button>
-                                    ) : (
-                                        <button
-                                            type="submit"
-                                            disabled={!formData.agreeTerms}
-                                            className={`px-8 py-3 rounded-lg font-bold ${formData.agreeTerms ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
-                                        >
-                                            Submit Requirement
-                                        </button>
-                                    )}
+                                </div>
+                                
+                                <div className="mt-6">
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Additional Notes
+                                    </label>
+                                    <textarea
+                                        value={formData.additionalNotes}
+                                        onChange={(e) => setFormData({...formData, additionalNotes: e.target.value})}
+                                        rows="3"
+                                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                                        placeholder="Any additional information or specifications..."
+                                    />
+                                </div>
+                                
+                                <div className="mt-6 flex justify-end space-x-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowCreateModal(false)}
+                                        className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={actionLoading}
+                                        className="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 text-sm font-medium disabled:opacity-50"
+                                    >
+                                        {actionLoading ? (
+                                            <>
+                                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                Creating...
+                                            </>
+                                        ) : 'Create Requirement'}
+                                    </button>
                                 </div>
                             </form>
                         </div>
                     </div>
+                </div>
+            )}
 
-                    {/* Right Column - Info & Benefits */}
-                    <div className="lg:col-span-1">
-                        <div className="sticky top-8">
-                            {/* Estimated Summary */}
-                            <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border border-amber-200">
-                                <h3 className="font-bold text-brown-800 text-xl mb-4">Requirement Summary</h3>
-                                <div className="space-y-4">
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-600">Total Items</span>
-                                        <span className="font-bold">{formData.materials.length}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-600">Project Type</span>
-                                        <span className="font-medium text-brown-800">{formData.projectType || 'Not specified'}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-600">Delivery Date</span>
-                                        <span className="font-medium">{formData.deliveryDate || 'Not specified'}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-600">Urgency</span>
-                                        <span className={`font-medium px-2 py-1 rounded text-sm ${formData.urgencyLevel === 'urgent' ? 'bg-red-100 text-red-800' :
-                                                formData.urgencyLevel === 'high' ? 'bg-orange-100 text-orange-800' :
-                                                    formData.urgencyLevel === 'normal' ? 'bg-blue-100 text-blue-800' :
-                                                        'bg-green-100 text-green-800'
-                                            }`}>
-                                            {formData.urgencyLevel?.toUpperCase() || 'Normal'}
-                                        </span>
-                                    </div>
-                                    <div className="pt-4 border-t border-amber-100">
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-lg font-bold text-brown-800">Estimated Value</span>
-                                            <span className="text-2xl font-bold text-amber-700">{calculateEstimatedTotal()}</span>
-                                        </div>
-                                        <p className="text-sm text-gray-500 mt-1">Based on your budget range and quantities</p>
-                                    </div>
-                                </div>
+            {/* Delete Confirmation Modal */}
+            {showDeleteModal && selectedRequirement && (
+                <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+                        <div className="px-6 py-4 border-b border-gray-200">
+                            <h3 className="text-lg font-medium text-red-600">Delete Requirement</h3>
+                            <p className="text-sm text-gray-500 mt-1">
+                                ID: {selectedRequirement?.requirementNumber}
+                            </p>
+                        </div>
+                        <div className="px-6 py-4">
+                            <div className="mb-4">
+                                <p className="text-sm text-gray-700 mb-2">
+                                    Are you sure you want to delete this requirement? This action cannot be undone.
+                                </p>
+                                <p className="text-sm font-medium text-gray-900">
+                                    {selectedRequirement.projectType} - {selectedRequirement.projectLocation}
+                                </p>
                             </div>
-
-                            {/* Benefits */}
-                            <div className="bg-gradient-to-r from-amber-700 to-brown-800 rounded-xl shadow-lg p-6 text-white mb-6">
-                                <h3 className="font-bold text-xl mb-4">Why Use BricksIT?</h3>
-                                <div className="space-y-4">
-                                    <div className="flex items-start">
-                                        <svg className="w-5 h-5 text-amber-300 mt-1 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                        </svg>
-                                        <div>
-                                            <p className="font-medium">Verified Suppliers</p>
-                                            <p className="text-sm text-amber-200">Quality-checked suppliers in Nagpur</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-start">
-                                        <svg className="w-5 h-5 text-amber-300 mt-1 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                        </svg>
-                                        <div>
-                                            <p className="font-medium">Competitive Quotes</p>
-                                            <p className="text-sm text-amber-200">Get multiple quotes to compare</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-start">
-                                        <svg className="w-5 h-5 text-amber-300 mt=1 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                        </svg>
-                                        <div>
-                                            <p className="font-medium">Time Saving</p>
-                                            <p className="text-sm text-amber-200">One submission, multiple responses</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-start">
-                                        <svg className="w-5 h-5 text-amber-300 mt=1 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                        </svg>
-                                        <div>
-                                            <p className="font-medium">Quality Assurance</p>
-                                            <p className="text-sm text-amber-200">Material quality verification available</p>
-                                        </div>
-                                    </div>
-                                </div>
+                            
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Type <span className="font-bold">DELETE</span> to confirm:
+                                </label>
+                                <input
+                                    type="text"
+                                    value={deleteConfirmText}
+                                    onChange={(e) => setDeleteConfirmText(e.target.value)}
+                                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                                    placeholder="Type DELETE here"
+                                />
                             </div>
-
-                            {/* Support */}
-                            <div className="bg-white rounded-xl shadow-lg p-6 border border-amber-200">
-                                <h3 className="font-bold text-brown-800 text-xl mb-4">Need Help?</h3>
-                                <div className="space-y-4">
-                                    <div className="flex items-center p-3 bg-amber-50 rounded-lg">
-                                        <svg className="w-6 h-6 text-amber-600 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                                        </svg>
-                                        <div>
-                                            <p className="font-medium">Common Materials</p>
-                                            <p className="text-sm text-gray-600">Cement, Steel, Bricks, Sand, Tiles, etc.</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center p-3 bg-amber-50 rounded-lg">
-                                        <svg className="w-6 h-6 text-amber-600 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fillRule="evenodd" d="M2.94 6.412A2 2 0 002 8.108V16a2 2 0 002 2h12a2 2 0 002-2V8.108a2 2 0 00-.94-1.696l-6-3.75a2 2 0 00-2.12 0l-6 3.75zm2.615 2.423a1 1 0 10-1.11 1.664l5 3.333a1 1 0 001.11 0l5-3.333a1 1 0 00-1.11-1.664L10 11.798 5.555 8.835z" clipRule="evenodd" />
-                                        </svg>
-                                        <div>
-                                            <p className="font-medium">Email Support</p>
-                                            <p className="text-sm text-gray-600">support@bricksit.com</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center p-3 bg-amber-50 rounded-lg">
-                                        <svg className="w-6 h-6 text-amber-600 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fillRule="evenodd" d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" clipRule="evenodd" />
-                                        </svg>
-                                        <div>
-                                            <p className="font-medium">Call Us</p>
-                                            <p className="text-sm text-gray-600">+91 71234 56789</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <button className="w-full mt-6 bg-amber-600 hover:bg-amber-700 text-white py-3 rounded-lg font-medium">
-                                    Chat with Support
+                            
+                            <div className="flex justify-end space-x-3">
+                                <button
+                                    onClick={() => {
+                                        setShowDeleteModal(false);
+                                        setDeleteConfirmText('');
+                                        setSelectedRequirement(null);
+                                    }}
+                                    className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={() => handleDeleteRequirement(selectedRequirement._id)}
+                                    disabled={actionLoading || deleteConfirmText !== 'DELETE'}
+                                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {actionLoading ? (
+                                        <>
+                                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Deleting...
+                                        </>
+                                    ) : 'Delete Requirement'}
                                 </button>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            )}
+
+            {/* Requirement Details Modal */}
+            {showDetailsModal && selectedRequirement && (
+                <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+                        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                            <div>
+                                <h3 className="text-lg font-medium text-gray-900">Requirement Details</h3>
+                                <p className="text-sm text-gray-500 mt-1">
+                                    ID: {selectedRequirement.requirementNumber}
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setShowDetailsModal(false)}
+                                className="text-gray-400 hover:text-gray-500"
+                            >
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div className="px-6 py-4">
+                            <div className="space-y-6">
+                                {/* Project Info */}
+                                <div className="bg-gray-50 p-4 rounded-lg">
+                                    <h4 className="text-sm font-medium text-gray-900 mb-3">Project Information</h4>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p className="text-xs text-gray-500">Project Type</p>
+                                            <p className="text-sm font-medium">{selectedRequirement.projectType}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-gray-500">Location</p>
+                                            <p className="text-sm font-medium">{selectedRequirement.projectLocation}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-gray-500">Delivery Date</p>
+                                            <p className="text-sm font-medium">{formatDeliveryDate(selectedRequirement.deliveryDate)}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-gray-500">Budget Range</p>
+                                            <p className="text-sm font-medium">{selectedRequirement.budgetRange}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {/* Materials List */}
+                                <div className="bg-gray-50 p-4 rounded-lg">
+                                    <h4 className="text-sm font-medium text-gray-900 mb-3">Materials Required</h4>
+                                    <div className="space-y-2">
+                                        {selectedRequirement.materials?.map((material, index) => (
+                                            <div key={index} className="flex justify-between items-center bg-white p-3 rounded border">
+                                                <div>
+                                                    <p className="text-sm font-medium">{material.type}</p>
+                                                    <p className="text-xs text-gray-500">
+                                                        {material.specification && `${material.specification} • `}
+                                                        Quantity: {material.quantity} {material.unit}
+                                                    </p>
+                                                </div>
+                                                <span className="text-sm font-medium">
+                                                    {material.quantity} {material.unit}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="mt-3 text-sm text-gray-500">
+                                        Total: {calculateEstimatedTotal(selectedRequirement.materials)}
+                                    </div>
+                                </div>
+                                
+                                {/* Status Info */}
+                                <div className="bg-gray-50 p-4 rounded-lg">
+                                    <h4 className="text-sm font-medium text-gray-900 mb-3">Status Information</h4>
+                                    <div className="flex flex-col space-y-2">
+                                        <div className="flex items-center space-x-2">
+                                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(selectedRequirement.status)}`}>
+                                                Status: {getStatusLabel(selectedRequirement.status)}
+                                            </span>
+                                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getUrgencyColor(selectedRequirement.urgencyLevel)}`}>
+                                                Urgency: {getUrgencyLabel(selectedRequirement.urgencyLevel)}
+                                            </span>
+                                        </div>
+                                        <span className="text-sm text-gray-500">
+                                            Created: {formatDate(selectedRequirement.createdAt)}
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                {/* Additional Notes */}
+                                {selectedRequirement.additionalNotes && (
+                                    <div className="bg-gray-50 p-4 rounded-lg">
+                                        <h4 className="text-sm font-medium text-gray-900 mb-2">Additional Notes</h4>
+                                        <p className="text-sm text-gray-700">{selectedRequirement.additionalNotes}</p>
+                                    </div>
+                                )}
+                            </div>
+                            
+                            <div className="mt-6 flex justify-end space-x-3">
+                                <button
+                                    onClick={() => openDeleteModal(selectedRequirement)}
+                                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm font-medium"
+                                >
+                                    Delete Requirement
+                                </button>
+                                {selectedRequirement.status === 'pending' && (
+                                    <>
+                                        <button
+                                            onClick={() => {
+                                                setShowDetailsModal(false);
+                                                openEditModal(selectedRequirement);
+                                            }}
+                                            className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                        >
+                                            Edit
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                if (window.confirm('Are you sure you want to cancel this requirement?')) {
+                                                    handleCancelRequirement(selectedRequirement._id);
+                                                    setShowDetailsModal(false);
+                                                }
+                                            }}
+                                            className="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 text-sm font-medium"
+                                        >
+                                            Cancel Requirement
+                                        </button>
+                                    </>
+                                )}
+                                <button
+                                    onClick={() => setShowDetailsModal(false)}
+                                    className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
 
-export default MaterialRequirementPage;
+export default MaterialRequirementsDashboard;

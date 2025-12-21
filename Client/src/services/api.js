@@ -1,6 +1,6 @@
 // src/api/api.js
 
-const API_BASE_URL = 'https://bricks-backend-navy.vercel.app/api'; // Make sure your backend runs on port 5000
+const API_BASE_URL = 'http://localhost:5000/api'; // Make sure your backend runs on port 5000
 
 const safeFetch = async (url, options = {}) => {
     try {
@@ -595,5 +595,372 @@ export const fetchCategoryById = async (id) => {
     } catch (err) {
         console.error('fetchCategoryById error:', err);
         throw err;
+    }
+};
+
+/* =========================
+   MATERIAL REQUIREMENT API FUNCTIONS
+========================= */
+
+
+
+export const createMaterialRequirement = async (requirementData) => {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            return {
+                success: false,
+                message: 'Authentication required. Please login.',
+                error: 'No authentication token'
+            };
+        }
+
+        // Prepare data for backend
+        const formattedData = {
+            ...requirementData,
+            // Ensure phone is string
+            phone: requirementData.phone.toString(),
+            // Convert deliveryDate to ISO string
+            deliveryDate: new Date(requirementData.deliveryDate).toISOString(),
+            // Convert materials quantity to number
+            materials: requirementData.materials.map(material => ({
+                ...material,
+                quantity: parseFloat(material.quantity) || 0
+            }))
+        };
+
+        // CORRECT URL: /api/requirements
+        const url = `${API_BASE_URL}/requirements`;
+        const response = await safeFetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formattedData)
+        });
+
+        return response;
+    } catch (err) {
+        console.error('createMaterialRequirement error:', err);
+        return {
+            success: false,
+            message: err.message || 'Failed to submit requirement',
+            error: err.message
+        };
+    }
+};
+
+// Get user's material requirements
+export const getUserMaterialRequirements = async (params = {}) => {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            return {
+                success: false,
+                message: 'Authentication required',
+                data: [],
+                pagination: {}
+            };
+        }
+
+        const { page = 1, limit = 10, status, sort = '-createdAt' } = params;
+        
+        let url = `${API_BASE_URL}/requirements/my?page=${page}&limit=${limit}&sort=${sort}`;
+        
+        if (status) {
+            url += `&status=${status}`;
+        }
+
+        const response = await safeFetch(url, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        return response;
+    } catch (err) {
+        console.error('getUserMaterialRequirements error:', err);
+        return {
+            success: false,
+            message: 'Failed to fetch requirements',
+            data: [],
+            pagination: {},
+            error: err.message
+        };
+    }
+};
+
+// Get single requirement by ID
+export const getMaterialRequirementById = async (requirementId) => {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            return {
+                success: false,
+                message: 'Authentication required'
+            };
+        }
+
+        const url = `${API_BASE_URL}/requirements/${requirementId}`;
+        const response = await safeFetch(url, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        return response;
+    } catch (err) {
+        console.error('getMaterialRequirementById error:', err);
+        return {
+            success: false,
+            message: 'Failed to fetch requirement details',
+            error: err.message
+        };
+    }
+};
+
+// Update material requirement
+export const updateMaterialRequirement = async (requirementId, updateData) => {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            return {
+                success: false,
+                message: 'Authentication required'
+            };
+        }
+
+        const formattedData = {
+            ...updateData,
+            // Format dates
+            deliveryDate: updateData.deliveryDate ? 
+                new Date(updateData.deliveryDate).toISOString() : undefined,
+            // Format materials
+            materials: updateData.materials?.map(material => ({
+                ...material,
+                quantity: parseFloat(material.quantity) || 0
+            }))
+        };
+
+        const url = `${API_BASE_URL}/requirements/${requirementId}`;
+        const response = await safeFetch(url, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(formattedData)
+        });
+
+        return response;
+    } catch (err) {
+        console.error('updateMaterialRequirement error:', err);
+        return {
+            success: false,
+            message: 'Failed to update requirement',
+            error: err.message
+        };
+    }
+};
+
+// Cancel material requirement
+export const cancelMaterialRequirement = async (requirementId, reason = '') => {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            return {
+                success: false,
+                message: 'Authentication required'
+            };
+        }
+
+        const url = `${API_BASE_URL}/requirements/${requirementId}/cancel`;
+        const response = await safeFetch(url, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ reason })
+        });
+
+        return response;
+    } catch (err) {
+        console.error('cancelMaterialRequirement error:', err);
+        return {
+            success: false,
+            message: 'Failed to cancel requirement',
+            error: err.message
+        };
+    }
+};
+
+// Get requirement statistics
+export const getRequirementStats = async () => {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            return {
+                success: false,
+                message: 'Authentication required',
+                data: null
+            };
+        }
+
+        const url = `${API_BASE_URL}/requirements/stats/overview`;
+        const response = await safeFetch(url, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        return response;
+    } catch (err) {
+        console.error('getRequirementStats error:', err);
+        return {
+            success: false,
+            message: 'Failed to fetch statistics',
+            data: null,
+            error: err.message
+        };
+    }
+};
+
+// Submit quote for requirement (for sellers)
+export const submitQuoteForRequirement = async (requirementId, quoteData) => {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            return {
+                success: false,
+                message: 'Authentication required'
+            };
+        }
+
+        const url = `${API_BASE_URL}/requirements/${requirementId}/quotes`;
+        const response = await safeFetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(quoteData)
+        });
+
+        return response;
+    } catch (err) {
+        console.error('submitQuoteForRequirement error:', err);
+        return {
+            success: false,
+            message: 'Failed to submit quote',
+            error: err.message
+        };
+    }
+};
+
+// Accept quote (for users)
+export const acceptQuote = async (requirementId, quoteId) => {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            return {
+                success: false,
+                message: 'Authentication required'
+            };
+        }
+
+        const url = `${API_BASE_URL}/requirements/${requirementId}/quotes/${quoteId}/accept`;
+        const response = await safeFetch(url, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        return response;
+    } catch (err) {
+        console.error('acceptQuote error:', err);
+        return {
+            success: false,
+            message: 'Failed to accept quote',
+            error: err.message
+        };
+    }
+};
+
+
+
+// Helper function to validate phone
+export const validatePhoneNumber = (phone) => {
+    return /^[0-9]{10}$/.test(phone);
+};
+
+// Helper function to format requirement for display
+export const formatRequirementForDisplay = (requirement) => {
+    return {
+        id: requirement._id,
+        requirementNumber: requirement.requirementNumber,
+        projectType: requirement.projectType,
+        projectLocation: requirement.projectLocation,
+        deliveryDate: new Date(requirement.deliveryDate).toLocaleDateString('en-IN'),
+        budgetRange: requirement.budgetRange,
+        status: requirement.status,
+        urgencyLevel: requirement.urgencyLevel,
+        materials: requirement.materials || [],
+        totalQuantity: requirement.materials?.reduce((sum, mat) => sum + (mat.quantity || 0), 0) || 0,
+        createdAt: new Date(requirement.createdAt).toLocaleDateString('en-IN'),
+        quotesCount: requirement.quotes?.length || 0
+    };
+};
+
+export const getUserProfile = async () => {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            return {
+                success: false,
+                message: 'Authentication required',
+                data: null
+            };
+        }
+
+        const url = `${API_BASE_URL}/user/profile`;
+        const response = await safeFetch(url, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        // Return the response as-is, don't try to access .data.data
+        return response;
+    } catch (err) {
+        console.error('getUserProfile error:', err);
+        return {
+            success: false,
+            message: 'Failed to fetch user profile',
+            data: null,
+            error: err.message
+        };
+    }
+};
+
+
+export const deleteMaterialRequirement = async (id) => {
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_URL}/material-requirements/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('Delete requirement error:', error);
+        return {
+            success: false,
+            message: 'Failed to delete requirement'
+        };
     }
 };
