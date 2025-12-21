@@ -1,6 +1,6 @@
 // src/api/api.js
 
-const API_BASE_URL = 'http://localhost:5000/api'; // Make sure your backend runs on port 5000
+const API_BASE_URL = 'https://bricks-com-backend.vercel.app/api'; // Make sure your backend runs on port 5000
 
 const safeFetch = async (url, options = {}) => {
     try {
@@ -29,7 +29,7 @@ const safeFetch = async (url, options = {}) => {
             throw new Error('Request timed out. Check your internet or server.');
         }
         if (error.message.includes('Failed to fetch')) {
-            throw new Error('Cannot reach the server. Is the backend running on http://localhost:5000?');
+            throw new Error('Cannot reach the server. Is the backend running on https://bricks-com-backend.vercel.app?');
         }
         throw error;
     }

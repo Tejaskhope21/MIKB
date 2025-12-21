@@ -11,7 +11,7 @@ import {
     Truck
 } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://bricks-com-backend.vercel.app/api';
 
 const CheckoutPage = () => {
     const navigate = useNavigate();
@@ -218,8 +218,8 @@ const CheckoutPage = () => {
                                                 key={addr._id}
                                                 onClick={() => setSelectedAddress(addr._id)}
                                                 className={`p-6 rounded-xl border-2 cursor-pointer transition-all ${selectedAddress === addr._id
-                                                        ? 'border-[#800000] bg-red-50'
-                                                        : 'border-gray-200 hover:border-gray-400'
+                                                    ? 'border-[#800000] bg-red-50'
+                                                    : 'border-gray-200 hover:border-gray-400'
                                                     }`}
                                             >
                                                 <div className="flex justify-between mb-3">

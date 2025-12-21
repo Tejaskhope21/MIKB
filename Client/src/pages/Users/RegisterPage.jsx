@@ -9,7 +9,7 @@ import {
 import axios from 'axios';
 
 // Vite environment variables – only VITE_ prefixed vars are exposed to the client
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://bricks-com-backend.vercel.app/api';
 
 const RegisterPage = () => {
     const navigate = useNavigate();

@@ -4,8 +4,8 @@ import { Save, Upload, X, Plus, Trash2 } from 'lucide-react';
 import axios from 'axios';
 
 const API_URL = import.meta.env.DEV
-    ? 'http://localhost:5000/api'
-    : 'http://localhost:5000/api';
+    ? 'https://bricks-com-backend.vercel.app/api'
+    : 'https://bricks-com-backend.vercel.app/api';
 const AddProduct = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
