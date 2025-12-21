@@ -25,6 +25,13 @@ const OrderList = () => {
         limit: 10
     });
 
+    const [showTrackingModal, setShowTrackingModal] = useState(false);
+    const [currentOrderId, setCurrentOrderId] = useState(null);
+    const [trackingInfo, setTrackingInfo] = useState({
+        trackingNumber: '',
+        carrier: ''
+    });
+
     useEffect(() => {
         fetchSellerOrders();
     }, [filters]);
@@ -62,28 +69,44 @@ const OrderList = () => {
         }
     };
 
-    const updateItemStatus = async (orderId, itemId, newStatus) => {
+    const updateOrderStatus = async (orderId, newStatus, extraData = {}) => {
         try {
             const token = localStorage.getItem('token');
             await axios.patch(
-                `${API_URL}/orders/${orderId}/items/${itemId}/status`,
-                { status: newStatus },
+                `${API_URL}/orders/${orderId}/status`,
+                { status: newStatus, ...extraData },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
-            // Refresh orders
             fetchSellerOrders();
+            setShowTrackingModal(false);
+            setTrackingInfo({ trackingNumber: '', carrier: '' });
         } catch (error) {
             console.error('Failed to update status:', error);
-            alert('Failed to update status');
+            alert(error.response?.data?.message || 'Failed to update order status');
         }
+    };
+
+    const handleShipped = (orderId) => {
+        setCurrentOrderId(orderId);
+        setShowTrackingModal(true);
+    };
+
+    const confirmShipped = () => {
+        if (!trackingInfo.trackingNumber || !trackingInfo.carrier) {
+            alert('Please fill both tracking number and carrier');
+            return;
+        }
+        updateOrderStatus(currentOrderId, 'shipped', {
+            trackingNumber: trackingInfo.trackingNumber,
+            carrier: trackingInfo.carrier
+        });
     };
 
     const getStatusBadge = (status) => {
         const styles = {
             pending: 'bg-yellow-100 text-yellow-800',
-            confirmed: 'bg-blue-100 text-blue-800',
-            processing: 'bg-purple-100 text-purple-800',
+            paid: 'bg-blue-100 text-blue-800',
             shipped: 'bg-indigo-100 text-indigo-800',
             delivered: 'bg-green-100 text-green-800',
             cancelled: 'bg-red-100 text-red-800'
@@ -91,8 +114,7 @@ const OrderList = () => {
 
         const icons = {
             pending: <Clock className="w-4 h-4" />,
-            confirmed: <Package className="w-4 h-4" />,
-            processing: <Package className="w-4 h-4" />,
+            paid: <Package className="w-4 h-4" />,
             shipped: <Truck className="w-4 h-4" />,
             delivered: <CheckCircle className="w-4 h-4" />,
             cancelled: <XCircle className="w-4 h-4" />
@@ -101,7 +123,7 @@ const OrderList = () => {
         return (
             <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${styles[status] || 'bg-gray-100 text-gray-800'}`}>
                 {icons[status] || <Package className="w-4 h-4" />}
-                <span className="capitalize">{status}</span>
+                <span className="capitalize">{status === 'paid' ? 'Confirmed/Paid' : status}</span>
             </span>
         );
     };
@@ -133,7 +155,7 @@ const OrderList = () => {
                             placeholder="Search by Order ID, Customer Name..."
                             value={filters.search}
                             onChange={(e) => setFilters({ ...filters, search: e.target.value, page: 1 })}
-                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-transparent"
+                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000]"
                         />
                     </div>
 
@@ -144,17 +166,11 @@ const OrderList = () => {
                     >
                         <option value="">All Status</option>
                         <option value="pending">Pending</option>
-                        <option value="confirmed">Confirmed</option>
-                        <option value="processing">Processing</option>
+                        <option value="paid">Paid / Confirmed</option>
                         <option value="shipped">Shipped</option>
                         <option value="delivered">Delivered</option>
                         <option value="cancelled">Cancelled</option>
                     </select>
-
-                    <button className="flex items-center justify-center gap-2 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50">
-                        <Filter className="w-5 h-5" />
-                        More Filters
-                    </button>
                 </div>
             </div>
 
@@ -169,64 +185,39 @@ const OrderList = () => {
                     <div className="p-12 text-center">
                         <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                         <h3 className="text-xl font-medium text-gray-900 mb-2">No Orders Found</h3>
-                        <p className="text-gray-600">You don't have any orders matching the current filters.</p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Order Info
-                                    </th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Customer
-                                    </th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Items
-                                    </th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Total
-                                    </th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Status
-                                    </th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Actions
-                                    </th>
+                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Order Info</th>
+                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
+                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Items</th>
+                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
+                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {orders.map((order) => (
                                     <React.Fragment key={order._id}>
                                         {order.items.map((item, idx) => (
-                                            <tr key={`${order._id}-${item._id}`} className="hover:bg-gray-50 transition">
-                                                {/* Order ID & Date - only on first row */}
+                                            <tr key={`${order._id}-${item._id}`} className="hover:bg-gray-50">
                                                 {idx === 0 && (
                                                     <>
                                                         <td rowSpan={order.items.length} className="px-6 py-4 align-top">
-                                                            <div className="text-sm font-bold text-gray-900">
-                                                                {order.orderId}
-                                                            </div>
-                                                            <div className="text-xs text-gray-500 mt-1">
-                                                                {formatDate(order.createdAt)}
-                                                            </div>
+                                                            <div className="text-sm font-bold text-gray-900">{order.orderId}</div>
+                                                            <div className="text-xs text-gray-500 mt-1">{formatDate(order.createdAt)}</div>
                                                         </td>
                                                         <td rowSpan={order.items.length} className="px-6 py-4 align-top">
-                                                            <div className="text-sm font-medium text-gray-900">
-                                                                {order.user?.name || 'Customer'}
-                                                            </div>
-                                                            <div className="text-xs text-gray-500">
-                                                                {order.user?.email}
-                                                            </div>
-                                                            <div className="text-xs text-gray-500 mt-1">
-                                                                📍 {order.shippingAddress.city}
-                                                            </div>
+                                                            <div className="text-sm font-medium text-gray-900">{order.user?.name || 'Customer'}</div>
+                                                            <div className="text-xs text-gray-500">{order.user?.email}</div>
+                                                            <div className="text-xs text-gray-500 mt-1">📍 {order.shippingAddress.city}</div>
                                                         </td>
                                                     </>
                                                 )}
 
-                                                {/* Product Item */}
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-4">
                                                         <img
@@ -235,9 +226,7 @@ const OrderList = () => {
                                                             className="w-12 h-12 rounded-lg object-cover"
                                                         />
                                                         <div>
-                                                            <div className="text-sm font-medium text-gray-900">
-                                                                {item.product?.name || 'Product Name'}
-                                                            </div>
+                                                            <div className="text-sm font-medium text-gray-900">{item.product?.name}</div>
                                                             <div className="text-xs text-gray-500">
                                                                 Qty: {item.quantity} × ₹{item.price.toLocaleString()}
                                                             </div>
@@ -245,14 +234,11 @@ const OrderList = () => {
                                                     </div>
                                                 </td>
 
-                                                {/* Total - only on first row */}
                                                 {idx === 0 && (
                                                     <>
                                                         <td rowSpan={order.items.length} className="px-6 py-4 align-top text-sm font-bold text-gray-900">
                                                             ₹{order.totalPrice.toLocaleString()}
-                                                            <div className="text-xs text-gray-500 mt-1">
-                                                                {order.paymentMethod}
-                                                            </div>
+                                                            <div className="text-xs text-gray-500 mt-1">{order.paymentMethod}</div>
                                                         </td>
 
                                                         <td rowSpan={order.items.length} className="px-6 py-4 align-top">
@@ -269,34 +255,27 @@ const OrderList = () => {
                                                                     View Details
                                                                 </button>
 
-                                                                {/* Status Update Buttons */}
                                                                 {order.status === 'pending' && (
                                                                     <button
-                                                                        onClick={() => updateItemStatus(order._id, item._id, 'confirmed')}
+                                                                        onClick={() => updateOrderStatus(order._id, 'paid')}
                                                                         className="text-green-600 hover:text-green-800 text-sm"
                                                                     >
-                                                                        Confirm Order
+                                                                        Mark as Paid
                                                                     </button>
                                                                 )}
-                                                                {order.status === 'confirmed' && (
+
+                                                                {order.status === 'paid' && (
                                                                     <button
-                                                                        onClick={() => updateItemStatus(order._id, item._id, 'processing')}
-                                                                        className="text-purple-600 hover:text-purple-800 text-sm"
-                                                                    >
-                                                                        Start Processing
-                                                                    </button>
-                                                                )}
-                                                                {order.status === 'processing' && (
-                                                                    <button
-                                                                        onClick={() => updateItemStatus(order._id, item._id, 'shipped')}
+                                                                        onClick={() => handleShipped(order._id)}
                                                                         className="text-indigo-600 hover:text-indigo-800 text-sm"
                                                                     >
                                                                         Mark as Shipped
                                                                     </button>
                                                                 )}
+
                                                                 {order.status === 'shipped' && (
                                                                     <button
-                                                                        onClick={() => updateItemStatus(order._id, item._id, 'delivered')}
+                                                                        onClick={() => updateOrderStatus(order._id, 'delivered')}
                                                                         className="text-green-600 hover:text-green-800 text-sm font-bold"
                                                                     >
                                                                         Mark as Delivered
@@ -315,6 +294,45 @@ const OrderList = () => {
                     </div>
                 )}
             </div>
+
+            {/* Shipping Modal */}
+            {showTrackingModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-xl p-6 w-full max-w-md">
+                        <h3 className="text-lg font-semibold mb-4">Enter Shipping Details</h3>
+                        <div className="space-y-4">
+                            <input
+                                type="text"
+                                placeholder="Tracking Number"
+                                value={trackingInfo.trackingNumber}
+                                onChange={(e) => setTrackingInfo({ ...trackingInfo, trackingNumber: e.target.value })}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                            />
+                            <input
+                                type="text"
+                                placeholder="Carrier (e.g. Delhivery, DTDC)"
+                                value={trackingInfo.carrier}
+                                onChange={(e) => setTrackingInfo({ ...trackingInfo, carrier: e.target.value })}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                            />
+                        </div>
+                        <div className="flex gap-3 mt-6 justify-end">
+                            <button
+                                onClick={() => setShowTrackingModal(false)}
+                                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmShipped}
+                                className="px-4 py-2 bg-[#800000] text-white rounded-lg hover:bg-[#660000]"
+                            >
+                                Confirm Shipment
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

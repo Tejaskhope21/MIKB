@@ -3,7 +3,8 @@ import {
     createOrder,
     getOrders,
     getOrderById,
-    updateOrderStatus,
+    updateOrderStatusBySeller,
+    getSellerOrders,
     cancelOrder,
     getOrderHistory
 } from '../controllers/order.controller.js';
@@ -15,6 +16,9 @@ const router = express.Router();
 router.use(protect);
 
 // User routes
+// Seller routes - get orders where user is the seller
+router.get('/seller', protect, authorize('SELLER'), getSellerOrders);
+router.patch('/:id/status', protect, authorize('SELLER'), updateOrderStatusBySeller);
 router.post('/orders', protect, createOrder);
 router.post('/', authorize('USER'), createOrder);
 router.get('/my-orders', authorize('USER'), getOrders);
