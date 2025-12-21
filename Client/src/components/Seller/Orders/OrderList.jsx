@@ -3,13 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
     Search,
-    Filter,
     Eye,
     Truck,
     CheckCircle,
     Package,
     Clock,
-    XCircle
+    XCircle,
+    MapPin
 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://bricks-com-backend.vercel.app/api';
@@ -155,14 +155,14 @@ const OrderList = () => {
                             placeholder="Search by Order ID, Customer Name..."
                             value={filters.search}
                             onChange={(e) => setFilters({ ...filters, search: e.target.value, page: 1 })}
-                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000]"
+                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] outline-none"
                         />
                     </div>
 
                     <select
                         value={filters.status}
                         onChange={(e) => setFilters({ ...filters, status: e.target.value, page: 1 })}
-                        className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000]"
+                        className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] outline-none"
                     >
                         <option value="">All Status</option>
                         <option value="pending">Pending</option>
@@ -185,50 +185,66 @@ const OrderList = () => {
                     <div className="p-12 text-center">
                         <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                         <h3 className="text-xl font-medium text-gray-900 mb-2">No Orders Found</h3>
+                        <p className="text-gray-500">Try adjusting your filters</p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Order Info</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Items</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order Info</th>
+                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer & Shipping</th>
+                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items</th>
+                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {orders.map((order) => (
                                     <React.Fragment key={order._id}>
                                         {order.items.map((item, idx) => (
-                                            <tr key={`${order._id}-${item._id}`} className="hover:bg-gray-50">
+                                            <tr key={`${order._id}-${item._id}`} className="hover:bg-gray-50 transition-colors">
                                                 {idx === 0 && (
                                                     <>
+                                                        {/* Order Info */}
                                                         <td rowSpan={order.items.length} className="px-6 py-4 align-top">
-                                                            <div className="text-sm font-bold text-gray-900">{order.orderId}</div>
+                                                            <div className="text-sm font-bold text-gray-900">{order.orderId || 'N/A'}</div>
                                                             <div className="text-xs text-gray-500 mt-1">{formatDate(order.createdAt)}</div>
                                                         </td>
+
+                                                        {/* Customer & Full Shipping Address */}
                                                         <td rowSpan={order.items.length} className="px-6 py-4 align-top">
-                                                            <div className="text-sm font-medium text-gray-900">{order.user?.name || 'Customer'}</div>
-                                                            <div className="text-xs text-gray-500">{order.user?.email}</div>
-                                                            <div className="text-xs text-gray-500 mt-1">📍 {order.shippingAddress.city}</div>
+                                                            <div className="text-sm font-medium text-gray-900">
+                                                                {order.user?.name || 'Guest Customer'}
+                                                            </div>
+                                                            <div className="text-xs text-gray-500">{order.user?.email || 'N/A'}</div>
+
+                                                            {/* Shipping Address with Icon */}
+                                                            <div className="mt-3 flex items-start gap-2 text-xs text-gray-600">
+                                                                <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                                                                <div>
+                                                                    <div className="font-medium">{order.shippingAddress.address}</div>
+                                                                    <div>{order.shippingAddress.city}, {order.shippingAddress.state}</div>
+                                                                    <div className="font-semibold">PIN: {order.shippingAddress.pincode}</div>
+                                                                </div>
+                                                            </div>
                                                         </td>
                                                     </>
                                                 )}
 
+                                                {/* Product Item */}
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-4">
                                                         <img
                                                             src={item.product?.images?.[0] || 'https://via.placeholder.com/60'}
                                                             alt={item.product?.name}
-                                                            className="w-12 h-12 rounded-lg object-cover"
+                                                            className="w-12 h-12 rounded-lg object-cover shadow-sm"
                                                         />
                                                         <div>
-                                                            <div className="text-sm font-medium text-gray-900">{item.product?.name}</div>
+                                                            <div className="text-sm font-medium text-gray-900">{item.product?.name || 'Unknown Product'}</div>
                                                             <div className="text-xs text-gray-500">
-                                                                Qty: {item.quantity} × ₹{item.price.toLocaleString()}
+                                                                Qty: {item.quantity} × ₹{item.price?.toLocaleString() || '0'}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -236,20 +252,27 @@ const OrderList = () => {
 
                                                 {idx === 0 && (
                                                     <>
-                                                        <td rowSpan={order.items.length} className="px-6 py-4 align-top text-sm font-bold text-gray-900">
-                                                            ₹{order.totalPrice.toLocaleString()}
-                                                            <div className="text-xs text-gray-500 mt-1">{order.paymentMethod}</div>
+                                                        {/* Total Price & Payment Method */}
+                                                        <td rowSpan={order.items.length} className="px-6 py-4 align-top">
+                                                            <div className="text-sm font-bold text-gray-900">
+                                                                ₹{order.totalPrice?.toLocaleString() || '0'}
+                                                            </div>
+                                                            <div className="text-xs text-gray-500 mt-1">
+                                                                via {order.paymentMethod === 'COD' ? 'Cash on Delivery' : 'Bank Transfer'}
+                                                            </div>
                                                         </td>
 
+                                                        {/* Status Badge */}
                                                         <td rowSpan={order.items.length} className="px-6 py-4 align-top">
                                                             {getStatusBadge(order.status)}
                                                         </td>
 
+                                                        {/* Actions */}
                                                         <td rowSpan={order.items.length} className="px-6 py-4 align-top">
                                                             <div className="flex flex-col gap-2">
                                                                 <button
                                                                     onClick={() => navigate(`/seller/orders/${order._id}`)}
-                                                                    className="flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                                                    className="flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors"
                                                                 >
                                                                     <Eye className="w-4 h-4" />
                                                                     View Details
@@ -258,7 +281,7 @@ const OrderList = () => {
                                                                 {order.status === 'pending' && (
                                                                     <button
                                                                         onClick={() => updateOrderStatus(order._id, 'paid')}
-                                                                        className="text-green-600 hover:text-green-800 text-sm"
+                                                                        className="text-green-600 hover:text-green-800 text-sm font-medium"
                                                                     >
                                                                         Mark as Paid
                                                                     </button>
@@ -267,7 +290,7 @@ const OrderList = () => {
                                                                 {order.status === 'paid' && (
                                                                     <button
                                                                         onClick={() => handleShipped(order._id)}
-                                                                        className="text-indigo-600 hover:text-indigo-800 text-sm"
+                                                                        className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
                                                                     >
                                                                         Mark as Shipped
                                                                     </button>
@@ -295,37 +318,46 @@ const OrderList = () => {
                 )}
             </div>
 
-            {/* Shipping Modal */}
+            {/* Shipping Details Modal */}
             {showTrackingModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-xl p-6 w-full max-w-md">
-                        <h3 className="text-lg font-semibold mb-4">Enter Shipping Details</h3>
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
+                        <h3 className="text-xl font-bold text-gray-900 mb-5">Mark Order as Shipped</h3>
                         <div className="space-y-4">
-                            <input
-                                type="text"
-                                placeholder="Tracking Number"
-                                value={trackingInfo.trackingNumber}
-                                onChange={(e) => setTrackingInfo({ ...trackingInfo, trackingNumber: e.target.value })}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                            />
-                            <input
-                                type="text"
-                                placeholder="Carrier (e.g. Delhivery, DTDC)"
-                                value={trackingInfo.carrier}
-                                onChange={(e) => setTrackingInfo({ ...trackingInfo, carrier: e.target.value })}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                            />
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Tracking Number</label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. DL123456789IN"
+                                    value={trackingInfo.trackingNumber}
+                                    onChange={(e) => setTrackingInfo({ ...trackingInfo, trackingNumber: e.target.value })}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Courier Partner</label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. Delhivery, Blue Dart, DTDC"
+                                    value={trackingInfo.carrier}
+                                    onChange={(e) => setTrackingInfo({ ...trackingInfo, carrier: e.target.value })}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] outline-none"
+                                />
+                            </div>
                         </div>
                         <div className="flex gap-3 mt-6 justify-end">
                             <button
-                                onClick={() => setShowTrackingModal(false)}
-                                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                                onClick={() => {
+                                    setShowTrackingModal(false);
+                                    setTrackingInfo({ trackingNumber: '', carrier: '' });
+                                }}
+                                className="px-5 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={confirmShipped}
-                                className="px-4 py-2 bg-[#800000] text-white rounded-lg hover:bg-[#660000]"
+                                className="px-5 py-2.5 bg-[#800000] text-white rounded-lg hover:bg-[#660000] transition shadow-md"
                             >
                                 Confirm Shipment
                             </button>
