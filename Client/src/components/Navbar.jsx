@@ -36,7 +36,7 @@ export default function Navbar({ user, onLogout }) {
             setCartCount(getCartCount());
         };
         updateCartCount();
-        
+
         const interval = setInterval(updateCartCount, 1000);
         return () => clearInterval(interval);
     }, [getCartCount]);
@@ -45,10 +45,10 @@ export default function Navbar({ user, onLogout }) {
     const debouncedSearch = useCallback(
         debounce(async (query) => {
             if (query.length < 1) {
-                setSearchResults({ 
+                setSearchResults({
                     success: true,
-                    products: [], 
-                    categories: [], 
+                    products: [],
+                    categories: [],
                     subcategories: [],
                     query: '',
                     totalResults: 0
@@ -56,17 +56,17 @@ export default function Navbar({ user, onLogout }) {
                 setIsSearching(false);
                 return;
             }
-            
+
             setIsSearching(true);
             try {
                 const results = await searchAutocomplete(query, 8);
                 setSearchResults(results);
             } catch (error) {
                 console.error('Search error:', error);
-                setSearchResults({ 
+                setSearchResults({
                     success: false,
-                    products: [], 
-                    categories: [], 
+                    products: [],
+                    categories: [],
                     subcategories: [],
                     query: query,
                     totalResults: 0,
@@ -85,10 +85,10 @@ export default function Navbar({ user, onLogout }) {
             debouncedSearch(searchQuery);
             setShowAutocomplete(true);
         } else {
-            setSearchResults({ 
+            setSearchResults({
                 success: true,
-                products: [], 
-                categories: [], 
+                products: [],
+                categories: [],
                 subcategories: [],
                 query: '',
                 totalResults: 0
@@ -104,7 +104,7 @@ export default function Navbar({ user, onLogout }) {
                 profileButtonRef.current && !profileButtonRef.current.contains(event.target)) {
                 setDropdownOpen(false);
             }
-            
+
             if (searchRef.current && !searchRef.current.contains(event.target)) {
                 setShowAutocomplete(false);
             }
@@ -143,7 +143,7 @@ export default function Navbar({ user, onLogout }) {
         setSearchQuery('');
         setShowAutocomplete(false);
         setMenuOpen(false); // Close mobile menu on select
-        
+
         switch (type) {
             case 'product':
                 // Use numericId or _id for product
@@ -153,19 +153,19 @@ export default function Navbar({ user, onLogout }) {
             case 'category':
                 // Navigate to category page - use numericId or _id
                 const categoryId = item.numericId || item._id || item.id;
-                navigate(`/products/category/${categoryId}`, { 
-                    state: { categoryName: item.name } 
+                navigate(`/products/category/${categoryId}`, {
+                    state: { categoryName: item.name }
                 });
                 break;
             case 'subcategory':
                 // Handle subcategory navigation
                 const subcategoryId = item._id || item.id || item.numericId;
                 const categoryIdForSub = item.categoryId || item.category?._id || item.category?.id || item.category?.numericId;
-                
+
                 if (categoryIdForSub) {
                     // Navigate to category page with subcategory filter
                     navigate(`/products/category/${categoryIdForSub}`, {
-                        state: { 
+                        state: {
                             categoryName: item.category?.name || 'Category',
                             subcategoryName: item.title || item.name,
                             filter: item.title || item.name
@@ -189,8 +189,8 @@ export default function Navbar({ user, onLogout }) {
 
     const profileItems = user ? [
         { label: "My Profile", path: "/profile" },
-        { label: "My Orders", path: "/orders" },
-        { label: "My Addresses", path: "/profile/addresses" },
+        { label: "My Orders", path: "/orders/my-orders" },
+        { label: "My Addresses", path: "/profile" },
         { label: "Logout", action: handleLogout, icon: <FiLogOut className="mr-2" /> }
     ] : [
         { label: "Sign In", path: "/login" },
@@ -200,15 +200,15 @@ export default function Navbar({ user, onLogout }) {
     // Helper to get valid image URL
     const getValidImageUrl = (imageUrl) => {
         if (!imageUrl) return null;
-        
+
         if (imageUrl.startsWith('http') || imageUrl.startsWith('data:image')) {
             return imageUrl;
         }
-        
+
         if (imageUrl.startsWith('/')) {
             return `http://localhost:5001${imageUrl}`;
         }
-        
+
         return `http://localhost:5001/uploads/${imageUrl}`;
     };
 
@@ -261,7 +261,7 @@ export default function Navbar({ user, onLogout }) {
                                 >
                                     <FiSearch size={20} />
                                 </button>
-                                
+
                                 {/* Autocomplete Dropdown */}
                                 {showAutocomplete && (
                                     <div className="absolute top-full left-0 right-0 mt-1 bg-white shadow-2xl rounded-lg border border-gray-300 z-[9999] max-h-[500px] overflow-y-auto">
@@ -290,8 +290,8 @@ export default function Navbar({ user, onLogout }) {
                                                             >
                                                                 <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center flex-shrink-0 border border-gray-200">
                                                                     {product.images?.[0] ? (
-                                                                        <img 
-                                                                            src={getValidImageUrl(product.images[0])} 
+                                                                        <img
+                                                                            src={getValidImageUrl(product.images[0])}
                                                                             alt={product.name}
                                                                             className="w-10 h-10 object-contain"
                                                                             onError={(e) => e.target.src = "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=100&h=100&fit=crop"}
@@ -326,7 +326,7 @@ export default function Navbar({ user, onLogout }) {
                                                         ))}
                                                     </div>
                                                 )}
-                                                
+
                                                 {/* Categories Section */}
                                                 {searchResults.categories.length > 0 && (
                                                     <div className="border-b border-gray-100">
@@ -354,7 +354,7 @@ export default function Navbar({ user, onLogout }) {
                                                         ))}
                                                     </div>
                                                 )}
-                                                
+
                                                 {/* Subcategories Section */}
                                                 {searchResults.subcategories.length > 0 && (
                                                     <div className="border-b border-gray-100 last:border-b-0">
@@ -436,7 +436,7 @@ export default function Navbar({ user, onLogout }) {
 
                     {/* Right Side Icons */}
                     <div className="hidden md:flex items-center space-x-6 text-white">
-                        <button 
+                        <button
                             onClick={() => navigate('/login')}
                             className="hover:text-gray-300 transition-colors font-medium cursor-pointer"
                         >
@@ -557,7 +557,7 @@ export default function Navbar({ user, onLogout }) {
                                     </button>
                                 </div>
                             </form>
-                            
+
                             {/* Mobile Autocomplete */}
                             {showAutocomplete && searchQuery.length > 0 && (
                                 <div className="absolute top-full left-0 right-0 mt-1 bg-white shadow-2xl rounded-lg border border-gray-300 z-50 max-h-[400px] overflow-y-auto">
@@ -649,7 +649,7 @@ export default function Navbar({ user, onLogout }) {
                                 Brands
                             </Link>
 
-                            <button 
+                            <button
                                 onClick={() => {
                                     navigate('/sell');
                                     setMenuOpen(false);

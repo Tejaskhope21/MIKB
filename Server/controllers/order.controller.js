@@ -4,227 +4,132 @@ import User from '../models/User.model.js';
 import mongoose from 'mongoose';
 
 /* ================= CREATE ORDER ================= */
-export const createOrder = async (req, res) => {
-    const session = await mongoose.startSession();
-    session.startTransaction();
 
+// ================= GET SELLER ORDERS =================
+export const getSellerOrders = async (req, res) => {
     try {
-        const userId = req.user._id;
-        const { items, shippingAddress, paymentMethod, notes } = req.body;
+        const sellerId = req.user._id; // assuming logged-in seller
 
-        // Validate required fields
-        if (!items || !Array.isArray(items) || items.length === 0) {
-            await session.abortTransaction();
-            session.endSession();
-            return res.status(400).json({
-                success: false,
-                message: 'Order items are required'
-            });
+        const {
+            page = 1,
+            limit = 10,
+            status,
+            search // optional: search by orderId or customer name
+        } = req.query;
+
+        const query = {
+            'items.seller': sellerId
+        };
+
+        if (status) query.status = status;
+        if (search) {
+            query.$or = [
+                { orderId: { $regex: search, $options: 'i' } },
+                { 'user.name': { $regex: search, $options: 'i' } } // assuming you populate user later
+            ];
         }
 
-        if (!shippingAddress) {
-            await session.abortTransaction();
-            session.endSession();
-            return res.status(400).json({
-                success: false,
-                message: 'Shipping address is required'
-            });
-        }
+        const skip = (page - 1) * limit;
 
-        // Fetch user with addresses
-        const user = await User.findById(userId).session(session);
+        const [orders, total] = await Promise.all([
+            Order.find(query)
+                .populate('user', 'name email phone')
+                .populate('items.product', 'name images price')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(parseInt(limit)),
+            Order.countDocuments(query)
+        ]);
 
-        // Check if the shipping address exists in user's addresses
-        const userAddress = user.addresses.find(addr =>
-            addr._id.toString() === shippingAddress
-        );
-
-        if (!userAddress) {
-            await session.abortTransaction();
-            session.endSession();
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid shipping address'
-            });
-        }
-
-        let subtotal = 0;
-        let totalItems = 0;
-        const orderItems = [];
-        const sellerItems = new Map(); // To group items by seller
-
-        // Process each item
-        for (const item of items) {
-            const product = await Product.findOne({
-                numericId: Number(item.productId)
-            }).session(session);
-
-            if (!product) {
-                await session.abortTransaction();
-                session.endSession();
-                return res.status(404).json({
-                    success: false,
-                    message: `Product not found: ${item.productId}`
-                });
-            }
-
-            // Check stock availability
-            if (product.inventory.manageStock && product.inventory.stock < item.quantity) {
-                await session.abortTransaction();
-                session.endSession();
-                return res.status(400).json({
-                    success: false,
-                    message: `Insufficient stock for ${product.name}. Available: ${product.inventory.stock}`
-                });
-            }
-
-            // Calculate item total
-            const itemTotal = product.price * item.quantity;
-            subtotal += itemTotal;
-            totalItems += item.quantity;
-
-            // Create order item
-            const orderItem = {
-                productId: product._id,
-                numericId: product.numericId,
-                name: product.name,
-                price: product.price,
-                quantity: item.quantity,
-                image: product.images?.[0],
-                sellerId: product.sellerId,
-                status: 'pending'
-            };
-
-            orderItems.push(orderItem);
-
-            // Group items by seller for commission calculation
-            const sellerId = product.sellerId.toString();
-            if (!sellerItems.has(sellerId)) {
-                sellerItems.set(sellerId, {
-                    sellerId: product.sellerId,
-                    items: [],
-                    total: 0
-                });
-            }
-
-            const sellerData = sellerItems.get(sellerId);
-            sellerData.items.push(orderItem);
-            sellerData.total += itemTotal;
-
-            // Reserve stock
-            if (product.inventory.manageStock) {
-                product.inventory.reservedStock += item.quantity;
-                product.inventory.stock -= item.quantity;
-                await product.save({ session });
-            }
-        }
-
-        // Calculate totals
-        const shippingCost = 0; // Could be calculated based on weight/distance
-        const tax = subtotal * 0.18; // 18% GST
-        const discount = 0; // Could apply coupon codes
-        const total = subtotal + shippingCost + tax - discount;
-
-        // Calculate commission and seller amounts
-        const sellerAmounts = new Map();
-        let totalCommission = 0;
-
-        for (const [sellerId, data] of sellerItems) {
-            const seller = await User.findById(sellerId).session(session);
-            const commissionRate = seller.commission?.rate || 10;
-            const commissionAmount = (data.total * commissionRate) / 100;
-            const sellerAmount = data.total - commissionAmount;
-
-            sellerAmounts.set(sellerId, {
-                sellerAmount,
-                commissionAmount
-            });
-
-            totalCommission += commissionAmount;
-        }
-
-        // Create order
-        const order = new Order({
-            userId,
-            items: orderItems,
-            shippingAddress: userAddress,
-            payment: {
-                method: paymentMethod || 'cod',
-                status: paymentMethod === 'cod' ? 'pending' : 'pending',
-                amount: total
-            },
-            shipping: {
-                method: 'standard',
-                cost: shippingCost,
-                estimatedDelivery: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000) // 5 days
-            },
-            subtotal,
-            tax,
-            discount,
-            total,
-            sellerAmount: total - totalCommission,
-            commissionAmount: totalCommission,
-            notes,
-            status: paymentMethod === 'cod' ? 'pending' : 'pending'
-        });
-
-        await order.save({ session });
-
-        // Update user's order count
-        user.orderCount = (user.orderCount || 0) + 1;
-        await user.save({ session });
-
-        // Update seller stats
-        for (const [sellerId, data] of sellerAmounts) {
-            await User.findByIdAndUpdate(
-                sellerId,
-                {
-                    $inc: {
-                        'sellerStats.totalOrders': 1,
-                        'sellerStats.pendingOrders': 1,
-                        'sellerStats.totalRevenue': data.sellerAmount
-                    }
-                },
-                { session }
-            );
-        }
-
-        await session.commitTransaction();
-        session.endSession();
-
-        // Populate order details
-        const populatedOrder = await Order.findById(order._id)
-            .populate('userId', 'name email')
-            .populate('items.sellerId', 'name businessName');
-
-        res.status(201).json({
+        res.json({
             success: true,
-            order: populatedOrder,
-            message: 'Order created successfully'
+            orders,
+            pagination: {
+                total,
+                page: parseInt(page),
+                pages: Math.ceil(total / limit),
+                limit: parseInt(limit)
+            }
         });
 
     } catch (error) {
-        await session.abortTransaction();
-        session.endSession();
-
-        console.error('Create order error:', error);
-
-        if (error.name === 'ValidationError') {
-            return res.status(400).json({
-                success: false,
-                message: 'Validation error',
-                errors: Object.values(error.errors).map(e => e.message)
-            });
-        }
-
-        res.status(500).json({
-            success: false,
-            message: 'Server error while creating order',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
-        });
+        console.error('Get seller orders error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 };
 
+export const createOrder = async (req, res) => {
+    try {
+        const { items, shippingAddress, paymentMethod, notes = '' } = req.body;
+
+        if (!items || items.length === 0) {
+            return res.status(400).json({ message: 'No order items' });
+        }
+
+        if (!shippingAddress || typeof shippingAddress !== 'object') {
+            return res.status(400).json({ message: 'Valid shipping address is required' });
+        }
+
+        // Validate all productIds are valid ObjectIds
+        const validObjectIds = items.every(item =>
+            mongoose.Types.ObjectId.isValid(item.productId)
+        );
+        if (!validObjectIds) {
+            return res.status(400).json({ message: 'Invalid product ID format' });
+        }
+
+        const productIds = items.map(i => new mongoose.Types.ObjectId(i.productId));
+        const products = await Product.find({ _id: { $in: productIds } }).populate('sellerId');
+
+        if (products.length !== items.length) {
+            return res.status(400).json({ message: 'One or more products not found' });
+        }
+
+        // Optional: Check all products have same seller
+        const sellerIds = [...new Set(products.map(p => p.sellerId.toString()))];
+        if (sellerIds.length > 1) {
+            return res.status(400).json({ message: 'All products must belong to same seller' });
+        }
+
+        const orderItems = items.map(item => {
+            const product = products.find(p => p._id.toString() === item.productId);
+            return {
+                product: product._id,
+                seller: product.sellerId,
+                quantity: item.quantity,
+                price: product.price
+            };
+        });
+
+        const totalPrice = orderItems.reduce(
+            (sum, item) => sum + item.price * item.quantity,
+            0
+        );
+
+        const order = await Order.create({
+            user: req.user._id,
+            items: orderItems,
+            shippingAddress,
+            paymentMethod,
+            totalPrice,
+            notes
+        });
+
+        // Optionally populate before sending
+        const populatedOrder = await Order.findById(order._id)
+            .populate('items.product', 'name images')
+            .populate('items.seller', 'businessName');
+
+        res.status(201).json(populatedOrder);
+
+    } catch (error) {
+        console.error('CREATE ORDER ERROR:', error);
+        res.status(500).json({
+            message: 'Order creation failed',
+            error: error.message
+        });
+    }
+};
 /* ================= GET USER ORDERS ================= */
 export const getOrders = async (req, res) => {
     try {
@@ -238,7 +143,7 @@ export const getOrders = async (req, res) => {
             sort = '-createdAt'
         } = req.query;
 
-        const query = { userId };
+        const query = { user: userId };
 
         // Apply filters
         if (status) {
@@ -255,7 +160,7 @@ export const getOrders = async (req, res) => {
 
         const [orders, total] = await Promise.all([
             Order.find(query)
-                .populate('items.sellerId', 'name businessName')
+                .populate('items.seller', 'name businessName')
                 .sort(sort)
                 .skip(skip)
                 .limit(parseInt(limit)),
@@ -290,10 +195,11 @@ export const getOrderById = async (req, res) => {
 
         const order = await Order.findOne({
             _id: id,
-            userId
+            user: userId
         })
-            .populate('userId', 'name email phone')
-            .populate('items.sellerId', 'name businessName email contactNumber');
+            .populate('user', 'name email phone')
+            .populate('items.product', 'name images brand description specs')
+            .populate('items.seller', 'name businessName email contactNumber');
 
         if (!order) {
             return res.status(404).json({
@@ -302,27 +208,9 @@ export const getOrderById = async (req, res) => {
             });
         }
 
-        // Get product details for each item
-        const itemsWithDetails = await Promise.all(
-            order.items.map(async (item) => {
-                const product = await Product.findOne({ numericId: item.numericId })
-                    .select('name images brand description specs');
-
-                return {
-                    ...item.toObject(),
-                    productDetails: product
-                };
-            })
-        );
-
-        const orderWithDetails = {
-            ...order.toObject(),
-            items: itemsWithDetails
-        };
-
         res.json({
             success: true,
-            order: orderWithDetails
+            order
         });
 
     } catch (error) {
@@ -334,129 +222,110 @@ export const getOrderById = async (req, res) => {
     }
 };
 
-/* ================= UPDATE ORDER STATUS ================= */
-export const updateOrderStatus = async (req, res) => {
+/* ================= UPDATE ORDER STATUS BY SELLER (NO SCHEMA CHANGE) ================= */
+/* ================= UPDATE ORDER STATUS BY SELLER (WORKS WITH CURRENT SCHEMA) ================= */
+export const updateOrderStatusBySeller = async (req, res) => {
     const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
-        const userId = req.user._id;
+        const sellerId = req.user._id;
         const { id } = req.params;
-        const { status, cancellationReason, trackingNumber, carrier } = req.body;
+        const { status, trackingNumber, carrier } = req.body;
 
-        // Validate status
-        const validStatuses = ['confirmed', 'processing', 'shipped', 'delivered', 'cancelled'];
+        if (!status) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({ message: 'Status is required' });
+        }
+
+        // Only allow valid enum values from your schema
+        const validStatuses = ['paid', 'shipped', 'delivered', 'cancelled'];
         if (!validStatuses.includes(status)) {
             await session.abortTransaction();
             session.endSession();
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid status'
-            });
+            return res.status(400).json({ message: 'Invalid status' });
         }
 
         const order = await Order.findOne({
             _id: id,
-            userId
+            'items.seller': sellerId
         }).session(session);
 
         if (!order) {
             await session.abortTransaction();
             session.endSession();
-            return res.status(404).json({
-                success: false,
-                message: 'Order not found'
-            });
+            return res.status(404).json({ message: 'Order not found or you are not authorized' });
         }
 
-        // Check if order can be updated to this status
-        const statusFlow = {
-            'pending': ['confirmed', 'cancelled'],
-            'confirmed': ['processing', 'cancelled'],
-            'processing': ['shipped', 'cancelled'],
-            'shipped': ['delivered'],
-            'delivered': [],
-            'cancelled': []
+        // Valid status transitions based on your enum
+        const allowedTransitions = {
+            pending: ['paid', 'cancelled'],
+            paid: ['shipped', 'cancelled'],
+            shipped: ['delivered'],
+            delivered: [],
+            cancelled: []
         };
 
-        if (!statusFlow[order.status].includes(status)) {
+        if (!allowedTransitions[order.status]?.includes(status)) {
             await session.abortTransaction();
             session.endSession();
             return res.status(400).json({
-                success: false,
-                message: `Cannot change status from ${order.status} to ${status}`
+                message: `Cannot change status from "${order.status}" to "${status}"`
             });
         }
 
         const oldStatus = order.status;
         order.status = status;
 
-        // Handle status-specific updates
-        if (status === 'cancelled') {
-            order.cancellationReason = cancellationReason;
-            order.payment.status = 'refunded';
-
-            // Release reserved stock and update products
-            for (const item of order.items) {
-                const product = await Product.findById(item.productId).session(session);
-                if (product) {
-                    if (product.inventory.manageStock) {
-                        product.inventory.stock += item.quantity;
-                        product.inventory.reservedStock = Math.max(
-                            0,
-                            product.inventory.reservedStock - item.quantity
-                        );
-                        await product.save({ session });
-                    }
-                }
+        // When marking as shipped → save tracking in notes
+        if (status === 'shipped') {
+            if (!trackingNumber || !carrier) {
+                await session.abortTransaction();
+                session.endSession();
+                return res.status(400).json({ message: 'Tracking number and carrier are required' });
             }
 
-            // Update seller stats
-            for (const item of order.items) {
-                await User.findByIdAndUpdate(
-                    item.sellerId,
-                    {
-                        $inc: {
-                            'sellerStats.pendingOrders': -1
-                        }
-                    },
+            const trackingNote = `\n\n[SHIPPING DETAILS]\nCarrier: ${carrier}\nTracking Number: ${trackingNumber}\nShipped on: ${new Date().toLocaleDateString('en-IN')}`;
+            order.notes = (order.notes || '') + trackingNote;
+        }
+
+        // When delivered → update sold count and seller stats
+        if (status === 'delivered') {
+            const deliveredNote = `\n\n[DELIVERED]\nOrder marked as delivered on: ${new Date().toLocaleDateString('en-IN')}`;
+            order.notes = (order.notes || '') + deliveredNote;
+
+            // Increase sold count for products
+            for (const item of order.items.filter(i => i.seller.toString() === sellerId.toString())) {
+                await Product.findByIdAndUpdate(
+                    item.product,
+                    { $inc: { 'inventory.soldCount': item.quantity } },
                     { session }
                 );
             }
+
+            // Update seller revenue and completed orders
+            await User.findByIdAndUpdate(
+                sellerId,
+                {
+                    $inc: {
+                        'sellerStats.completedOrders': 1,
+                        'sellerStats.totalRevenue': order.totalPrice
+                    }
+                },
+                { session }
+            );
         }
 
-        if (status === 'shipped') {
-            order.shipping.trackingNumber = trackingNumber;
-            order.shipping.carrier = carrier;
-            order.shipping.estimatedDelivery = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
-        }
-
-        if (status === 'delivered') {
-            order.shipping.deliveredAt = new Date();
-            order.payment.status = 'completed';
-
-            // Update product sold counts
-            for (const item of order.items) {
-                const product = await Product.findById(item.productId).session(session);
-                if (product) {
-                    product.inventory.soldCount += item.quantity;
-                    product.lastSold = new Date();
+        // Cancel → release stock
+        if (status === 'cancelled') {
+            for (const item of order.items.filter(i => i.seller.toString() === sellerId.toString())) {
+                const product = await Product.findById(item.product).session(session);
+                if (product?.inventory?.manageStock) {
+                    product.inventory.stock += item.quantity;
+                    product.inventory.reservedStock = Math.max(0, product.inventory.reservedStock - item.quantity);
                     await product.save({ session });
                 }
-            }
-
-            // Update seller stats
-            for (const item of order.items) {
-                await User.findByIdAndUpdate(
-                    item.sellerId,
-                    {
-                        $inc: {
-                            'sellerStats.pendingOrders': -1,
-                            'sellerStats.completedOrders': 1
-                        }
-                    },
-                    { session }
-                );
             }
         }
 
@@ -464,24 +333,29 @@ export const updateOrderStatus = async (req, res) => {
         await session.commitTransaction();
         session.endSession();
 
+        // Return fresh populated order
+        const populatedOrder = await Order.findById(order._id)
+            .populate('user', 'name email phone')
+            .populate('items.product', 'name images price')
+            .populate('items.seller', 'businessName');
+
         res.json({
             success: true,
-            order,
-            message: `Order status updated from ${oldStatus} to ${status}`
+            order: populatedOrder,
+            message: `Order status updated to "${status}"`
         });
 
     } catch (error) {
         await session.abortTransaction();
         session.endSession();
-
-        console.error('Update order status error:', error);
+        console.error('Seller update order status error:', error);
         res.status(500).json({
             success: false,
-            message: 'Server error'
+            message: 'Server error',
+            error: error.message
         });
     }
 };
-
 /* ================= CANCEL ORDER ================= */
 export const cancelOrder = async (req, res) => {
     const session = await mongoose.startSession();
@@ -503,7 +377,7 @@ export const cancelOrder = async (req, res) => {
 
         const order = await Order.findOne({
             _id: id,
-            userId,
+            user: userId,
             status: { $in: ['pending', 'confirmed'] }
         }).session(session);
 
@@ -523,7 +397,7 @@ export const cancelOrder = async (req, res) => {
 
         // Release reserved stock and update products
         for (const item of order.items) {
-            const product = await Product.findById(item.productId).session(session);
+            const product = await Product.findById(item.product).session(session);
             if (product && product.inventory.manageStock) {
                 product.inventory.stock += item.quantity;
                 product.inventory.reservedStock = Math.max(
@@ -537,7 +411,7 @@ export const cancelOrder = async (req, res) => {
         // Update seller stats
         for (const item of order.items) {
             await User.findByIdAndUpdate(
-                item.sellerId,
+                item.seller,
                 {
                     $inc: {
                         'sellerStats.pendingOrders': -1
@@ -578,7 +452,7 @@ export const requestReturn = async (req, res) => {
 
         const order = await Order.findOne({
             _id: id,
-            userId,
+            user: userId,
             status: 'delivered'
         });
 
@@ -614,7 +488,7 @@ export const requestReturn = async (req, res) => {
         await order.save();
 
         // Notify seller (in real app, send notification/email)
-        // await notifySellerAboutReturn(item.sellerId, order, item);
+        // await notifySellerAboutReturn(item.seller, order, item);
 
         res.json({
             success: true,
@@ -647,7 +521,7 @@ export const getOrderHistory = async (req, res) => {
         const monthlyStats = await Order.aggregate([
             {
                 $match: {
-                    userId: new mongoose.Types.ObjectId(userId),
+                    user: new mongoose.Types.ObjectId(userId),
                     createdAt: { $gte: startDate, $lte: endDate }
                 }
             },
@@ -655,8 +529,8 @@ export const getOrderHistory = async (req, res) => {
                 $group: {
                     _id: { $month: '$createdAt' },
                     count: { $sum: 1 },
-                    totalSpent: { $sum: '$total' },
-                    avgOrderValue: { $avg: '$total' }
+                    totalSpent: { $sum: '$totalPrice' },
+                    avgOrderValue: { $avg: '$totalPrice' }
                 }
             },
             {
@@ -675,7 +549,7 @@ export const getOrderHistory = async (req, res) => {
         const topCategories = await Order.aggregate([
             {
                 $match: {
-                    userId: new mongoose.Types.ObjectId(userId),
+                    user: new mongoose.Types.ObjectId(userId),
                     createdAt: { $gte: startDate, $lte: endDate }
                 }
             },
@@ -683,7 +557,7 @@ export const getOrderHistory = async (req, res) => {
             {
                 $lookup: {
                     from: 'products',
-                    localField: 'items.productId',
+                    localField: 'items.product',
                     foreignField: '_id',
                     as: 'product'
                 }
@@ -703,17 +577,17 @@ export const getOrderHistory = async (req, res) => {
         ]);
 
         // Get recent orders
-        const recentOrders = await Order.find({ userId })
+        const recentOrders = await Order.find({ user: userId })
             .sort({ createdAt: -1 })
             .limit(parseInt(limit))
             .select('orderId status total createdAt items.quantity')
-            .populate('items.productId', 'name categoryId');
+            .populate('items.product', 'name categoryId');
 
         // Calculate summary
         const summary = await Order.aggregate([
             {
                 $match: {
-                    userId: new mongoose.Types.ObjectId(userId),
+                    user: new mongoose.Types.ObjectId(userId),
                     createdAt: { $gte: startDate, $lte: endDate }
                 }
             },
@@ -721,8 +595,8 @@ export const getOrderHistory = async (req, res) => {
                 $group: {
                     _id: null,
                     totalOrders: { $sum: 1 },
-                    totalSpent: { $sum: '$total' },
-                    avgOrderValue: { $avg: '$total' },
+                    totalSpent: { $sum: '$totalPrice' },
+                    avgOrderValue: { $avg: '$totalPrice' },
                     completedOrders: {
                         $sum: { $cond: [{ $eq: ['$status', 'delivered'] }, 1, 0] }
                     },
@@ -767,7 +641,7 @@ export const trackOrder = async (req, res) => {
 
         const order = await Order.findOne({
             _id: id,
-            userId
+            user: userId
         }).select('orderId status shipping items createdAt updatedAt');
 
         if (!order) {
@@ -875,10 +749,10 @@ export const downloadInvoice = async (req, res) => {
 
         const order = await Order.findOne({
             _id: id,
-            userId
+            user: userId
         })
-            .populate('userId', 'name email phone addresses')
-            .populate('items.sellerId', 'businessName gstNumber businessAddress');
+            .populate('user', 'name email phone addresses')
+            .populate('items.seller', 'businessName gstNumber businessAddress');
 
         if (!order) {
             return res.status(404).json({
@@ -890,7 +764,7 @@ export const downloadInvoice = async (req, res) => {
         // Get product details
         const itemsWithDetails = await Promise.all(
             order.items.map(async (item) => {
-                const product = await Product.findOne({ numericId: item.numericId })
+                const product = await Product.findById(item.product)
                     .select('name brand description');
                 return {
                     ...item.toObject(),
@@ -906,16 +780,16 @@ export const downloadInvoice = async (req, res) => {
             orderDate: order.createdAt.toLocaleDateString('en-IN'),
 
             customer: {
-                name: order.userId.name,
-                email: order.userId.email,
-                phone: order.userId.phone,
+                name: order.user.name,
+                email: order.user.email,
+                phone: order.user.phone,
                 address: order.shippingAddress
             },
 
-            seller: order.items[0]?.sellerId ? {
-                name: order.items[0].sellerId.businessName,
-                gst: order.items[0].sellerId.gstNumber,
-                address: order.items[0].sellerId.businessAddress
+            seller: order.items[0]?.seller ? {
+                name: order.items[0].seller.businessName,
+                gst: order.items[0].seller.gstNumber,
+                address: order.items[0].seller.businessAddress
             } : null,
 
             items: itemsWithDetails.map(item => ({
@@ -931,7 +805,7 @@ export const downloadInvoice = async (req, res) => {
                 shipping: order.shipping.cost,
                 tax: order.tax,
                 discount: order.discount,
-                total: order.total
+                total: order.totalPrice
             },
 
             payment: {
@@ -966,7 +840,7 @@ export const getOrderSummary = async (req, res) => {
 
         const summary = await Order.aggregate([
             {
-                $match: { userId: new mongoose.Types.ObjectId(userId) }
+                $match: { user: new mongoose.Types.ObjectId(userId) }
             },
             {
                 $facet: {
@@ -985,7 +859,7 @@ export const getOrderSummary = async (req, res) => {
                                     year: { $year: '$createdAt' },
                                     month: { $month: '$createdAt' }
                                 },
-                                total: { $sum: '$total' },
+                                total: { $sum: '$totalPrice' },
                                 count: { $sum: 1 }
                             }
                         },
@@ -997,8 +871,8 @@ export const getOrderSummary = async (req, res) => {
                             $group: {
                                 _id: null,
                                 totalOrders: { $sum: 1 },
-                                totalSpent: { $sum: '$total' },
-                                avgOrderValue: { $avg: '$total' }
+                                totalSpent: { $sum: '$totalPrice' },
+                                avgOrderValue: { $avg: '$totalPrice' }
                             }
                         }
                     ]
@@ -1043,7 +917,7 @@ export const reorder = async (req, res) => {
         // Get the original order
         const originalOrder = await Order.findOne({
             _id: id,
-            userId
+            user: userId
         }).session(session);
 
         if (!originalOrder) {
@@ -1057,16 +931,14 @@ export const reorder = async (req, res) => {
 
         // Check if all products are still available
         for (const item of originalOrder.items) {
-            const product = await Product.findOne({
-                numericId: item.numericId
-            }).session(session);
+            const product = await Product.findById(item.product).session(session);
 
             if (!product) {
                 await session.abortTransaction();
                 session.endSession();
                 return res.status(400).json({
                     success: false,
-                    message: `Product ${item.name} is no longer available`
+                    message: `Product is no longer available`
                 });
             }
 
@@ -1075,45 +947,28 @@ export const reorder = async (req, res) => {
                 session.endSession();
                 return res.status(400).json({
                     success: false,
-                    message: `Insufficient stock for ${item.name}`
+                    message: `Insufficient stock for product`
                 });
             }
         }
 
         // Create new order with same items and address
         const newOrder = new Order({
-            userId,
+            user: userId,
             items: originalOrder.items.map(item => ({
                 ...item.toObject(),
                 _id: undefined, // Remove old _id
                 status: 'pending'
             })),
             shippingAddress: originalOrder.shippingAddress,
-            payment: {
-                method: originalOrder.payment.method,
-                status: 'pending',
-                amount: originalOrder.total
-            },
-            shipping: {
-                method: originalOrder.shipping.method,
-                cost: originalOrder.shipping.cost,
-                estimatedDelivery: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)
-            },
-            subtotal: originalOrder.subtotal,
-            tax: originalOrder.tax,
-            discount: originalOrder.discount,
-            total: originalOrder.total,
-            sellerAmount: originalOrder.sellerAmount,
-            commissionAmount: originalOrder.commissionAmount,
-            notes: `Reorder of order ${originalOrder.orderId}`,
+            paymentMethod: originalOrder.paymentMethod,
+            totalPrice: originalOrder.totalPrice,
             status: 'pending'
         });
 
         // Reserve stock for new order
         for (const item of newOrder.items) {
-            const product = await Product.findOne({
-                numericId: item.numericId
-            }).session(session);
+            const product = await Product.findById(item.product).session(session);
 
             if (product && product.inventory.manageStock) {
                 product.inventory.reservedStock += item.quantity;
@@ -1127,7 +982,7 @@ export const reorder = async (req, res) => {
         // Update seller stats
         for (const item of newOrder.items) {
             await User.findByIdAndUpdate(
-                item.sellerId,
+                item.seller,
                 {
                     $inc: {
                         'sellerStats.totalOrders': 1,
@@ -1167,7 +1022,7 @@ export const getOrderCount = async (req, res) => {
 
         const counts = await Order.aggregate([
             {
-                $match: { userId: new mongoose.Types.ObjectId(userId) }
+                $match: { user: new mongoose.Types.ObjectId(userId) }
             },
             {
                 $group: {

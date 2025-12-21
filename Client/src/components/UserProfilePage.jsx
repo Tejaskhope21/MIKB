@@ -9,10 +9,8 @@ import axios from 'axios';
 import { useSearchParams } from 'react-router-dom';
 
 // Automatic API URL - Local ya Production detect karega
-const API_URL =
-  window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:5000/api'
-    : 'https://bricks-backend-navy.vercel.app/api';
+const API_URL = 'https://bricks-com-backend.vercel.app/api';
+
 
 const UserProfilePage = () => {
   const [searchParams] = useSearchParams();

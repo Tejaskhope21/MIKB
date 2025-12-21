@@ -10,10 +10,13 @@ import LoginPage from "../pages/Users/LoginPage"
 import RegisterPage from "../pages/Users/RegisterPage"
 import ProtectedRoute from '../components/Auth/ProtectedRoute'
 import ErrorBoundary from '../components/ErrorBoundary'
-import ProfilePage from '../components/UserProfilePage' // Fixed import path
+import ProfilePage from '../components/UserProfilePage'
 import UserOrdersPage from '../pages/Users/UserOrders'
 
-// Seller Components
+// 🔥 NEW: Order Details Page Import
+import OrderDetailsPage from '../pages/Users/OrderDetailsPage' // Create this file next
+
+// Seller Components (unchanged)
 import SellerLayout from '../layouts/SellerLayout'
 import SellerDashboard from '../components/Seller/Dashboard'
 import ProductList from '../components/Seller/Products/ProductList'
@@ -29,7 +32,7 @@ import InvestorPage from '../pages/Investor/InvestorPage'
 import MaterialRequirementPage from '../pages/MaterialRequirement/MaterialRequirementPage'
 import CategoryDetailsPage from '../pages/Category/CategoryDetailsPage'
 import BrandsPage from '../pages/Brands/BrandPage'
-import AllProductsPage from '../pages/Products/AllProductsPage'
+import AllProductsPage from "../pages/Products/AllProductsPage"
 
 const AppRoutes = () => {
     return (
@@ -46,6 +49,8 @@ const AppRoutes = () => {
                     <Route path="/cart" element={<CartPage />} />
                     <Route path="/category/:categoryId" element={<CategoryDetailsPage />} />
                     <Route path="/brands" element={<BrandsPage />} />
+
+                    {/* Protected User Routes */}
                     <Route path="/checkout" element={
                         <ProtectedRoute>
                             <CheckoutPage />
@@ -54,6 +59,27 @@ const AppRoutes = () => {
                     <Route path="/order-success/:orderId" element={
                         <ProtectedRoute>
                             <OrderSuccessPage />
+                        </ProtectedRoute>
+                    } />
+
+                    {/* 🔥 NEW: My Orders Page */}
+                    <Route path="/orders/my-orders" element={
+                        <ProtectedRoute>
+                            <UserOrdersPage />
+                        </ProtectedRoute>
+                    } />
+
+                    {/* 🔥 NEW: Individual Order Details Page */}
+                    <Route path="/orders/:id" element={
+                        <ProtectedRoute>
+                            <OrderDetailsPage />
+                        </ProtectedRoute>
+                    } />
+
+                    {/* Shortcut for My Orders */}
+                    <Route path="/my-orders" element={
+                        <ProtectedRoute>
+                            <Navigate to="/orders/my-orders" replace />
                         </ProtectedRoute>
                     } />
                 </Route>
@@ -69,7 +95,6 @@ const AppRoutes = () => {
                     </ProtectedRoute>
                 }>
                     <Route index element={<ProfilePage />} />
-                    <Route path="orders" element={<UserOrdersPage />} />
                     <Route path="wishlist" element={<div>Wishlist Page</div>} />
                     <Route path="addresses" element={<div>Addresses Page</div>} />
                 </Route>

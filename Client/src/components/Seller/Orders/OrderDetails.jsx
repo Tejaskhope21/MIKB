@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Package, Truck, CheckCircle, User, MapPin, Phone, Mail, Calendar, CreditCard, Printer, MessageSquare } from 'lucide-react';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://bricks-backend-navy.vercel.app/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://bricks-com-backend.vercel.app/api';
 
 const OrderDetails = () => {
     const { orderId } = useParams();

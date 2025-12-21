@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://bricks-backend-navy.vercel.app/api/admin",
+  baseURL: "https://bricks-com-backend.vercel.app/api/admin",
   headers: {
     "Content-Type": "application/json",
   },
