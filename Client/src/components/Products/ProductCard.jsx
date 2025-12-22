@@ -20,8 +20,6 @@ function ProductCard({
   const productCategory = product?.category || "";
   const productPrice = Number(product?.price) || 0;
   const originalPrice = Number(product?.originalPrice) || 0;
-  const ratingValue = product?.rating || 4.5; // example from screenshot
-  const reviewCount = product?.reviews || 150; // example
   const [isInWishlist, setIsInWishlist] = useState(false);
 
   const discountPercentage =
@@ -43,7 +41,7 @@ function ProductCard({
 
   return (
     <div
-      className="relative bg-white overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 flex flex-col w-full max-w-xs mx-auto cursor-pointer"
+      className="relative bg-white overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 flex flex-col w-full max-w-xs mx-auto cursor-pointer group"
       onMouseEnter={() => handleMouseEnter(productId)}
       onMouseLeave={() => handleMouseLeave(productId)}
       onClick={() => handleProductClick(product)}
@@ -56,9 +54,8 @@ function ProductCard({
               key={index}
               src={image}
               alt={productName}
-              className={`absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-in-out ${
-                index === currentImageIndex ? "scale-100" : "scale-110 opacity-0"
-              }`}
+              className={`absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-in-out ${index === currentImageIndex ? "scale-100" : "scale-110 opacity-0"
+                }`}
               onError={handleImageError}
             />
           ))
@@ -96,11 +93,8 @@ function ProductCard({
           </div>
 
           {/* Green Rating Badge like screenshot */}
-          <div className="flex items-center gap-1 bg-green-600 text-white text-xs px-2 py-1 rounded">
-            <span className="font-medium">{ratingValue}</span>
-            <span>★</span>
-            {reviewCount > 0 && <span className="text-xs">({reviewCount})</span>}
-            <span className="ml-1 text-xs">Free</span> {/* Delivery */}
+          <div className="flex items-center bg-green-600 text-white text-xs px-2 py-1 rounded">
+            <span className="text-xs">Free Delivery</span>
           </div>
         </div>
 
@@ -116,11 +110,10 @@ function ProductCard({
       <div className="absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300 bg-white/95 backdrop-blur p-4 border-t">
         <button
           onClick={handleWishlistToggle}
-          className={`w-full py-2 rounded-md text-sm font-medium border ${
-            isInWishlist
-              ? "bg-red-100 text-red-700 border-red-300 hover:bg-red-200"
-              : "bg-white text-gray-700 border-gray-400 hover:bg-gray-100"
-          }`}
+          className={`w-full py-2 rounded-md text-sm font-medium border ${isInWishlist
+            ? "bg-red-100 text-red-700 border-red-300 hover:bg-red-200"
+            : "bg-white text-gray-700 border-gray-400 hover:bg-gray-100"
+            }`}
         >
           {isInWishlist ? "♥ Remove from Wishlist" : "♥ Add to Wishlist"}
         </button>

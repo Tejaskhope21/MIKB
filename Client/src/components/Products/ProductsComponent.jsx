@@ -107,9 +107,7 @@ const ProductsComponent = ({
                                         <span className="text-[10px] text-gray-500">
                                             {transformedProduct.brand?.substring(0, 12) || 'Generic'}
                                         </span>
-                                        <span className="text-[10px] text-green-600 font-medium">
-                                            Free
-                                        </span>
+
                                     </div>
                                 </div>
                             </div>
