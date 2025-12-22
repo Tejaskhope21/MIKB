@@ -1015,6 +1015,35 @@ export const reorder = async (req, res) => {
     }
 };
 
+export const getSellerOrderDetails = async (req, res) => {
+    try {
+        const order = await Order.findById(req.params.orderId)
+            .populate('user', 'name email phone')
+            .populate({
+                path: 'items.product',
+                populate: [
+                    { path: 'categoryId', select: 'name title' },
+                    { path: 'subcategoryId', select: 'name title' }
+                ]
+            });
+
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        // Check if this seller owns any item in the order
+        const isSellerOrder = order.items.some(item => item.seller.toString() === req.user._id.toString());
+        if (!isSellerOrder) {
+            return res.status(403).json({ success: false, message: 'Not authorized' });
+        }
+
+        res.json({ success: true, order });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
 /* ================= GET ORDER COUNT ================= */
 export const getOrderCount = async (req, res) => {
     try {

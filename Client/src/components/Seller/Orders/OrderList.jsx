@@ -1,3 +1,5 @@
+// src/components/seller/OrderList.jsx (or wherever your file is)
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -58,12 +60,18 @@ const OrderList = () => {
 
             if (response.data.success) {
                 setOrders(response.data.orders || []);
+            } else {
+                setOrders([]);
             }
         } catch (error) {
             console.error('Error fetching seller orders:', error);
             if (error.response?.status === 401) {
+                localStorage.removeItem('token');
                 navigate('/login');
+            } else {
+                alert('Failed to load orders. Please try again.');
             }
+            setOrders([]);
         } finally {
             setLoading(false);
         }
@@ -78,6 +86,7 @@ const OrderList = () => {
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
+            // Refresh orders after status update
             fetchSellerOrders();
             setShowTrackingModal(false);
             setTrackingInfo({ trackingNumber: '', carrier: '' });
@@ -93,13 +102,13 @@ const OrderList = () => {
     };
 
     const confirmShipped = () => {
-        if (!trackingInfo.trackingNumber || !trackingInfo.carrier) {
-            alert('Please fill both tracking number and carrier');
+        if (!trackingInfo.trackingNumber.trim() || !trackingInfo.carrier.trim()) {
+            alert('Please enter both tracking number and courier partner');
             return;
         }
         updateOrderStatus(currentOrderId, 'shipped', {
-            trackingNumber: trackingInfo.trackingNumber,
-            carrier: trackingInfo.carrier
+            trackingNumber: trackingInfo.trackingNumber.trim(),
+            carrier: trackingInfo.carrier.trim()
         });
     };
 
@@ -120,10 +129,18 @@ const OrderList = () => {
             cancelled: <XCircle className="w-4 h-4" />
         };
 
+        const label = {
+            pending: 'Pending',
+            paid: 'Paid / Confirmed',
+            shipped: 'Shipped',
+            delivered: 'Delivered',
+            cancelled: 'Cancelled'
+        };
+
         return (
-            <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${styles[status] || 'bg-gray-100 text-gray-800'}`}>
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${styles[status] || 'bg-gray-100 text-gray-800'}`}>
                 {icons[status] || <Package className="w-4 h-4" />}
-                <span className="capitalize">{status === 'paid' ? 'Confirmed/Paid' : status}</span>
+                {label[status] || status}
             </span>
         );
     };
@@ -138,31 +155,54 @@ const OrderList = () => {
         });
     };
 
+    // Safe image fallback
+    const getProductImage = (images) => {
+        if (Array.isArray(images) && images.length > 0 && images[0]) {
+            return images[0];
+        }
+        return 'https://via.placeholder.com/80x80/f3f4f6/9ca3af?text=No+Image';
+    };
+
+    // Get category name safely
+    const getCategoryName = (product) => {
+        if (!product) return 'Unknown Product';
+        const cat = product.categoryId;
+        const subcat = product.subcategoryId;
+
+        if (subcat && (subcat.name || subcat.title)) {
+            return subcat.name || subcat.title;
+        }
+        if (cat && (cat.name || cat.title)) {
+            return cat.name || cat.title;
+        }
+        return 'Uncategorized';
+    };
+
     return (
-        <div className="p-6 max-w-7xl mx-auto">
+        <div className="p-4 md:p-6 max-w-7xl mx-auto">
             <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900">Customer Orders</h1>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Customer Orders</h1>
                 <p className="text-gray-600 mt-2">Manage and fulfill orders from your customers</p>
             </div>
 
             {/* Filters */}
-            <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+            <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 mb-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="relative">
-                        <Search className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
+                        <Search className="absolute left-3 top-3.5 text-gray-400 w-5 h-5" />
                         <input
                             type="text"
                             placeholder="Search by Order ID, Customer Name..."
                             value={filters.search}
                             onChange={(e) => setFilters({ ...filters, search: e.target.value, page: 1 })}
-                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] outline-none"
+                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-transparent outline-none transition"
                         />
                     </div>
 
                     <select
                         value={filters.status}
                         onChange={(e) => setFilters({ ...filters, status: e.target.value, page: 1 })}
-                        className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] outline-none"
+                        className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-transparent outline-none transition"
                     >
                         <option value="">All Status</option>
                         <option value="pending">Pending</option>
@@ -177,56 +217,58 @@ const OrderList = () => {
             {/* Orders Table */}
             <div className="bg-white rounded-xl shadow-sm overflow-hidden">
                 {loading ? (
-                    <div className="p-12 text-center">
+                    <div className="p-16 text-center">
                         <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-[#800000] mx-auto"></div>
-                        <p className="mt-4 text-gray-600">Loading orders...</p>
+                        <p className="mt-4 text-gray-600">Loading your orders...</p>
                     </div>
                 ) : orders.length === 0 ? (
-                    <div className="p-12 text-center">
-                        <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <div className="p-16 text-center">
+                        <Package className="w-20 h-20 text-gray-300 mx-auto mb-4" />
                         <h3 className="text-xl font-medium text-gray-900 mb-2">No Orders Found</h3>
-                        <p className="text-gray-500">Try adjusting your filters</p>
+                        <p className="text-gray-500">Try adjusting your search or filters</p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order Info</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer & Shipping</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Order Info</th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Customer & Address</th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Products</th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Total</th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {orders.map((order) => (
                                     <React.Fragment key={order._id}>
                                         {order.items.map((item, idx) => (
-                                            <tr key={`${order._id}-${item._id}`} className="hover:bg-gray-50 transition-colors">
+                                            <tr key={`${order._id}-${item._id}-${idx}`} className="hover:bg-gray-50 transition-colors">
+                                                {/* Order Info - Only on first row */}
                                                 {idx === 0 && (
                                                     <>
-                                                        {/* Order Info */}
-                                                        <td rowSpan={order.items.length} className="px-6 py-4 align-top">
-                                                            <div className="text-sm font-bold text-gray-900">{order.orderId || 'N/A'}</div>
+                                                        <td rowSpan={order.items.length} className="px-6 py-4 align-top whitespace-nowrap">
+                                                            <div className="text-sm font-bold text-gray-900">#{order.orderId || order._id.slice(-6).toUpperCase()}</div>
                                                             <div className="text-xs text-gray-500 mt-1">{formatDate(order.createdAt)}</div>
                                                         </td>
 
-                                                        {/* Customer & Full Shipping Address */}
+                                                        {/* Customer & Shipping Address */}
                                                         <td rowSpan={order.items.length} className="px-6 py-4 align-top">
                                                             <div className="text-sm font-medium text-gray-900">
                                                                 {order.user?.name || 'Guest Customer'}
                                                             </div>
                                                             <div className="text-xs text-gray-500">{order.user?.email || 'N/A'}</div>
 
-                                                            {/* Shipping Address with Icon */}
                                                             <div className="mt-3 flex items-start gap-2 text-xs text-gray-600">
                                                                 <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
                                                                 <div>
-                                                                    <div className="font-medium">{order.shippingAddress.address}</div>
+                                                                    <div>{order.shippingAddress.address}</div>
                                                                     <div>{order.shippingAddress.city}, {order.shippingAddress.state}</div>
                                                                     <div className="font-semibold">PIN: {order.shippingAddress.pincode}</div>
+                                                                    {order.shippingAddress.phone && (
+                                                                        <div className="mt-1">Phone: {order.shippingAddress.phone}</div>
+                                                                    )}
                                                                 </div>
                                                             </div>
                                                         </td>
@@ -236,43 +278,54 @@ const OrderList = () => {
                                                 {/* Product Item */}
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-4">
-                                                        <img
-                                                            src={item.product?.images?.[0] || 'https://via.placeholder.com/60'}
-                                                            alt={item.product?.name}
-                                                            className="w-12 h-12 rounded-lg object-cover shadow-sm"
-                                                        />
-                                                        <div>
-                                                            <div className="text-sm font-medium text-gray-900">{item.product?.name || 'Unknown Product'}</div>
-                                                            <div className="text-xs text-gray-500">
-                                                                Qty: {item.quantity} × ₹{item.price?.toLocaleString() || '0'}
+                                                        <div className="flex-shrink-0">
+                                                            <img
+                                                                src={getProductImage(item.product?.images)}
+                                                                alt={item.product?.name || 'Product'}
+                                                                className="w-16 h-16 rounded-lg object-cover shadow-sm border border-gray-200"
+                                                                onError={(e) => {
+                                                                    e.target.src = 'https://via.placeholder.com/80x80/f3f4f6/9ca3af?text=No+Image';
+                                                                }}
+                                                            />
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="text-sm font-semibold text-gray-900 truncate">
+                                                                {item.product?.name || 'Unknown Product'}
+                                                            </div>
+                                                            {item.product?.brand && (
+                                                                <div className="text-xs text-gray-500">Brand: {item.product.brand}</div>
+                                                            )}
+                                                            <div className="text-xs text-gray-500 mt-1">
+                                                                Category: {getCategoryName(item.product)}
+                                                            </div>
+                                                            <div className="text-xs text-gray-600 mt-1">
+                                                                Qty: <strong>{item.quantity}</strong> × ₹{item.price?.toLocaleString('en-IN') || '0'}
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </td>
 
+                                                {/* Total & Payment - Only on first row */}
                                                 {idx === 0 && (
                                                     <>
-                                                        {/* Total Price & Payment Method */}
-                                                        <td rowSpan={order.items.length} className="px-6 py-4 align-top">
-                                                            <div className="text-sm font-bold text-gray-900">
-                                                                ₹{order.totalPrice?.toLocaleString() || '0'}
+                                                        <td rowSpan={order.items.length} className="px-6 py-4 align-top whitespace-nowrap">
+                                                            <div className="text-lg font-bold text-gray-900">
+                                                                ₹{order.totalPrice?.toLocaleString('en-IN') || '0'}
                                                             </div>
                                                             <div className="text-xs text-gray-500 mt-1">
-                                                                via {order.paymentMethod === 'COD' ? 'Cash on Delivery' : 'Bank Transfer'}
+                                                                via {order.paymentMethod === 'COD' ? 'Cash on Delivery' : 'Online Payment'}
                                                             </div>
                                                         </td>
 
-                                                        {/* Status Badge */}
                                                         <td rowSpan={order.items.length} className="px-6 py-4 align-top">
                                                             {getStatusBadge(order.status)}
                                                         </td>
 
-                                                        {/* Actions */}
                                                         <td rowSpan={order.items.length} className="px-6 py-4 align-top">
-                                                            <div className="flex flex-col gap-2">
+                                                            <div className="flex flex-col gap-3">
                                                                 <button
                                                                     onClick={() => navigate(`/seller/orders/${order._id}`)}
-                                                                    className="flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors"
+                                                                    className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
                                                                 >
                                                                     <Eye className="w-4 h-4" />
                                                                     View Details
@@ -281,7 +334,7 @@ const OrderList = () => {
                                                                 {order.status === 'pending' && (
                                                                     <button
                                                                         onClick={() => updateOrderStatus(order._id, 'paid')}
-                                                                        className="text-green-600 hover:text-green-800 text-sm font-medium"
+                                                                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
                                                                     >
                                                                         Mark as Paid
                                                                     </button>
@@ -290,7 +343,7 @@ const OrderList = () => {
                                                                 {order.status === 'paid' && (
                                                                     <button
                                                                         onClick={() => handleShipped(order._id)}
-                                                                        className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                                                                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium"
                                                                     >
                                                                         Mark as Shipped
                                                                     </button>
@@ -299,7 +352,7 @@ const OrderList = () => {
                                                                 {order.status === 'shipped' && (
                                                                     <button
                                                                         onClick={() => updateOrderStatus(order._id, 'delivered')}
-                                                                        className="text-green-600 hover:text-green-800 text-sm font-bold"
+                                                                        className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition text-sm font-medium"
                                                                     >
                                                                         Mark as Delivered
                                                                     </button>
@@ -318,46 +371,46 @@ const OrderList = () => {
                 )}
             </div>
 
-            {/* Shipping Details Modal */}
+            {/* Shipping Tracking Modal */}
             {showTrackingModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
-                        <h3 className="text-xl font-bold text-gray-900 mb-5">Mark Order as Shipped</h3>
-                        <div className="space-y-4">
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+                        <h3 className="text-2xl font-bold text-gray-900 mb-6">Mark as Shipped</h3>
+                        <div className="space-y-5">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Tracking Number</label>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Tracking Number</label>
                                 <input
                                     type="text"
                                     placeholder="e.g. DL123456789IN"
                                     value={trackingInfo.trackingNumber}
                                     onChange={(e) => setTrackingInfo({ ...trackingInfo, trackingNumber: e.target.value })}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] outline-none"
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-transparent outline-none transition"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Courier Partner</label>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Courier Partner</label>
                                 <input
                                     type="text"
-                                    placeholder="e.g. Delhivery, Blue Dart, DTDC"
+                                    placeholder="e.g. Delhivery, Blue Dart, India Post"
                                     value={trackingInfo.carrier}
                                     onChange={(e) => setTrackingInfo({ ...trackingInfo, carrier: e.target.value })}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] outline-none"
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-transparent outline-none transition"
                                 />
                             </div>
                         </div>
-                        <div className="flex gap-3 mt-6 justify-end">
+                        <div className="flex gap-4 mt-8 justify-end">
                             <button
                                 onClick={() => {
                                     setShowTrackingModal(false);
                                     setTrackingInfo({ trackingNumber: '', carrier: '' });
                                 }}
-                                className="px-5 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                                className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition font-medium"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={confirmShipped}
-                                className="px-5 py-2.5 bg-[#800000] text-white rounded-lg hover:bg-[#660000] transition shadow-md"
+                                className="px-6 py-3 bg-[#800000] text-white rounded-lg hover:bg-[#660000] transition font-medium shadow-md"
                             >
                                 Confirm Shipment
                             </button>

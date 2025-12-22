@@ -6,7 +6,8 @@ import {
     updateOrderStatusBySeller,
     getSellerOrders,
     cancelOrder,
-    getOrderHistory
+    getOrderHistory,
+    getSellerOrderDetails
 } from '../controllers/order.controller.js';
 import { protect, authorize } from '../middleware/auth.middleware.js';
 
@@ -19,6 +20,8 @@ router.use(protect);
 // Seller routes - get orders where user is the seller
 router.get('/seller', protect, authorize('SELLER'), getSellerOrders);
 router.patch('/:id/status', protect, authorize('SELLER'), updateOrderStatusBySeller);
+// Seller get single order
+router.get('/seller/:orderId', protect, authorize('SELLER'), getSellerOrderDetails);
 router.post('/orders', protect, createOrder);
 router.post('/', authorize('USER'), createOrder);
 router.get('/my-orders', authorize('USER'), getOrders);
