@@ -27,36 +27,36 @@ router.get('/category/:categoryId', getProductsByCategory);
 router.post(
     '/',
     protect,
-    authorize('seller', 'admin'),
+    authorize('SELLER', 'ADMIN', 'SUPER_ADMIN'), // Updated to match your User schema roles
     createProduct
 );
 
 router.put(
     '/:id',
     protect,
-    authorize('seller', 'admin'),
+    authorize('SELLER', 'ADMIN', 'SUPER_ADMIN'),
     updateProduct
 );
 
 router.delete(
     '/:id',
     protect,
-    authorize('seller', 'admin'),
+    authorize('SELLER', 'ADMIN', 'SUPER_ADMIN'),
     deleteProduct
 );
 
-// Seller-specific routes
+// Seller-specific routes - make sure this matches your frontend
 router.get(
     '/seller/my-products',
     protect,
-    authorize('seller', 'admin'),
+    authorize('SELLER', 'ADMIN', 'SUPER_ADMIN'),
     getSellerProducts
 );
 
 router.put(
     '/bulk/update',
     protect,
-    authorize('seller', 'admin'),
+    authorize('SELLER', 'ADMIN', 'SUPER_ADMIN'),
     bulkUpdateProducts
 );
 

@@ -6,18 +6,42 @@ import mongoose from 'mongoose';
 ========================= */
 export const createProduct = async (req, res) => {
     try {
+        console.log('Creating product with data:', req.body);
+        console.log('User ID:', req.user._id);
+
         const product = await Product.create({
             ...req.body,
-            sellerId: req.user._id // ✅ IMPORTANT FIX
+            sellerId: req.user._id
         });
 
         res.status(201).json({
             success: true,
             message: 'Product created successfully',
-            data: product
+            product
         });
     } catch (error) {
-        console.error('Product create error:', error.message);
+        console.error('Product create error:', error);
+
+        // Handle validation errors
+        if (error.name === 'ValidationError') {
+            const errors = {};
+            Object.keys(error.errors).forEach(key => {
+                errors[key] = error.errors[key].message;
+            });
+            return res.status(400).json({
+                success: false,
+                message: 'Validation error',
+                errors
+            });
+        }
+
+        // Handle duplicate key error
+        if (error.code === 11000) {
+            return res.status(400).json({
+                success: false,
+                message: 'Product with this numeric ID already exists'
+            });
+        }
 
         res.status(500).json({
             success: false,
@@ -28,60 +52,141 @@ export const createProduct = async (req, res) => {
 };
 
 /* =========================
+   GET SELLER PRODUCTS
+========================= */
+export const getSellerProducts = async (req, res) => {
+    try {
+        const sellerId = req.user._id;
+
+        const {
+            status,
+            page = 1,
+            limit = 20,
+            search,
+            sort = '-createdAt'
+        } = req.query;
+
+        const filter = { sellerId };
+
+        // Apply filters
+        if (status) filter.status = status;
+
+        if (search) {
+            filter.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { description: { $regex: search, $options: 'i' } },
+                { brand: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        const skip = (page - 1) * limit;
+
+        const [products, total] = await Promise.all([
+            Product.find(filter)
+                .sort(sort)
+                .skip(skip)
+                .limit(Number(limit))
+                .populate('categoryId', 'name title')
+                .populate('subcategoryId', 'name title'),
+            Product.countDocuments(filter)
+        ]);
+
+        res.json({
+            success: true,
+            products,
+            pagination: {
+                total,
+                page: Number(page),
+                limit: Number(limit),
+                pages: Math.ceil(total / limit)
+            }
+        });
+
+    } catch (error) {
+        console.error('Get seller products error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch seller products',
+            error: error.message
+        });
+    }
+};
+
+/* =========================
    GET ALL PRODUCTS
 ========================= */
 export const getProducts = async (req, res) => {
     try {
-        // Extract query parameters
-        const { categoryId, limit, exclude } = req.query;
+        const {
+            categoryId,
+            sellerId,
+            status = 'published',
+            page = 1,
+            limit = 20,
+            search,
+            minPrice,
+            maxPrice,
+            materialType
+        } = req.query;
 
-        // Build filter object
         const filter = {};
 
-        if (categoryId) {
-            // Check if it's an ObjectId or numericId for category
-            if (mongoose.Types.ObjectId.isValid(categoryId)) {
-                filter.categoryId = categoryId;
-            } else {
-                // Try to find category by numericId and then use its _id
-                // For now, just filter by categoryId as string
-                filter.categoryId = categoryId;
-            }
+        // Apply filters
+        if (status) {
+            filter.status = status;
         }
 
-        // Apply status filter if not provided in query
-        if (!req.query.status) {
-            filter.status = 'published';
+        if (categoryId && mongoose.Types.ObjectId.isValid(categoryId)) {
+            filter.categoryId = categoryId;
         }
 
-        let query = Product.find(filter)
-            .sort({ createdAt: -1 })
-            .populate('sellerId', 'name storeName')
-            .populate('categoryId', 'name color icon');
-
-        // Apply limit if provided
-        if (limit && !isNaN(parseInt(limit))) {
-            query = query.limit(parseInt(limit));
+        if (sellerId && mongoose.Types.ObjectId.isValid(sellerId)) {
+            filter.sellerId = sellerId;
         }
 
-        // Exclude specific product if provided
-        if (exclude) {
-            if (mongoose.Types.ObjectId.isValid(exclude)) {
-                query = query.where('_id').ne(exclude);
-            } else {
-                query = query.where('numericId').ne(parseInt(exclude));
-            }
+        if (search) {
+            filter.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { description: { $regex: search, $options: 'i' } },
+                { brand: { $regex: search, $options: 'i' } }
+            ];
         }
 
-        const products = await query;
+        if (minPrice || maxPrice) {
+            filter.price = {};
+            if (minPrice) filter.price.$gte = Number(minPrice);
+            if (maxPrice) filter.price.$lte = Number(maxPrice);
+        }
+
+        if (materialType) {
+            filter.materialType = materialType;
+        }
+
+        const skip = (page - 1) * limit;
+
+        const [products, total] = await Promise.all([
+            Product.find(filter)
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(Number(limit))
+                .populate('sellerId', 'name businessName')
+                .populate('categoryId', 'name title')
+                .populate('subcategoryId', 'name title'),
+            Product.countDocuments(filter)
+        ]);
 
         res.json({
             success: true,
-            count: products.length,
-            products
+            products,
+            pagination: {
+                total,
+                page: Number(page),
+                limit: Number(limit),
+                pages: Math.ceil(total / limit)
+            }
         });
     } catch (error) {
-        console.error('Get products error:', error.message);
+        console.error('Get products error:', error);
         res.status(500).json({
             success: false,
             message: 'Failed to fetch products',
@@ -91,33 +196,28 @@ export const getProducts = async (req, res) => {
 };
 
 /* =========================
-   GET SINGLE PRODUCT (FIXED - Handles both _id and numericId)
+   GET SINGLE PRODUCT
 ========================= */
 export const getProduct = async (req, res) => {
     try {
         const id = req.params.id;
         let product;
 
-        // Check if it's a MongoDB ObjectId (24 hex characters)
+        // Check if it's a MongoDB ObjectId
         if (mongoose.Types.ObjectId.isValid(id) && /^[0-9a-fA-F]{24}$/.test(id)) {
-            // It's an ObjectId - find by _id
             product = await Product.findById(id)
-                .populate('sellerId', 'name storeName')
-                .populate('categoryId', 'name color icon description');
+                .populate('sellerId', 'name businessName')
+                .populate('categoryId', 'name title')
+                .populate('subcategoryId', 'name title');
         } else {
-            // It's a numericId - find by numericId
+            // Try numericId
             const numericId = parseInt(id);
-
-            if (isNaN(numericId)) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid product ID. Must be a valid ObjectId or numeric ID.'
-                });
+            if (!isNaN(numericId)) {
+                product = await Product.findOne({ numericId })
+                    .populate('sellerId', 'name businessName')
+                    .populate('categoryId', 'name title')
+                    .populate('subcategoryId', 'name title');
             }
-
-            product = await Product.findOne({ numericId: numericId })
-                .populate('sellerId', 'name storeName')
-                .populate('categoryId', 'name color icon description');
         }
 
         if (!product) {
@@ -132,7 +232,7 @@ export const getProduct = async (req, res) => {
             product
         });
     } catch (error) {
-        console.error('Get product error:', error.message);
+        console.error('Get product error:', error);
         res.status(500).json({
             success: false,
             message: 'Failed to fetch product',
@@ -142,7 +242,289 @@ export const getProduct = async (req, res) => {
 };
 
 /* =========================
-   GET PRODUCT BY NUMERIC ID (Additional endpoint)
+   UPDATE PRODUCT
+========================= */
+export const updateProduct = async (req, res) => {
+    try {
+        const id = req.params.id;
+        let product;
+
+        // Find product
+        if (mongoose.Types.ObjectId.isValid(id) && /^[0-9a-fA-F]{24}$/.test(id)) {
+            product = await Product.findById(id);
+        } else {
+            const numericId = parseInt(id);
+            if (!isNaN(numericId)) {
+                product = await Product.findOne({ numericId });
+            }
+        }
+
+        if (!product) {
+            return res.status(404).json({
+                success: false,
+                message: 'Product not found'
+            });
+        }
+
+        // Check authorization - seller can only update their own products
+        if (req.user.role === 'SELLER' && product.sellerId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorized to update this product'
+            });
+        }
+
+        // Update the product
+        const updated = await Product.findByIdAndUpdate(
+            product._id,
+            req.body,
+            { new: true, runValidators: true }
+        );
+
+        res.json({
+            success: true,
+            message: 'Product updated successfully',
+            product: updated
+        });
+
+    } catch (error) {
+        console.error('Update product error:', error);
+
+        if (error.name === 'ValidationError') {
+            const errors = {};
+            Object.keys(error.errors).forEach(key => {
+                errors[key] = error.errors[key].message;
+            });
+            return res.status(400).json({
+                success: false,
+                message: 'Validation error',
+                errors
+            });
+        }
+
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update product',
+            error: error.message
+        });
+    }
+};
+
+/* =========================
+   DELETE PRODUCT
+========================= */
+export const deleteProduct = async (req, res) => {
+    try {
+        const id = req.params.id;
+        let product;
+
+        // Find product
+        if (mongoose.Types.ObjectId.isValid(id) && /^[0-9a-fA-F]{24}$/.test(id)) {
+            product = await Product.findById(id);
+        } else {
+            const numericId = parseInt(id);
+            if (!isNaN(numericId)) {
+                product = await Product.findOne({ numericId });
+            }
+        }
+
+        if (!product) {
+            return res.status(404).json({
+                success: false,
+                message: 'Product not found'
+            });
+        }
+
+        // Check authorization - seller can only delete their own products
+        if (req.user.role === 'SELLER' && product.sellerId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorized to delete this product'
+            });
+        }
+
+        await product.deleteOne();
+
+        res.json({
+            success: true,
+            message: 'Product deleted successfully'
+        });
+
+    } catch (error) {
+        console.error('Delete product error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to delete product',
+            error: error.message
+        });
+    }
+};
+
+/* =========================
+   BULK UPDATE PRODUCTS
+========================= */
+export const bulkUpdateProducts = async (req, res) => {
+    try {
+        const { productIds, updates } = req.body;
+        const sellerId = req.user._id;
+
+        if (!Array.isArray(productIds) || productIds.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Product IDs are required'
+            });
+        }
+
+        const result = await Product.updateMany(
+            {
+                _id: { $in: productIds },
+                sellerId
+            },
+            { $set: updates }
+        );
+
+        res.json({
+            success: true,
+            message: `${result.modifiedCount} products updated`,
+            modifiedCount: result.modifiedCount
+        });
+
+    } catch (error) {
+        console.error('Bulk update error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update products',
+            error: error.message
+        });
+    }
+};
+
+/* =========================
+   SEARCH PRODUCTS
+========================= */
+export const searchProducts = async (req, res) => {
+    try {
+        const {
+            query,
+            categoryId,
+            minPrice,
+            maxPrice,
+            materialType,
+            sellerId,
+            page = 1,
+            limit = 20,
+            sort = '-createdAt'
+        } = req.query;
+
+        const filter = { status: 'published' };
+
+        // Text search
+        if (query) {
+            filter.$or = [
+                { name: { $regex: query, $options: 'i' } },
+                { description: { $regex: query, $options: 'i' } },
+                { brand: { $regex: query, $options: 'i' } },
+                { grade: { $regex: query, $options: 'i' } },
+                { color: { $regex: query, $options: 'i' } },
+                { finish: { $regex: query, $options: 'i' } }
+            ];
+        }
+
+        // Category filter
+        if (categoryId && mongoose.Types.ObjectId.isValid(categoryId)) {
+            filter.categoryId = categoryId;
+        }
+
+        // Price range filter
+        if (minPrice || maxPrice) {
+            filter.price = {};
+            if (minPrice) filter.price.$gte = parseFloat(minPrice);
+            if (maxPrice) filter.price.$lte = parseFloat(maxPrice);
+        }
+
+        // Material type filter
+        if (materialType) {
+            filter.materialType = materialType;
+        }
+
+        // Seller filter
+        if (sellerId && mongoose.Types.ObjectId.isValid(sellerId)) {
+            filter.sellerId = sellerId;
+        }
+
+        const skip = (page - 1) * limit;
+
+        const [products, total] = await Promise.all([
+            Product.find(filter)
+                .populate('sellerId', 'name businessName')
+                .populate('categoryId', 'name title')
+                .populate('subcategoryId', 'name title')
+                .sort(sort)
+                .skip(skip)
+                .limit(Number(limit)),
+            Product.countDocuments(filter)
+        ]);
+
+        res.json({
+            success: true,
+            products,
+            total,
+            page: Number(page),
+            limit: Number(limit),
+            pages: Math.ceil(total / limit)
+        });
+
+    } catch (error) {
+        console.error('Search products error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to search products',
+            error: error.message
+        });
+    }
+};
+
+/* =========================
+   GET PRODUCTS BY CATEGORY
+========================= */
+export const getProductsByCategory = async (req, res) => {
+    try {
+        const categoryId = req.params.categoryId;
+
+        if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid category ID'
+            });
+        }
+
+        const products = await Product.find({
+            categoryId,
+            status: 'published'
+        })
+            .populate('sellerId', 'name businessName')
+            .populate('categoryId', 'name title')
+            .sort({ createdAt: -1 })
+            .limit(50);
+
+        res.json({
+            success: true,
+            count: products.length,
+            products
+        });
+
+    } catch (error) {
+        console.error('Products by category error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch category products',
+            error: error.message
+        });
+    }
+};
+
+/* =========================
+   GET PRODUCT BY NUMERIC ID
 ========================= */
 export const getProductByNumericId = async (req, res) => {
     try {
@@ -156,8 +538,9 @@ export const getProductByNumericId = async (req, res) => {
         }
 
         const product = await Product.findOne({ numericId })
-            .populate('sellerId', 'name storeName')
-            .populate('categoryId', 'name color icon description');
+            .populate('sellerId', 'name businessName')
+            .populate('categoryId', 'name title')
+            .populate('subcategoryId', 'name title');
 
         if (!product) {
             return res.status(404).json({
@@ -171,250 +554,11 @@ export const getProductByNumericId = async (req, res) => {
             product
         });
     } catch (error) {
+        console.error('Get product by numeric ID error:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to fetch product by numeric ID'
-        });
-    }
-};
-
-/* =========================
-   UPDATE PRODUCT
-========================= */
-export const updateProduct = async (req, res) => {
-    try {
-        const id = req.params.id;
-        let product;
-
-        // Find product by either _id or numericId
-        if (mongoose.Types.ObjectId.isValid(id) && /^[0-9a-fA-F]{24}$/.test(id)) {
-            product = await Product.findById(id);
-        } else {
-            const numericId = parseInt(id);
-            if (!isNaN(numericId)) {
-                product = await Product.findOne({ numericId });
-            }
-        }
-
-        if (!product) {
-            return res.status(404).json({
-                success: false,
-                message: 'Product not found'
-            });
-        }
-
-        // Authorization check
-        if (req.user.role !== 'admin' && product.sellerId.toString() !== req.user._id.toString()) {
-            return res.status(403).json({
-                success: false,
-                message: 'Not authorized'
-            });
-        }
-
-        // Update the product
-        const updated = await Product.findByIdAndUpdate(
-            product._id,
-            req.body,
-            { new: true, runValidators: true }
-        );
-
-        res.json({
-            success: true,
-            message: 'Product updated',
-            product: updated
-        });
-
-    } catch (error) {
-        res.status(400).json({
-            success: false,
-            message: error.message
-        });
-    }
-};
-
-/* =========================
-   DELETE PRODUCT
-========================= */
-export const deleteProduct = async (req, res) => {
-    try {
-        const id = req.params.id;
-        let product;
-
-        // Find product by either _id or numericId
-        if (mongoose.Types.ObjectId.isValid(id) && /^[0-9a-fA-F]{24}$/.test(id)) {
-            product = await Product.findById(id);
-        } else {
-            const numericId = parseInt(id);
-            if (!isNaN(numericId)) {
-                product = await Product.findOne({ numericId });
-            }
-        }
-
-        if (!product) {
-            return res.status(404).json({
-                success: false,
-                message: 'Product not found'
-            });
-        }
-
-        if (req.user.role !== 'admin' && product.sellerId.toString() !== req.user._id.toString()) {
-            return res.status(403).json({
-                success: false,
-                message: 'Not authorized'
-            });
-        }
-
-        await product.deleteOne();
-
-        res.json({
-            success: true,
-            message: 'Product deleted'
-        });
-
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Failed to delete product'
-        });
-    }
-};
-
-/* =========================
-   SELLER PRODUCTS
-========================= */
-export const getSellerProducts = async (req, res) => {
-    try {
-        const products = await Product.find({ sellerId: req.user._id })
-            .sort({ createdAt: -1 })
-            .populate('categoryId', 'name');
-
-        res.json({
-            success: true,
-            products
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Failed to fetch seller products'
-        });
-    }
-};
-
-/* =========================
-   BULK UPDATE
-========================= */
-export const bulkUpdateProducts = async (req, res) => {
-    try {
-        const { productIds, updates } = req.body;
-
-        await Product.updateMany(
-            { _id: { $in: productIds } },
-            { $set: updates }
-        );
-
-        res.json({
-            success: true,
-            message: 'Products updated'
-        });
-    } catch (error) {
-        res.status(400).json({
-            success: false,
-            message: 'Bulk update failed'
-        });
-    }
-};
-
-/* =========================
-   PRODUCTS BY CATEGORY
-========================= */
-export const getProductsByCategory = async (req, res) => {
-    try {
-        const categoryId = req.params.categoryId;
-        let filter = { status: 'published' };
-
-        // Check if categoryId is ObjectId or numericId
-        if (mongoose.Types.ObjectId.isValid(categoryId) && /^[0-9a-fA-F]{24}$/.test(categoryId)) {
-            filter.categoryId = categoryId;
-        } else {
-            // Try to find category by numericId
-            filter['categoryId.numericId'] = parseInt(categoryId);
-        }
-
-        const products = await Product.find(filter)
-            .populate('categoryId', 'name');
-
-        res.json({
-            success: true,
-            count: products.length,
-            products
-        });
-    } catch (error) {
-        console.error('Products by category error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to fetch category products'
-        });
-    }
-};
-
-/* =========================
-   SEARCH PRODUCTS
-========================= */
-export const searchProducts = async (req, res) => {
-    try {
-        const { query, category, minPrice, maxPrice, page = 1, limit = 20 } = req.query;
-
-        const searchFilter = { status: 'published' };
-
-        // Text search
-        if (query) {
-            searchFilter.$or = [
-                { name: { $regex: query, $options: 'i' } },
-                { description: { $regex: query, $options: 'i' } },
-                { brand: { $regex: query, $options: 'i' } }
-            ];
-        }
-
-        // Category filter
-        if (category) {
-            if (mongoose.Types.ObjectId.isValid(category)) {
-                searchFilter.categoryId = category;
-            } else {
-                searchFilter['categoryId.numericId'] = parseInt(category);
-            }
-        }
-
-        // Price range filter
-        if (minPrice || maxPrice) {
-            searchFilter.price = {};
-            if (minPrice) searchFilter.price.$gte = parseFloat(minPrice);
-            if (maxPrice) searchFilter.price.$lte = parseFloat(maxPrice);
-        }
-
-        // Calculate pagination
-        const skip = (parseInt(page) - 1) * parseInt(limit);
-
-        const products = await Product.find(searchFilter)
-            .skip(skip)
-            .limit(parseInt(limit))
-            .populate('categoryId', 'name')
-            .sort({ createdAt: -1 });
-
-        const total = await Product.countDocuments(searchFilter);
-
-        res.json({
-            success: true,
-            count: products.length,
-            total,
-            page: parseInt(page),
-            pages: Math.ceil(total / parseInt(limit)),
-            products
-        });
-    } catch (error) {
-        console.error('Search products error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to search products'
+            message: 'Failed to fetch product',
+            error: error.message
         });
     }
 };
