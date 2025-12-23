@@ -4,7 +4,7 @@ import { Save, Upload, X, Plus, Trash2 } from 'lucide-react';
 import axios from 'axios';
 
 const API_URL = window.location.hostname === 'localhost'
-    ? 'http://localhost:5000/api'
+    ? 'https://bricks-backend-qyea.onrender.com/api'
     : 'https://bricks-backend-qyea.onrender.com/api';
 
 const AddProduct = () => {

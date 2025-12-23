@@ -13,7 +13,7 @@ const ProjectsPage = () => {
     const [filterStatus, setFilterStatus] = useState('all');
     const [selectedProject, setSelectedProject] = useState(null);
 
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const API_URL = import.meta.env.VITE_API_URL || 'https://bricks-backend-qyea.onrender.com/api';
 
     useEffect(() => {
         fetchProjects();
@@ -292,7 +292,7 @@ const ProjectsPage = () => {
                                                 <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
                                                     <div
                                                         className={`h-full ${project.progress >= 80 ? 'bg-green-500' :
-                                                                project.progress >= 50 ? 'bg-amber-500' : 'bg-red-500'
+                                                            project.progress >= 50 ? 'bg-amber-500' : 'bg-red-500'
                                                             }`}
                                                         style={{ width: `${project.progress}%` }}
                                                     ></div>

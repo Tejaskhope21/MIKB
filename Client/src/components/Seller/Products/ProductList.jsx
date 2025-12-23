@@ -5,7 +5,7 @@ import axios from 'axios';
 
 // Define API URL - use environment variable or fallback
 const API_URL = window.location.hostname === 'localhost'
-    ? 'http://localhost:5000/api'
+    ? 'https://bricks-backend-qyea.onrender.com/api'
     : 'https://bricks-backend-qyea.onrender.com/api';
 
 // Or if you're using Vite, use this:

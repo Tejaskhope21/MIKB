@@ -2,11 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import ProductCard from '../../components/Products/ProductCard';
-import { 
-    ArrowLeft, 
-    Home, 
-    Package, 
-    Grid, 
+import {
+    ArrowLeft,
+    Home,
+    Package,
+    Grid,
     List,
     Search,
     ChevronRight,
@@ -16,12 +16,12 @@ import {
     Zap
 } from 'lucide-react';
 
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = 'https://bricks-backend-qyea.onrender.com';
 
 const SubcategoryProductsPage = () => {
     const { categoryId, subcategoryId } = useParams();
     const navigate = useNavigate();
-    
+
     const [category, setCategory] = useState(null);
     const [subcategory, setSubcategory] = useState(null);
     const [products, setProducts] = useState([]);
@@ -55,7 +55,7 @@ const SubcategoryProductsPage = () => {
                 const response = await fetch(
                     `${API_BASE_URL}/api/products/category/${categoryId}/subcategory/${subcategoryId}/products`
                 );
-                
+
                 if (response.ok) {
                     result = await response.json();
                 } else {
@@ -66,18 +66,18 @@ const SubcategoryProductsPage = () => {
                 await fetchCategoryProductsWithFilter();
                 return;
             }
-            
+
             if (!result.success) {
                 throw new Error(result.message || 'Failed to load products');
             }
-            
+
             setCategory(result.category);
             setSubcategory(result.subcategory);
             setProducts(result.products.items || []);
-            
+
             const brands = [...new Set(result.products.items.map(p => p.brand).filter(Boolean))];
             setAvailableBrands(brands);
-            
+
         } catch (err) {
             setError(err.message);
         } finally {
@@ -90,63 +90,63 @@ const SubcategoryProductsPage = () => {
             const response = await fetch(
                 `${API_BASE_URL}/api/products/category/${categoryId}?limit=100`
             );
-            
+
             if (!response.ok) throw new Error('Failed to fetch category products');
-            
+
             const result = await response.json();
-            
+
             if (!result.success) throw new Error(result.message || 'Failed to load products');
-            
-            const filteredProducts = result.products.filter(product => 
+
+            const filteredProducts = result.products.filter(product =>
                 product.subcategoryId?.toString() === subcategoryId
             );
-            
+
             let finalProducts = [...filteredProducts];
-            
+
             if (searchTerm.trim()) {
                 const term = searchTerm.toLowerCase();
-                finalProducts = finalProducts.filter(product => 
+                finalProducts = finalProducts.filter(product =>
                     product.name?.toLowerCase().includes(term) ||
                     product.description?.toLowerCase().includes(term) ||
                     product.brand?.toLowerCase().includes(term)
                 );
             }
-            
+
             if (filters.minPrice) {
-                finalProducts = finalProducts.filter(product => 
+                finalProducts = finalProducts.filter(product =>
                     product.price >= parseFloat(filters.minPrice)
                 );
             }
             if (filters.maxPrice) {
-                finalProducts = finalProducts.filter(product => 
+                finalProducts = finalProducts.filter(product =>
                     product.price <= parseFloat(filters.maxPrice)
                 );
             }
-            
+
             if (filters.materialType !== 'all') {
-                finalProducts = finalProducts.filter(product => 
+                finalProducts = finalProducts.filter(product =>
                     product.materialType === filters.materialType
                 );
             }
-            
+
             if (filters.brand !== 'all') {
-                finalProducts = finalProducts.filter(product => 
+                finalProducts = finalProducts.filter(product =>
                     product.brand === filters.brand
                 );
             }
-            
+
             if (filters.modernOnly) {
-                finalProducts = finalProducts.filter(product => 
+                finalProducts = finalProducts.filter(product =>
                     product.tags?.includes('modern') ||
                     product.name?.toLowerCase().includes('modern') ||
                     product.description?.toLowerCase().includes('modern') ||
                     product.category?.toLowerCase().includes('modern')
                 );
             }
-            
+
             finalProducts.sort((a, b) => {
                 let aValue, bValue;
-                
+
                 switch (sortBy) {
                     case 'price':
                         aValue = a.price || 0;
@@ -166,17 +166,17 @@ const SubcategoryProductsPage = () => {
                         bValue = new Date(b.createdAt || 0).getTime();
                         break;
                 }
-                
+
                 return sortOrder === 'asc' ? (aValue > bValue ? 1 : -1) : (aValue < bValue ? 1 : -1);
             });
-            
+
             setProducts(finalProducts);
-            
+
             const brands = [...new Set(filteredProducts.map(p => p.brand).filter(Boolean))];
             setAvailableBrands(brands);
-            
+
             await fetchCategoryInfo();
-            
+
         } catch (err) {
             setError('Failed to load products. ' + err.message);
         }
@@ -189,9 +189,9 @@ const SubcategoryProductsPage = () => {
                 const categoryData = await categoryResponse.json();
                 if (categoryData.success) {
                     setCategory(categoryData.category);
-                    
+
                     if (categoryData.category?.subcategories) {
-                        const subcat = categoryData.category.subcategories.find(s => 
+                        const subcat = categoryData.category.subcategories.find(s =>
                             s._id?.toString() === subcategoryId ||
                             s.id?.toString() === subcategoryId
                         );
@@ -391,7 +391,7 @@ const SubcategoryProductsPage = () => {
                             </p>
                             <div className="flex flex-wrap gap-2">
                                 {subcategory.items.map((item, index) => (
-                                    <span 
+                                    <span
                                         key={index}
                                         className="text-xs bg-white text-gray-700 px-3 py-1.5 rounded-full border border-gray-200"
                                     >
@@ -483,11 +483,10 @@ const SubcategoryProductsPage = () => {
                                             setSortBy(option.value);
                                             setSortOrder(option.order);
                                         }}
-                                        className={`w-full text-left px-3 py-2 rounded text-sm transition-colors ${
-                                            sortBy === option.value && sortOrder === option.order
+                                        className={`w-full text-left px-3 py-2 rounded text-sm transition-colors ${sortBy === option.value && sortOrder === option.order
                                                 ? 'bg-blue-600 text-white'
                                                 : 'text-gray-600 hover:bg-gray-100'
-                                        }`}
+                                            }`}
                                     >
                                         {option.label}
                                     </button>
@@ -517,7 +516,7 @@ const SubcategoryProductsPage = () => {
                                                 type="checkbox"
                                                 id="modernOnly"
                                                 checked={filters.modernOnly}
-                                                onChange={(e) => setFilters({...filters, modernOnly: e.target.checked})}
+                                                onChange={(e) => setFilters({ ...filters, modernOnly: e.target.checked })}
                                                 className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                                             />
                                             <label htmlFor="modernOnly" className="ml-2 text-sm text-gray-700 flex items-center gap-1">
@@ -542,14 +541,14 @@ const SubcategoryProductsPage = () => {
                                                 type="number"
                                                 placeholder="Min"
                                                 value={filters.minPrice}
-                                                onChange={(e) => setFilters({...filters, minPrice: e.target.value})}
+                                                onChange={(e) => setFilters({ ...filters, minPrice: e.target.value })}
                                                 className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
                                             />
                                             <input
                                                 type="number"
                                                 placeholder="Max"
                                                 value={filters.maxPrice}
-                                                onChange={(e) => setFilters({...filters, maxPrice: e.target.value})}
+                                                onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value })}
                                                 className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
                                             />
                                         </div>
@@ -562,7 +561,7 @@ const SubcategoryProductsPage = () => {
                                         </label>
                                         <select
                                             value={filters.materialType}
-                                            onChange={(e) => setFilters({...filters, materialType: e.target.value})}
+                                            onChange={(e) => setFilters({ ...filters, materialType: e.target.value })}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                                         >
                                             <option value="all">All Materials</option>
@@ -584,7 +583,7 @@ const SubcategoryProductsPage = () => {
                                             </label>
                                             <select
                                                 value={filters.brand}
-                                                onChange={(e) => setFilters({...filters, brand: e.target.value})}
+                                                onChange={(e) => setFilters({ ...filters, brand: e.target.value })}
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                                             >
                                                 <option value="all">All Brands</option>
@@ -634,26 +633,24 @@ const SubcategoryProductsPage = () => {
                                         {filters.brand !== 'all' && ` • Brand: ${filters.brand}`}
                                     </p>
                                 </div>
-                                
+
                                 <div className="flex items-center gap-3">
                                     <div className="flex border border-gray-300 rounded-lg overflow-hidden">
                                         <button
                                             onClick={() => setViewMode('grid')}
-                                            className={`px-3 py-2 transition-colors ${
-                                                viewMode === 'grid' 
-                                                    ? 'bg-blue-600 text-white' 
+                                            className={`px-3 py-2 transition-colors ${viewMode === 'grid'
+                                                    ? 'bg-blue-600 text-white'
                                                     : 'bg-white text-gray-700 hover:bg-gray-50'
-                                            }`}
+                                                }`}
                                         >
                                             <Grid className="w-4 h-4" />
                                         </button>
                                         <button
                                             onClick={() => setViewMode('list')}
-                                            className={`px-3 py-2 transition-colors ${
-                                                viewMode === 'list' 
-                                                    ? 'bg-blue-600 text-white' 
+                                            className={`px-3 py-2 transition-colors ${viewMode === 'list'
+                                                    ? 'bg-blue-600 text-white'
                                                     : 'bg-white text-gray-700 hover:bg-gray-50'
-                                            }`}
+                                                }`}
                                         >
                                             <List className="w-4 h-4" />
                                         </button>
@@ -667,12 +664,12 @@ const SubcategoryProductsPage = () => {
                             viewMode === 'grid' ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {products.map(product => (
-                                        <ProductCard 
-                                            key={product._id} 
+                                        <ProductCard
+                                            key={product._id}
                                             product={product}
-                                            onMouseEnter={() => {}}
-                                            onMouseLeave={() => {}}
-                                            onClick={() => {}}
+                                            onMouseEnter={() => { }}
+                                            onMouseLeave={() => { }}
+                                            onClick={() => { }}
                                         />
                                     ))}
                                 </div>
@@ -733,13 +730,13 @@ const SubcategoryProductsPage = () => {
                                                                     {product.materialType}
                                                                 </span>
                                                             )}
-                                                            {(product.tags?.includes('modern') || 
-                                                              product.name?.toLowerCase().includes('modern')) && (
-                                                                <span className="flex items-center gap-1 text-yellow-600">
-                                                                    <Zap className="w-3 h-3" />
-                                                                    Modern
-                                                                </span>
-                                                            )}
+                                                            {(product.tags?.includes('modern') ||
+                                                                product.name?.toLowerCase().includes('modern')) && (
+                                                                    <span className="flex items-center gap-1 text-yellow-600">
+                                                                        <Zap className="w-3 h-3" />
+                                                                        Modern
+                                                                    </span>
+                                                                )}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -755,7 +752,7 @@ const SubcategoryProductsPage = () => {
                                     No Products Found
                                 </h3>
                                 <p className="text-gray-600 mb-8 max-w-md mx-auto">
-                                    {searchTerm || Object.values(filters).some(v => 
+                                    {searchTerm || Object.values(filters).some(v =>
                                         (typeof v === 'string' ? v !== '' && v !== 'all' : v !== false)
                                     )
                                         ? 'No products match your filters. Try changing your search criteria.'

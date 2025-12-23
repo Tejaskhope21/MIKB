@@ -2,11 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom'; // Added Link import
 import ProductCard from '../../components/Products/ProductCard';
-import { 
+import {
     ArrowLeft,
     Home,
-    Grid, 
-    List, 
+    Grid,
+    List,
     Search,
     Package,
     TrendingUp,
@@ -21,22 +21,22 @@ import {
     RefreshCw
 } from 'lucide-react';
 
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = 'https://bricks-backend-qyea.onrender.com';
 
 const CategoryWithSubcategories = () => {
     const { categoryId } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
-    
+
     const [category, setCategory] = useState(null);
     const [subcategories, setSubcategories] = useState([]);
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    
+
     // Get subcategory from navigation state (when coming from CategoryHeader)
     const { subcategoryId: initialSubcategoryId, subcategoryName: initialSubcategoryName } = location.state || {};
-    
+
     const [selectedSubcategory, setSelectedSubcategory] = useState(initialSubcategoryId || 'all');
     const [searchTerm, setSearchTerm] = useState('');
     const [viewMode, setViewMode] = useState('grid');
@@ -59,7 +59,7 @@ const CategoryWithSubcategories = () => {
     useEffect(() => {
         fetchCategoryWithSubcategories();
     }, [categoryId]);
-    
+
     useEffect(() => {
         if (category) {
             fetchProducts();
@@ -93,23 +93,23 @@ const CategoryWithSubcategories = () => {
             const response = await fetch(
                 `${API_BASE_URL}/api/products/category/${categoryId}/with-subcategories`
             );
-            
+
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-            
+
             const result = await response.json();
-            
+
             if (!result.success) {
                 throw new Error(result.message || 'Failed to fetch data');
             }
-            
+
             setCategory(result.category);
-            
+
             // Process subcategories
             const processedSubcategories = result.subcategories || [];
             setSubcategories(processedSubcategories);
-            
+
             if (result.products && result.products.items) {
                 setProducts(result.products.items);
                 setPagination(result.products.pagination || {
@@ -119,28 +119,28 @@ const CategoryWithSubcategories = () => {
                     pages: 1
                 });
             }
-            
+
             // If we came with a subcategoryId from CategoryHeader, find the matching subcategory
             if (initialSubcategoryId && processedSubcategories.length > 0) {
                 // First try to find by _id
-                let foundSubcategory = processedSubcategories.find(sub => 
-                    sub._id === initialSubcategoryId || 
+                let foundSubcategory = processedSubcategories.find(sub =>
+                    sub._id === initialSubcategoryId ||
                     sub.id === initialSubcategoryId
                 );
-                
+
                 // If not found by ID, try to find by title (for generated IDs)
                 if (!foundSubcategory) {
-                    foundSubcategory = processedSubcategories.find(sub => 
+                    foundSubcategory = processedSubcategories.find(sub =>
                         sub.title === initialSubcategoryName
                     );
                 }
-                
+
                 if (foundSubcategory) {
                     // Use the actual subcategory ID
                     setSelectedSubcategory(foundSubcategory._id || foundSubcategory.id);
                 }
             }
-            
+
         } catch (err) {
             setError(err.message || 'Failed to load category data');
         } finally {
@@ -186,17 +186,17 @@ const CategoryWithSubcategories = () => {
             const response = await fetch(
                 `${API_BASE_URL}/api/products/category/${categoryId}/products?${params}`
             );
-            
+
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-            
+
             const result = await response.json();
-            
+
             if (!result.success) {
                 throw new Error(result.message || 'Failed to fetch products');
             }
-            
+
             setProducts(result.products.items || []);
             setPagination(result.products.pagination || {
                 page: 1,
@@ -204,7 +204,7 @@ const CategoryWithSubcategories = () => {
                 total: 0,
                 pages: 1
             });
-            
+
         } catch (err) {
             setError(err.message || 'Failed to load products');
         }
@@ -267,14 +267,14 @@ const CategoryWithSubcategories = () => {
             }
             return null;
         }
-        return subcategories.find(sub => 
-            sub._id === selectedSubcategory || 
+        return subcategories.find(sub =>
+            sub._id === selectedSubcategory ||
             sub.id === selectedSubcategory
         );
     };
 
     const getProductStats = () => {
-        const modernProducts = products.filter(p => 
+        const modernProducts = products.filter(p =>
             p.tags?.includes('modern') ||
             p.name?.toLowerCase().includes('modern') ||
             p.description?.toLowerCase().includes('modern')
@@ -436,7 +436,7 @@ const CategoryWithSubcategories = () => {
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div>
                             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-                                {currentSubcategory 
+                                {currentSubcategory
                                     ? `${currentSubcategory.title} in ${category.name}`
                                     : category.name
                                 }
@@ -444,7 +444,7 @@ const CategoryWithSubcategories = () => {
                             <div className="flex items-center gap-4 text-gray-600 flex-wrap">
                                 <span className="flex items-center gap-1">
                                     <Package className="w-4 h-4" />
-                                    {currentSubcategory 
+                                    {currentSubcategory
                                         ? `${productStats.total} products in ${currentSubcategory.title}`
                                         : `${totalCategoryProducts} total products`
                                     }
@@ -481,16 +481,15 @@ const CategoryWithSubcategories = () => {
                                 <h2 className="text-lg font-semibold text-gray-800">Subcategories</h2>
                                 <span className="text-sm text-gray-500">{totalSubcategories}</span>
                             </div>
-                            
+
                             <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
                                 {/* All Products Option */}
                                 <button
                                     onClick={() => handleSubcategoryClick('all')}
-                                    className={`w-full text-left px-4 py-3 rounded-lg transition-all ${
-                                        selectedSubcategory === 'all'
+                                    className={`w-full text-left px-4 py-3 rounded-lg transition-all ${selectedSubcategory === 'all'
                                             ? 'bg-blue-50 text-blue-700 border-2 border-blue-200 shadow-sm'
                                             : 'text-gray-700 hover:bg-gray-50 border border-transparent hover:border-gray-200'
-                                    }`}
+                                        }`}
                                 >
                                     <div className="flex justify-between items-center">
                                         <span className="font-medium">All Products</span>
@@ -505,20 +504,18 @@ const CategoryWithSubcategories = () => {
                                     <button
                                         key={subcat._id || subcat.id}
                                         onClick={() => handleSubcategoryClick(subcat._id || subcat.id)}
-                                        className={`w-full text-left px-4 py-3 rounded-lg transition-all ${
-                                            (selectedSubcategory === subcat._id || selectedSubcategory === subcat.id)
+                                        className={`w-full text-left px-4 py-3 rounded-lg transition-all ${(selectedSubcategory === subcat._id || selectedSubcategory === subcat.id)
                                                 ? 'bg-blue-50 text-blue-700 border-2 border-blue-200 shadow-sm'
                                                 : 'text-gray-700 hover:bg-gray-50 border border-transparent hover:border-gray-200'
-                                        }`}
+                                            }`}
                                     >
                                         <div className="flex justify-between items-center">
                                             <span className="font-medium">{subcat.title}</span>
-                                            <span className={`text-xs px-2 py-1 rounded ${
-                                                subcat.count === 0 ? 'bg-gray-100 text-gray-500' :
-                                                subcat.count <= 2 ? 'bg-yellow-100 text-yellow-800' :
-                                                subcat.count <= 5 ? 'bg-blue-100 text-blue-800' :
-                                                'bg-green-100 text-green-800'
-                                            }`}>
+                                            <span className={`text-xs px-2 py-1 rounded ${subcat.count === 0 ? 'bg-gray-100 text-gray-500' :
+                                                    subcat.count <= 2 ? 'bg-yellow-100 text-yellow-800' :
+                                                        subcat.count <= 5 ? 'bg-blue-100 text-blue-800' :
+                                                            'bg-green-100 text-green-800'
+                                                }`}>
                                                 {subcat.count || 0}
                                             </span>
                                         </div>
@@ -554,53 +551,50 @@ const CategoryWithSubcategories = () => {
                                         </button>
                                     )}
                                 </div>
-                                
+
                                 <div className="space-y-2 max-h-[250px] overflow-y-auto pr-2">
                                     <button
                                         onClick={() => handleBrandChange('all')}
-                                        className={`w-full text-left px-3 py-2 rounded text-sm transition-colors flex justify-between items-center ${
-                                            selectedBrand === 'all'
+                                        className={`w-full text-left px-3 py-2 rounded text-sm transition-colors flex justify-between items-center ${selectedBrand === 'all'
                                                 ? 'bg-blue-600 text-white'
                                                 : 'text-gray-600 hover:bg-gray-100'
-                                        }`}
+                                            }`}
                                     >
                                         <span>All Brands</span>
                                         <span className="text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded">
                                             {brands.length}
                                         </span>
                                     </button>
-                                    
+
                                     {brands.map((brand) => {
                                         const productCount = productStats.brandCounts[brand] || 0;
                                         const isSelected = selectedBrand === brand;
-                                        
+
                                         return (
                                             <button
                                                 key={brand}
                                                 onClick={() => handleBrandChange(brand)}
-                                                className={`w-full text-left px-3 py-2 rounded text-sm transition-colors flex justify-between items-center ${
-                                                    isSelected
+                                                className={`w-full text-left px-3 py-2 rounded text-sm transition-colors flex justify-between items-center ${isSelected
                                                         ? 'bg-blue-600 text-white'
                                                         : 'text-gray-600 hover:bg-gray-100'
-                                                }`}
+                                                    }`}
                                             >
                                                 <span className="truncate">{brand}</span>
-                                                <span className={`text-xs px-2 py-0.5 rounded whitespace-nowrap ${
-                                                    isSelected
+                                                <span className={`text-xs px-2 py-0.5 rounded whitespace-nowrap ${isSelected
                                                         ? 'bg-blue-500 text-white'
-                                                        : productCount <= 2 
-                                                            ? 'bg-yellow-100 text-yellow-800' 
+                                                        : productCount <= 2
+                                                            ? 'bg-yellow-100 text-yellow-800'
                                                             : productCount <= 5
                                                                 ? 'bg-blue-100 text-blue-800'
                                                                 : 'bg-green-100 text-green-800'
-                                                }`}>
+                                                    }`}>
                                                     {productCount}
                                                 </span>
                                             </button>
                                         );
                                     })}
                                 </div>
-                                
+
                                 {selectedBrand !== 'all' && (
                                     <div className="mt-4 pt-4 border-t border-gray-100">
                                         <div className="flex items-center justify-between">
@@ -630,7 +624,7 @@ const CategoryWithSubcategories = () => {
                                     {showPriceFilter ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                                 </button>
                             </div>
-                            
+
                             {showPriceFilter && (
                                 <div className="space-y-4">
                                     <div className="grid grid-cols-2 gap-3">
@@ -659,13 +653,13 @@ const CategoryWithSubcategories = () => {
                                             />
                                         </div>
                                     </div>
-                                    
+
                                     {productStats.minPrice > 0 && productStats.maxPrice > 0 && (
                                         <div className="text-xs text-gray-500">
                                             Current range: ₹{productStats.minPrice} - ₹{productStats.maxPrice}
                                         </div>
                                     )}
-                                    
+
                                     {(minPrice || maxPrice) && (
                                         <button
                                             onClick={() => {
@@ -688,19 +682,17 @@ const CategoryWithSubcategories = () => {
                                 <Filter className="w-5 h-5 text-gray-500" />
                                 DESIGN FILTER
                             </h3>
-                            
+
                             <button
                                 onClick={toggleModernFilter}
-                                className={`w-full flex items-center justify-between px-4 py-3 rounded-lg border transition-all ${
-                                    modernOnly 
+                                className={`w-full flex items-center justify-between px-4 py-3 rounded-lg border transition-all ${modernOnly
                                         ? 'bg-yellow-50 text-yellow-800 border-yellow-200 shadow-sm'
                                         : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
-                                }`}
+                                    }`}
                             >
                                 <div className="flex items-center gap-3">
-                                    <div className={`w-5 h-5 rounded flex items-center justify-center ${
-                                        modernOnly ? 'bg-yellow-500' : 'bg-gray-100'
-                                    }`}>
+                                    <div className={`w-5 h-5 rounded flex items-center justify-center ${modernOnly ? 'bg-yellow-500' : 'bg-gray-100'
+                                        }`}>
                                         <Zap className={`w-3 h-3 ${modernOnly ? 'text-white' : 'text-gray-400'}`} />
                                     </div>
                                     <span className="font-medium">Modern Designs Only</span>
@@ -875,21 +867,19 @@ const CategoryWithSubcategories = () => {
                                     <div className="flex border border-gray-300 rounded-lg overflow-hidden bg-white">
                                         <button
                                             onClick={() => setViewMode('grid')}
-                                            className={`px-3 py-2.5 transition-colors ${
-                                                viewMode === 'grid' 
-                                                    ? 'bg-blue-600 text-white' 
+                                            className={`px-3 py-2.5 transition-colors ${viewMode === 'grid'
+                                                    ? 'bg-blue-600 text-white'
                                                     : 'text-gray-700 hover:bg-gray-50'
-                                            }`}
+                                                }`}
                                         >
                                             <Grid className="w-4 h-4" />
                                         </button>
                                         <button
                                             onClick={() => setViewMode('list')}
-                                            className={`px-3 py-2.5 transition-colors ${
-                                                viewMode === 'list' 
-                                                    ? 'bg-blue-600 text-white' 
+                                            className={`px-3 py-2.5 transition-colors ${viewMode === 'list'
+                                                    ? 'bg-blue-600 text-white'
                                                     : 'text-gray-700 hover:bg-gray-50'
-                                            }`}
+                                                }`}
                                         >
                                             <List className="w-4 h-4" />
                                         </button>
@@ -903,7 +893,7 @@ const CategoryWithSubcategories = () => {
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                                 <div>
                                     <h2 className="text-lg font-semibold text-gray-800">
-                                        {currentSubcategory 
+                                        {currentSubcategory
                                             ? `Products in ${currentSubcategory.title}`
                                             : 'All Products in Category'
                                         }
@@ -987,13 +977,13 @@ const CategoryWithSubcategories = () => {
                                                                         {product.grade}
                                                                     </span>
                                                                 )}
-                                                                {(product.tags?.includes('modern') || 
-                                                                  product.name?.toLowerCase().includes('modern')) && (
-                                                                    <span className="flex items-center gap-1 text-yellow-600 bg-yellow-50 px-2 py-1 rounded">
-                                                                        <Zap className="w-3 h-3" />
-                                                                        Modern Design
-                                                                    </span>
-                                                                )}
+                                                                {(product.tags?.includes('modern') ||
+                                                                    product.name?.toLowerCase().includes('modern')) && (
+                                                                        <span className="flex items-center gap-1 text-yellow-600 bg-yellow-50 px-2 py-1 rounded">
+                                                                            <Zap className="w-3 h-3" />
+                                                                            Modern Design
+                                                                        </span>
+                                                                    )}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1040,11 +1030,10 @@ const CategoryWithSubcategories = () => {
                                                         <button
                                                             key={pageNum}
                                                             onClick={() => handlePageChange(pageNum)}
-                                                            className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${
-                                                                pagination.page === pageNum
+                                                            className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${pagination.page === pageNum
                                                                     ? 'bg-blue-600 text-white'
                                                                     : 'border border-gray-300 hover:border-gray-400'
-                                                            }`}
+                                                                }`}
                                                         >
                                                             {pageNum}
                                                         </button>

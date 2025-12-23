@@ -1,13 +1,17 @@
 // src/api/api.js
 
-import axios from 'axios';
+// Dynamic API Base URL - works for both local development and production
+const API_BASE_URL =
+    import.meta.env.VITE_API_URL ||
+        (window.location.hostname.includes('localhost') || window.location.hostname === '127.0.0.1')
+        ? 'https://bricks-backend-qyea.onrender.com/api'
+        : 'https://bricks-backend-qyea.onrender.com/api';
 
-const API_BASE_URL = 'http://localhost:5000/api'; // Make sure your backend runs on port 5000
-const API_URL = 'http://localhost:5000/api'
+// Helper: Safe fetch with timeout, error handling, and clear messages
 const safeFetch = async (url, options = {}) => {
     try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
         const response = await fetch(url, {
             ...options,
@@ -28,17 +32,20 @@ const safeFetch = async (url, options = {}) => {
         return await response.json();
     } catch (error) {
         if (error.name === 'AbortError') {
-            throw new Error('Request timed out. Check your internet or server.');
+            throw new Error('Request timed out. Please check your connection.');
         }
         if (error.message.includes('Failed to fetch')) {
-            throw new Error('Cannot reach the server. Is the backend running on https://bricks-backend-qyea.onrender.com?');
+            throw new Error(`Cannot connect to server at ${API_BASE_URL}. Is the backend running?`);
         }
         throw error;
     }
 };
 
+/* =========================
+   SEARCH API FUNCTIONS
+========================= */
 
-// NEW: Search autocomplete for products, categories, and subcategories
+// Search autocomplete (products, categories, subcategories)
 export const searchAutocomplete = async (query, limit = 8) => {
     try {
         if (!query || query.trim().length < 1) {
@@ -55,7 +62,6 @@ export const searchAutocomplete = async (query, limit = 8) => {
         const url = `${API_BASE_URL}/search/autocomplete?q=${encodeURIComponent(query)}&limit=${limit}`;
         const data = await safeFetch(url);
 
-        // Return the data as-is if it has success: false
         if (data.success === false) {
             console.warn('Search autocomplete failed:', data.error);
             return {
@@ -63,13 +69,12 @@ export const searchAutocomplete = async (query, limit = 8) => {
                 products: [],
                 categories: [],
                 subcategories: [],
-                query: query,
+                query,
                 totalResults: 0,
                 error: data.error || 'Search failed'
             };
         }
 
-        // Return the full response from backend
         return {
             success: true,
             products: data.products || [],
@@ -80,20 +85,19 @@ export const searchAutocomplete = async (query, limit = 8) => {
         };
     } catch (err) {
         console.error('searchAutocomplete error:', err);
-        // Return structured error response instead of throwing
         return {
             success: false,
             products: [],
             categories: [],
             subcategories: [],
-            query: query,
+            query,
             totalResults: 0,
-            error: err.message || 'Network error. Please check your connection.'
+            error: err.message || 'Network error'
         };
     }
 };
 
-// NEW: Get trending search suggestions
+// Get trending search suggestions
 export const getSearchSuggestions = async () => {
     try {
         const url = `${API_BASE_URL}/search/suggestions`;
@@ -125,7 +129,7 @@ export const getSearchSuggestions = async () => {
     }
 };
 
-// NEW: Full search with pagination and filters
+// Full product search with filters and pagination
 export const searchProducts = async (query, params = {}) => {
     try {
         if (!query || query.trim().length === 0) {
@@ -140,11 +144,7 @@ export const searchProducts = async (query, params = {}) => {
             };
         }
 
-        const searchParams = {
-            q: query,
-            ...params
-        };
-
+        const searchParams = { q: query, ...params };
         const queryString = new URLSearchParams(searchParams).toString();
         const url = `${API_BASE_URL}/search?${queryString}`;
         const data = await safeFetch(url);
@@ -158,7 +158,7 @@ export const searchProducts = async (query, params = {}) => {
                 page: 1,
                 pages: 0,
                 filters: {},
-                query: query,
+                query,
                 error: data.error
             };
         }
@@ -181,21 +181,21 @@ export const searchProducts = async (query, params = {}) => {
             page: 1,
             pages: 0,
             filters: {},
-            query: query,
+            query,
             error: err.message || 'Network error'
         };
     }
 };
 
-// NEW: Check if search returned results
+// Utility: Check if search has results
 export const hasSearchResults = (searchData) => {
     return searchData.success &&
-        (searchData.products.length > 0 ||
-            searchData.categories.length > 0 ||
-            searchData.subcategories.length > 0);
+        (searchData.products?.length > 0 ||
+            searchData.categories?.length > 0 ||
+            searchData.subcategories?.length > 0);
 };
 
-// NEW: Format search result for display
+// Utility: Format search result for display
 export const formatSearchResult = (item, type) => {
     switch (type) {
         case 'product':
@@ -227,86 +227,84 @@ export const formatSearchResult = (item, type) => {
             return item;
     }
 };
-// Get all categories
-// export const fetchCategories = async () => {
-//     try {
-//         const data = await safeFetch(`${API_BASE_URL}/categories`);
-//         return data.categories || data || [];
-//     } catch (err) {
-//         console.error('fetchCategories error:', err);
-//         throw err;
-//     }
-// };
 
-// Get products with optional filters
-// export const fetchProducts = async (params = {}) => {
-//     try {
-//         const query = new URLSearchParams(params).toString();
-//         const url = query ? `${API_BASE_URL}/products?${query}` : `${API_BASE_URL}/products`;
-//         const data = await safeFetch(url);
-//         return data.products || data || [];
-//     } catch (err) {
-//         console.error('fetchProducts error:', err);
-//         throw err;
-//     }
-// };
+/* =========================
+   CATEGORY & PRODUCT API
+========================= */
 
-// Get single category by numericId
-// export const fetchCategoryById = async (id) => {
-//     try {
-//         const data = await safeFetch(`${API_BASE_URL}/categories/${id}`);
-//         return data.category || data;
-//     } catch (err) {
-//         console.error('fetchCategoryById error:', err);
-//         throw err;
-//     }
-// };
-// -------------------------------------------------------------------------------//
+export const fetchCategories = async () => {
+    try {
+        const data = await safeFetch(`${API_BASE_URL}/categories`);
+        return data.categories || data || [];
+    } catch (err) {
+        console.error('fetchCategories error:', err);
+        return [];
+    }
+};
 
+export const fetchCategoryDetails = async (categoryId) => {
+    try {
+        const data = await safeFetch(`${API_BASE_URL}/categories/${categoryId}`);
+        return data.category || data || null;
+    } catch (err) {
+        console.error('fetchCategoryDetails error:', err);
+        return null;
+    }
+};
 
+export const fetchProductsByCategory = async (categoryId) => {
+    try {
+        const data = await safeFetch(`${API_BASE_URL}/products/category/${categoryId}?showAll=true`);
+        return data.products || data || [];
+    } catch (err) {
+        console.error('fetchProductsByCategory error:', err);
+        return [];
+    }
+};
 
+export const fetchProducts = async (params = {}) => {
+    try {
+        const query = new URLSearchParams(params).toString();
+        const url = query ? `${API_BASE_URL}/products?${query}` : `${API_BASE_URL}/products`;
+        const data = await safeFetch(url);
+        return data.products || data || [];
+    } catch (err) {
+        console.error('fetchProducts error:', err);
+        return [];
+    }
+};
 
-// * =========================
-//    SUBCATEGORY API FUNCTIONS
-// ========================= */
-// Update your fetchSubcategories function in api.js
+/* =========================
+   SUBCATEGORY API FUNCTIONS
+========================= */
+
 export const fetchSubcategories = async (categoryId) => {
     try {
-        // First try the new endpoint
         const data = await safeFetch(`${API_BASE_URL}/categories/${categoryId}/subcategories`);
 
-        if (data.success === false && data.message.includes('Route not found')) {
-            console.log('Subcategories endpoint not found, fetching category directly...');
-
-            // Fallback: get category and extract subcategories
+        if (data.success === false && data.message?.includes('Route not found')) {
+            console.log('Subcategories endpoint not found, using fallback...');
             const categoryData = await fetchCategoryDetails(categoryId);
+            const allProducts = await fetchProductsByCategory(categoryId);
 
-            if (categoryData && categoryData.subcategories) {
-                // Get product counts for each subcategory
-                const allProducts = await fetchProductsByCategory(categoryId);
-
-                const subcategoriesWithCount = categoryData.subcategories.map(sub => {
-                    // Count products in this subcategory
-                    const productCount = allProducts.filter(product => {
-                        return product.subcategoryId === sub.numericId ||
-                            product.subcategoryId === sub._id?.toString() ||
-                            product.subcategory?.numericId === sub.numericId ||
-                            product.subcategory?._id === sub._id;
-                    }).length;
+            if (categoryData?.subcategories) {
+                return categoryData.subcategories.map(sub => {
+                    const productCount = allProducts.filter(p =>
+                        p.subcategoryId === sub.numericId ||
+                        p.subcategoryId?.toString() === sub._id ||
+                        p.subcategory?.numericId === sub.numericId ||
+                        p.subcategory?._id === sub._id
+                    ).length;
 
                     return {
                         _id: sub._id,
                         numericId: sub.numericId,
                         title: sub.title,
-                        items: sub.items || [],
                         description: sub.description || `Browse ${sub.title} products`,
-                        productCount: productCount
+                        productCount
                     };
                 });
-
-                return subcategoriesWithCount;
             }
-
             return [];
         }
 
@@ -317,74 +315,94 @@ export const fetchSubcategories = async (categoryId) => {
     }
 };
 
-// Update fetchSubcategoryDetails with fallback
 export const fetchSubcategoryDetails = async (categoryId, subcategoryId) => {
     try {
         const data = await safeFetch(`${API_BASE_URL}/categories/${categoryId}/subcategories/${subcategoryId}`);
 
-        if (data.success === false && data.message.includes('Route not found')) {
-            console.log('Subcategory details endpoint not found, using fallback...');
-
-            // Fallback: get all subcategories and find the right one
+        if (data.success === false && data.message?.includes('Route not found')) {
             const subcategories = await fetchSubcategories(categoryId);
-            const subcategory = subcategories.find(sub =>
-                sub._id === subcategoryId ||
-                sub.numericId?.toString() === subcategoryId
-            );
-
-            if (subcategory) {
-                return subcategory;
-            }
-
-            return {
-                _id: subcategoryId,
-                numericId: subcategoryId,
-                title: `Subcategory ${subcategoryId}`,
-                name: `Subcategory ${subcategoryId}`,
-                description: `Browse products in this subcategory`,
-                productCount: 0
-            };
+            return subcategories.find(s =>
+                s._id === subcategoryId || s.numericId?.toString() === subcategoryId
+            ) || { title: `Subcategory ${subcategoryId}`, productCount: 0 };
         }
 
         return data.subcategory || data;
     } catch (err) {
         console.error('fetchSubcategoryDetails error:', err);
-        // Fallback
         const subcategories = await fetchSubcategories(categoryId);
-        const subcategory = subcategories.find(sub =>
-            sub._id === subcategoryId ||
-            sub.numericId?.toString() === subcategoryId
-        );
-
-        return subcategory || {
-            _id: subcategoryId,
-            numericId: subcategoryId,
-            title: `Subcategory ${subcategoryId}`,
-            name: `Subcategory ${subcategoryId}`,
-            description: `Browse products in this subcategory`,
-            productCount: 0
-        };
+        return subcategories.find(s =>
+            s._id === subcategoryId || s.numericId?.toString() === subcategoryId
+        ) || { title: `Subcategory ${subcategoryId}`, productCount: 0 };
     }
 };
 
-// Keep your existing fetchProductsBySubcategory as it has fallback logic
+const sortProducts = (products, sortBy) => {
+    return [...products].sort((a, b) => {
+        switch (sortBy) {
+            case 'price-low': return (a.price || 0) - (b.price || 0);
+            case 'price-high': return (b.price || 0) - (a.price || 0);
+            case 'rating': return (b.rating || 0) - (a.rating || 0);
+            case 'discount':
+                return (b.discount || b.discountPercentage || 0) - (a.discount || a.discountPercentage || 0);
+            case 'name-asc': return (a.name || '').localeCompare(b.name || '');
+            case 'name-desc': return (b.name || '').localeCompare(a.name || '');
+            default: return 0;
+        }
+    });
+};
+
+const fallbackProductsBySubcategory = async (categoryId, subcategoryId, filters = {}) => {
+    try {
+        const allProducts = await fetchProductsByCategory(categoryId);
+        let filtered = allProducts.filter(p =>
+            p.subcategoryId === subcategoryId ||
+            p.subcategoryId?.toString() === subcategoryId ||
+            p.subcategory?._id === subcategoryId ||
+            p.subcategory?.numericId?.toString() === subcategoryId
+        );
+
+        // Apply filters
+        if (filters.minPrice) filtered = filtered.filter(p => (p.price || 0) >= parseFloat(filters.minPrice));
+        if (filters.maxPrice) filtered = filtered.filter(p => (p.price || 0) <= parseFloat(filters.maxPrice));
+        if (filters.brand) filtered = filtered.filter(p => p.brand === filters.brand);
+        if (filters.search) {
+            const q = filters.search.toLowerCase();
+            filtered = filtered.filter(p =>
+                p.name?.toLowerCase().includes(q) ||
+                p.description?.toLowerCase().includes(q) ||
+                p.brand?.toLowerCase().includes(q)
+            );
+        }
+        if (filters.sortBy) filtered = sortProducts(filtered, filters.sortBy);
+
+        const brands = [...new Set(filtered.map(p => p.brand).filter(Boolean).sort())];
+
+        return {
+            products: filtered,
+            total: filtered.length,
+            brands,
+            minPrice: filters.minPrice || 0,
+            maxPrice: filters.maxPrice || 0,
+            page: 1,
+            pages: 1
+        };
+    } catch (err) {
+        console.error('fallbackProductsBySubcategory error:', err);
+        return { products: [], total: 0, brands: [], page: 1, pages: 0 };
+    }
+};
 
 export const fetchProductsBySubcategory = async (categoryId, subcategoryId, filters = {}) => {
     try {
         const queryParams = new URLSearchParams();
-
-        Object.entries(filters).forEach(([key, value]) => {
-            if (value !== undefined && value !== null && value !== '') {
-                queryParams.append(key, value);
-            }
+        Object.entries(filters).forEach(([k, v]) => {
+            if (v !== undefined && v !== null && v !== '') queryParams.append(k, v);
         });
 
-        const url = `${API_BASE_URL}/categories/${categoryId}/subcategories/${subcategoryId}/products?${queryParams.toString()}`;
-
+        const url = `${API_BASE_URL}/categories/${categoryId}/subcategories/${subcategoryId}/products?${queryParams}`;
         const data = await safeFetch(url);
 
         if (data.success === false) {
-            console.warn('fetchProductsBySubcategory failed:', data.message);
             return await fallbackProductsBySubcategory(categoryId, subcategoryId, filters);
         }
 
@@ -403,567 +421,203 @@ export const fetchProductsBySubcategory = async (categoryId, subcategoryId, filt
     }
 };
 
-const fallbackProductsBySubcategory = async (categoryId, subcategoryId, filters = {}) => {
-    try {
-        const allProducts = await fetchProductsByCategory(categoryId);
-
-        let filteredProducts = allProducts.filter(product => {
-            return product.subcategoryId === subcategoryId ||
-                product.subcategoryId?.toString() === subcategoryId ||
-                product.subcategory?._id === subcategoryId ||
-                product.subcategory?.id === subcategoryId ||
-                product.subcategory?.numericId?.toString() === subcategoryId;
-        });
-
-        if (filters.minPrice) {
-            filteredProducts = filteredProducts.filter(p =>
-                (p.price || 0) >= parseFloat(filters.minPrice)
-            );
-        }
-        if (filters.maxPrice) {
-            filteredProducts = filteredProducts.filter(p =>
-                (p.price || 0) <= parseFloat(filters.maxPrice)
-            );
-        }
-        if (filters.brand) {
-            filteredProducts = filteredProducts.filter(p =>
-                p.brand === filters.brand
-            );
-        }
-        if (filters.search) {
-            const query = filters.search.toLowerCase();
-            filteredProducts = filteredProducts.filter(p =>
-                p.name?.toLowerCase().includes(query) ||
-                p.description?.toLowerCase().includes(query) ||
-                p.brand?.toLowerCase().includes(query)
-            );
-        }
-
-        if (filters.sortBy) {
-            filteredProducts = sortProducts(filteredProducts, filters.sortBy);
-        }
-
-        const brands = [...new Set(filteredProducts
-            .filter(p => p.brand)
-            .map(p => p.brand)
-            .sort())];
-
-        return {
-            products: filteredProducts,
-            total: filteredProducts.length,
-            brands: brands,
-            minPrice: filters.minPrice || 0,
-            maxPrice: filters.maxPrice || 0,
-            page: 1,
-            pages: 1
-        };
-    } catch (err) {
-        console.error('fallbackProductsBySubcategory error:', err);
-        return {
-            products: [],
-            total: 0,
-            brands: [],
-            minPrice: 0,
-            maxPrice: 0,
-            page: 1,
-            pages: 0
-        };
-    }
-};
-
-const sortProducts = (products, sortBy) => {
-    return [...products].sort((a, b) => {
-        switch (sortBy) {
-            case 'price-low':
-                return (a.price || 0) - (b.price || 0);
-            case 'price-high':
-                return (b.price || 0) - (a.price || 0);
-            case 'rating':
-                return (b.rating || 0) - (a.rating || 0);
-            case 'discount':
-                const discountA = a.discount || a.discountPercentage || 0;
-                const discountB = b.discount || b.discountPercentage || 0;
-                return discountB - discountA;
-            case 'name-asc':
-                return (a.name || '').localeCompare(b.name || '');
-            case 'name-desc':
-                return (b.name || '').localeCompare(a.name || '');
-            default:
-                return 0;
-        }
-    });
-};
-
-// export const fetchSubcategoryDetails = async (categoryId, subcategoryId) => {
-//     try {
-//         const data = await safeFetch(`${API_BASE_URL}/categories/${categoryId}/subcategories/${subcategoryId}`);
-
-//         if (data.success === false) {
-//             console.warn('fetchSubcategoryDetails failed:', data.message);
-//             return await fallbackSubcategoryDetails(categoryId, subcategoryId);
-//         }
-
-//         return data.subcategory || data;
-//     } catch (err) {
-//         console.error('fetchSubcategoryDetails error:', err);
-//         return await fallbackSubcategoryDetails(categoryId, subcategoryId);
-//     }
-// };
-
-const fallbackSubcategoryDetails = async (categoryId, subcategoryId) => {
-    try {
-        const subcategories = await fetchSubcategories(categoryId);
-
-        const subcategory = subcategories.find(sub =>
-            sub._id === subcategoryId ||
-            sub.id === subcategoryId ||
-            sub.numericId?.toString() === subcategoryId
-        );
-
-        if (subcategory) {
-            return subcategory;
-        }
-
-        return {
-            _id: subcategoryId,
-            id: subcategoryId,
-            numericId: subcategoryId,
-            title: `Subcategory ${subcategoryId}`,
-            name: `Subcategory ${subcategoryId}`,
-            description: `Browse products in this subcategory`
-        };
-    } catch (err) {
-        console.error('fallbackSubcategoryDetails error:', err);
-        return {
-            _id: subcategoryId,
-            id: subcategoryId,
-            numericId: subcategoryId,
-            title: `Subcategory ${subcategoryId}`,
-            name: `Subcategory ${subcategoryId}`,
-            description: `Browse products in this subcategory`
-        };
-    }
-};
-
 /* =========================
-   CATEGORY & PRODUCT API FUNCTIONS
+   MATERIAL REQUIREMENT API
 ========================= */
-export const fetchProductsByCategory = async (categoryId) => {
-    try {
-        const data = await safeFetch(`${API_BASE_URL}/products/category/${categoryId}?showAll=true`);
-        return data.products || data || [];
-    } catch (err) {
-        console.error('fetchProductsByCategory error:', err);
-        throw err;
-    }
-};
-
-export const fetchCategoryDetails = async (categoryId) => {
-    try {
-        const data = await safeFetch(`${API_BASE_URL}/categories/${categoryId}`);
-        return data.category || data;
-    } catch (err) {
-        console.error('fetchCategoryDetails error:', err);
-        throw err;
-    }
-};
-
-export const fetchProducts = async (params = {}) => {
-    try {
-        const query = new URLSearchParams(params).toString();
-        const url = query ? `${API_BASE_URL}/products?${query}` : `${API_BASE_URL}/products`;
-        const data = await safeFetch(url);
-        return data.products || data || [];
-    } catch (err) {
-        console.error('fetchProducts error:', err);
-        throw err;
-    }
-};
-
-export const fetchCategories = async () => {
-    try {
-        const data = await safeFetch(`${API_BASE_URL}/categories`);
-        return data.categories || data || [];
-    } catch (err) {
-        console.error('fetchCategories error:', err);
-        throw err;
-    }
-};
-
-export const fetchCategoryById = async (id) => {
-    try {
-        const data = await safeFetch(`${API_BASE_URL}/categories/${id}`);
-        return data.category || data;
-    } catch (err) {
-        console.error('fetchCategoryById error:', err);
-        throw err;
-    }
-};
-
-/* =========================
-   MATERIAL REQUIREMENT API FUNCTIONS
-========================= */
-
-
 
 export const createMaterialRequirement = async (requirementData) => {
     try {
         const token = localStorage.getItem('token');
         if (!token) {
-            return {
-                success: false,
-                message: 'Authentication required. Please login.',
-                error: 'No authentication token'
-            };
+            return { success: false, message: 'Authentication required. Please login.' };
         }
 
-        // Prepare data for backend
         const formattedData = {
             ...requirementData,
-            // Ensure phone is string
             phone: requirementData.phone.toString(),
-            // Convert deliveryDate to ISO string
             deliveryDate: new Date(requirementData.deliveryDate).toISOString(),
-            // Convert materials quantity to number
-            materials: requirementData.materials.map(material => ({
-                ...material,
-                quantity: parseFloat(material.quantity) || 0
+            materials: requirementData.materials.map(m => ({
+                ...m,
+                quantity: parseFloat(m.quantity) || 0
             }))
         };
 
-        // CORRECT URL: /api/requirements
-        const url = `${API_BASE_URL}/requirements`;
-        const response = await safeFetch(url, {
+        const response = await safeFetch(`${API_BASE_URL}/requirements`, {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Authorization': `Bearer ${token}` },
             body: JSON.stringify(formattedData)
         });
 
         return response;
     } catch (err) {
         console.error('createMaterialRequirement error:', err);
-        return {
-            success: false,
-            message: err.message || 'Failed to submit requirement',
-            error: err.message
-        };
+        return { success: false, message: err.message || 'Failed to submit requirement' };
     }
 };
 
-// Get user's material requirements
 export const getUserMaterialRequirements = async (params = {}) => {
     try {
         const token = localStorage.getItem('token');
-        if (!token) {
-            return {
-                success: false,
-                message: 'Authentication required',
-                data: [],
-                pagination: {}
-            };
-        }
+        if (!token) return { success: false, message: 'Authentication required', data: [] };
 
         const { page = 1, limit = 10, status, sort = '-createdAt' } = params;
-
         let url = `${API_BASE_URL}/requirements/my?page=${page}&limit=${limit}&sort=${sort}`;
+        if (status) url += `&status=${status}`;
 
-        if (status) {
-            url += `&status=${status}`;
-        }
-
-        const response = await safeFetch(url, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-
-        return response;
+        return await safeFetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
     } catch (err) {
         console.error('getUserMaterialRequirements error:', err);
-        return {
-            success: false,
-            message: 'Failed to fetch requirements',
-            data: [],
-            pagination: {},
-            error: err.message
-        };
+        return { success: false, message: 'Failed to fetch requirements', data: [] };
     }
 };
 
-// Get single requirement by ID
 export const getMaterialRequirementById = async (requirementId) => {
     try {
         const token = localStorage.getItem('token');
-        if (!token) {
-            return {
-                success: false,
-                message: 'Authentication required'
-            };
-        }
+        if (!token) return { success: false, message: 'Authentication required' };
 
-        const url = `${API_BASE_URL}/requirements/${requirementId}`;
-        const response = await safeFetch(url, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+        return await safeFetch(`${API_BASE_URL}/requirements/${requirementId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
         });
-
-        return response;
     } catch (err) {
         console.error('getMaterialRequirementById error:', err);
-        return {
-            success: false,
-            message: 'Failed to fetch requirement details',
-            error: err.message
-        };
+        return { success: false, message: 'Failed to fetch requirement' };
     }
 };
 
-// Update material requirement
 export const updateMaterialRequirement = async (requirementId, updateData) => {
     try {
         const token = localStorage.getItem('token');
-        if (!token) {
-            return {
-                success: false,
-                message: 'Authentication required'
-            };
-        }
+        if (!token) return { success: false, message: 'Authentication required' };
 
         const formattedData = {
             ...updateData,
-            // Format dates
-            deliveryDate: updateData.deliveryDate ?
-                new Date(updateData.deliveryDate).toISOString() : undefined,
-            // Format materials
-            materials: updateData.materials?.map(material => ({
-                ...material,
-                quantity: parseFloat(material.quantity) || 0
-            }))
+            deliveryDate: updateData.deliveryDate ? new Date(updateData.deliveryDate).toISOString() : undefined,
+            materials: updateData.materials?.map(m => ({ ...m, quantity: parseFloat(m.quantity) || 0 }))
         };
 
-        const url = `${API_BASE_URL}/requirements/${requirementId}`;
-        const response = await safeFetch(url, {
+        return await safeFetch(`${API_BASE_URL}/requirements/${requirementId}`, {
             method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
+            headers: { 'Authorization': `Bearer ${token}` },
             body: JSON.stringify(formattedData)
         });
-
-        return response;
     } catch (err) {
         console.error('updateMaterialRequirement error:', err);
-        return {
-            success: false,
-            message: 'Failed to update requirement',
-            error: err.message
-        };
+        return { success: false, message: 'Failed to update requirement' };
     }
 };
 
-// Cancel material requirement
 export const cancelMaterialRequirement = async (requirementId, reason = '') => {
     try {
         const token = localStorage.getItem('token');
-        if (!token) {
-            return {
-                success: false,
-                message: 'Authentication required'
-            };
-        }
+        if (!token) return { success: false, message: 'Authentication required' };
 
-        const url = `${API_BASE_URL}/requirements/${requirementId}/cancel`;
-        const response = await safeFetch(url, {
+        return await safeFetch(`${API_BASE_URL}/requirements/${requirementId}/cancel`, {
             method: 'PATCH',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
+            headers: { 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ reason })
         });
-
-        return response;
     } catch (err) {
         console.error('cancelMaterialRequirement error:', err);
-        return {
-            success: false,
-            message: 'Failed to cancel requirement',
-            error: err.message
-        };
+        return { success: false, message: 'Failed to cancel requirement' };
     }
 };
-
-// Get requirement statistics
-export const getRequirementStats = async () => {
-    try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            return {
-                success: false,
-                message: 'Authentication required',
-                data: null
-            };
-        }
-
-        const url = `${API_BASE_URL}/requirements/stats/overview`;
-        const response = await safeFetch(url, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-
-        return response;
-    } catch (err) {
-        console.error('getRequirementStats error:', err);
-        return {
-            success: false,
-            message: 'Failed to fetch statistics',
-            data: null,
-            error: err.message
-        };
-    }
-};
-
-// Submit quote for requirement (for sellers)
-export const submitQuoteForRequirement = async (requirementId, quoteData) => {
-    try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            return {
-                success: false,
-                message: 'Authentication required'
-            };
-        }
-
-        const url = `${API_BASE_URL}/requirements/${requirementId}/quotes`;
-        const response = await safeFetch(url, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(quoteData)
-        });
-
-        return response;
-    } catch (err) {
-        console.error('submitQuoteForRequirement error:', err);
-        return {
-            success: false,
-            message: 'Failed to submit quote',
-            error: err.message
-        };
-    }
-};
-
-// Accept quote (for users)
-export const acceptQuote = async (requirementId, quoteId) => {
-    try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            return {
-                success: false,
-                message: 'Authentication required'
-            };
-        }
-
-        const url = `${API_BASE_URL}/requirements/${requirementId}/quotes/${quoteId}/accept`;
-        const response = await safeFetch(url, {
-            method: 'PATCH',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-
-        return response;
-    } catch (err) {
-        console.error('acceptQuote error:', err);
-        return {
-            success: false,
-            message: 'Failed to accept quote',
-            error: err.message
-        };
-    }
-};
-
-
-
-// Helper function to validate phone
-export const validatePhoneNumber = (phone) => {
-    return /^[0-9]{10}$/.test(phone);
-};
-
-// Helper function to format requirement for display
-export const formatRequirementForDisplay = (requirement) => {
-    return {
-        id: requirement._id,
-        requirementNumber: requirement.requirementNumber,
-        projectType: requirement.projectType,
-        projectLocation: requirement.projectLocation,
-        deliveryDate: new Date(requirement.deliveryDate).toLocaleDateString('en-IN'),
-        budgetRange: requirement.budgetRange,
-        status: requirement.status,
-        urgencyLevel: requirement.urgencyLevel,
-        materials: requirement.materials || [],
-        totalQuantity: requirement.materials?.reduce((sum, mat) => sum + (mat.quantity || 0), 0) || 0,
-        createdAt: new Date(requirement.createdAt).toLocaleDateString('en-IN'),
-        quotesCount: requirement.quotes?.length || 0
-    };
-};
-
-export const getUserProfile = async () => {
-    try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            return {
-                success: false,
-                message: 'Authentication required',
-                data: null
-            };
-        }
-
-        const url = `${API_BASE_URL}/user/profile`;
-        const response = await safeFetch(url, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-
-        // Return the response as-is, don't try to access .data.data
-        return response;
-    } catch (err) {
-        console.error('getUserProfile error:', err);
-        return {
-            success: false,
-            message: 'Failed to fetch user profile',
-            data: null,
-            error: err.message
-        };
-    }
-};
-
 
 export const deleteMaterialRequirement = async (id) => {
     try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${API_URL}/material-requirements/${id}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
+        if (!token) return { success: false, message: 'Authentication required' };
 
-        const data = await response.json();
-        return data;
-    } catch (error) {
-        console.error('Delete requirement error:', error);
-        return {
-            success: false,
-            message: 'Failed to delete requirement'
-        };
+        return await safeFetch(`${API_BASE_URL}/requirements/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+    } catch (err) {
+        console.error('deleteMaterialRequirement error:', err);
+        return { success: false, message: 'Failed to delete requirement' };
     }
 };
 
+export const getRequirementStats = async () => {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) return { success: false, message: 'Authentication required' };
+
+        return await safeFetch(`${API_BASE_URL}/requirements/stats/overview`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+    } catch (err) {
+        console.error('getRequirementStats error:', err);
+        return { success: false, message: 'Failed to fetch stats' };
+    }
+};
+
+export const submitQuoteForRequirement = async (requirementId, quoteData) => {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) return { success: false, message: 'Authentication required' };
+
+        return await safeFetch(`${API_BASE_URL}/requirements/${requirementId}/quotes`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify(quoteData)
+        });
+    } catch (err) {
+        console.error('submitQuoteForRequirement error:', err);
+        return { success: false, message: 'Failed to submit quote' };
+    }
+};
+
+export const acceptQuote = async (requirementId, quoteId) => {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) return { success: false, message: 'Authentication required' };
+
+        return await safeFetch(`${API_BASE_URL}/requirements/${requirementId}/quotes/${quoteId}/accept`, {
+            method: 'PATCH',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+    } catch (err) {
+        console.error('acceptQuote error:', err);
+        return { success: false, message: 'Failed to accept quote' };
+    }
+};
+
+/* =========================
+   USER PROFILE
+========================= */
+
+export const getUserProfile = async () => {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) return { success: false, message: 'Authentication required' };
+
+        return await safeFetch(`${API_BASE_URL}/user/profile`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+    } catch (err) {
+        console.error('getUserProfile error:', err);
+        return { success: false, message: 'Failed to fetch profile' };
+    }
+};
+
+/* =========================
+   HELPERS
+========================= */
+
+export const validatePhoneNumber = (phone) => /^[0-9]{10}$/.test(phone);
+
+export const formatRequirementForDisplay = (requirement) => ({
+    id: requirement._id,
+    requirementNumber: requirement.requirementNumber,
+    projectType: requirement.projectType,
+    projectLocation: requirement.projectLocation,
+    deliveryDate: new Date(requirement.deliveryDate).toLocaleDateString('en-IN'),
+    budgetRange: requirement.budgetRange,
+    status: requirement.status,
+    urgencyLevel: requirement.urgencyLevel,
+    materials: requirement.materials || [],
+    totalQuantity: requirement.materials?.reduce((sum, m) => sum + (m.quantity || 0), 0) || 0,
+    createdAt: new Date(requirement.createdAt).toLocaleDateString('en-IN'),
+    quotesCount: requirement.quotes?.length || 0
+});
