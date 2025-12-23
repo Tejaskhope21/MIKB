@@ -12,11 +12,9 @@ import ProtectedRoute from '../components/Auth/ProtectedRoute'
 import ErrorBoundary from '../components/ErrorBoundary'
 import ProfilePage from '../components/UserProfilePage'
 import UserOrdersPage from '../pages/Users/UserOrders'
+import OrderDetailsPage from '../pages/Users/OrderDetailsPage'
 
-// 🔥 NEW: Order Details Page Import
-import OrderDetailsPage from '../pages/Users/OrderDetailsPage' // Create this file next
-
-// Seller Components (unchanged)
+// Seller Components
 import SellerLayout from '../layouts/SellerLayout'
 import SellerDashboard from '../components/Seller/Dashboard'
 import ProductList from '../components/Seller/Products/ProductList'
@@ -28,6 +26,12 @@ import Analytics from '../components/Seller/Analytics/Analytics'
 import Reviews from '../components/Seller/Reviews/Reviews'
 import Inventory from '../components/Seller/Inventory/Inventory'
 import StoreSettings from '../components/Seller/Settings/StoreSettings'
+
+// Contractor Components
+import ContractorLayout from '../layouts/ContractorLayout'
+import ContractorDashboardPage from '../pages/Contractor/DashboardPage'
+
+// Public Components
 import InvestorPage from '../pages/Investor/InvestorPage'
 import MaterialRequirementPage from '../pages/MaterialRequirement/MaterialRequirementPage'
 import CategoryDetailsPage from '../pages/Category/CategoryDetailsPage'
@@ -50,7 +54,7 @@ const AppRoutes = () => {
                     <Route path="/category/:categoryId" element={<CategoryDetailsPage />} />
                     <Route path="/brands" element={<BrandsPage />} />
 
-                    {/* Protected User Routes */}
+                    {/* Protected User Routes (general users) */}
                     <Route path="/checkout" element={
                         <ProtectedRoute>
                             <CheckoutPage />
@@ -61,22 +65,16 @@ const AppRoutes = () => {
                             <OrderSuccessPage />
                         </ProtectedRoute>
                     } />
-
-                    {/* 🔥 NEW: My Orders Page */}
                     <Route path="/orders/my-orders" element={
                         <ProtectedRoute>
                             <UserOrdersPage />
                         </ProtectedRoute>
                     } />
-
-                    {/* 🔥 NEW: Individual Order Details Page */}
                     <Route path="/orders/:id" element={
                         <ProtectedRoute>
                             <OrderDetailsPage />
                         </ProtectedRoute>
                     } />
-
-                    {/* Shortcut for My Orders */}
                     <Route path="/my-orders" element={
                         <ProtectedRoute>
                             <Navigate to="/orders/my-orders" replace />
@@ -99,7 +97,30 @@ const AppRoutes = () => {
                     <Route path="addresses" element={<div>Addresses Page</div>} />
                 </Route>
 
-                {/* Seller Routes */}
+                {/* CONTRACTOR ROUTES - Only accessible to contractors */}
+                <Route path="/contractor" element={
+                    <ProtectedRoute allowedRoles={['contractor']}>
+                        <ContractorLayout />
+                    </ProtectedRoute>
+                }>
+                    <Route index element={<Navigate to="dashboard" replace />} />
+                    <Route path="dashboard" element={<ContractorDashboardPage />} />
+
+                    {/* Contractor specific routes */}
+                    <Route path="projects" element={<div className="p-6">Projects Page (Coming Soon)</div>} />
+                    <Route path="portfolio" element={<div className="p-6">Portfolio Page (Coming Soon)</div>} />
+                    <Route path="quotes" element={<div className="p-6">Quotes Page (Coming Soon)</div>} />
+                    <Route path="materials" element={<div className="p-6">Materials Page (Coming Soon)</div>} />
+                    <Route path="orders" element={<div className="p-6">Orders Page (Coming Soon)</div>} />
+                    <Route path="community" element={<div className="p-6">Community Page (Coming Soon)</div>} />
+                    <Route path="messages" element={<div className="p-6">Messages Page (Coming Soon)</div>} />
+                    <Route path="analytics" element={<div className="p-6">Analytics Page (Coming Soon)</div>} />
+                    <Route path="finance" element={<div className="p-6">Finance Page (Coming Soon)</div>} />
+                    <Route path="schedule" element={<div className="p-6">Schedule Page (Coming Soon)</div>} />
+                    <Route path="settings" element={<div className="p-6">Settings Page (Coming Soon)</div>} />
+                </Route>
+
+                {/* SELLER ROUTES - Only accessible to sellers and admins */}
                 <Route path="/seller" element={
                     <ProtectedRoute allowedRoles={['seller', 'admin']}>
                         <SellerLayout />
@@ -107,39 +128,32 @@ const AppRoutes = () => {
                 }>
                     <Route index element={<Navigate to="dashboard" replace />} />
                     <Route path="dashboard" element={<SellerDashboard />} />
-                    {/* Product Management Routes */}
                     <Route path="products" element={<ProductList />} />
                     <Route path="products/add" element={<AddProduct />} />
                     <Route path="products/edit/:productId" element={<EditProduct />} />
-                    <Route path="products/import" element={<div>Import Products</div>} />
-                    <Route path="products/categories" element={<div>Product Categories</div>} />
+                    <Route path="products/import" element={<div className="p-6">Import Products</div>} />
+                    <Route path="products/categories" element={<div className="p-6">Product Categories</div>} />
 
-                    {/* Order Management Routes */}
                     <Route path="orders" element={<OrderList />} />
                     <Route path="orders/:orderId" element={<OrderDetails />} />
-                    <Route path="orders/returns" element={<div>Returns & Refunds</div>} />
+                    <Route path="orders/returns" element={<div className="p-6">Returns & Refunds</div>} />
 
-                    {/* Analytics & Reports */}
                     <Route path="analytics" element={<Analytics />} />
-                    <Route path="reports" element={<div>Sales Reports</div>} />
+                    <Route path="reports" element={<div className="p-6">Sales Reports</div>} />
 
-                    {/* Inventory Management */}
                     <Route path="inventory" element={<Inventory />} />
-                    <Route path="inventory/low-stock" element={<div>Low Stock Alerts</div>} />
+                    <Route path="inventory/low-stock" element={<div className="p-6">Low Stock Alerts</div>} />
 
-                    {/* Customer Management */}
-                    <Route path="customers" element={<div>Customer List</div>} />
+                    <Route path="customers" element={<div className="p-6">Customer List</div>} />
                     <Route path="reviews" element={<Reviews />} />
 
-                    {/* Marketing */}
-                    <Route path="coupons" element={<div>Coupons</div>} />
-                    <Route path="promotions" element={<div>Promotions</div>} />
+                    <Route path="coupons" element={<div className="p-6">Coupons</div>} />
+                    <Route path="promotions" element={<div className="p-6">Promotions</div>} />
 
-                    {/* Store Settings */}
                     <Route path="settings" element={<StoreSettings />} />
-                    <Route path="settings/store" element={<div>Store Information</div>} />
-                    <Route path="settings/shipping" element={<div>Shipping Settings</div>} />
-                    <Route path="settings/payment" element={<div>Payment Settings</div>} />
+                    <Route path="settings/store" element={<div className="p-6">Store Information</div>} />
+                    <Route path="settings/shipping" element={<div className="p-6">Shipping Settings</div>} />
+                    <Route path="settings/payment" element={<div className="p-6">Payment Settings</div>} />
                 </Route>
 
                 {/* 404 Page */}
@@ -162,4 +176,4 @@ const AppRoutes = () => {
     )
 }
 
-export default AppRoutes
+export default AppRoutes;

@@ -1,4 +1,4 @@
-// layouts/MainLayout.jsx
+// src/layouts/MainLayout.jsx
 import React, { useEffect, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
@@ -12,9 +12,8 @@ const MainLayout = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        // Check if user is logged in
         const token = localStorage.getItem('token');
-        const userData = localStorage.getItem('user');
+        const userData = localStorage.getItem('userData'); // ← Use correct key
 
         if (token && userData) {
             try {
@@ -30,7 +29,8 @@ const MainLayout = () => {
 
     const handleLogout = () => {
         localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('userData');
         setUser(null);
         navigate('/login');
     };
@@ -45,15 +45,10 @@ const MainLayout = () => {
 
     return (
         <div className="min-h-screen flex flex-col">
-            {/* Pass user data and logout function to Navbar */}
             <Navbar user={user} onLogout={handleLogout} />
-
-            {/* Main Content */}
             <main className="flex-grow">
                 <Outlet />
             </main>
-
-            {/* Footer */}
             <Footer />
         </div>
     );
