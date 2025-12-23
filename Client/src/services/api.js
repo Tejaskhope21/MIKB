@@ -1,7 +1,9 @@
 // src/api/api.js
 
-const API_BASE_URL = 'https://bricks-com-backend.vercel.app/api'; // Make sure your backend runs on port 5000
+import axios from 'axios';
 
+const API_BASE_URL = 'http://localhost:5000/api'; // Make sure your backend runs on port 5000
+const API_URL='http://localhost:5000/api'
 const safeFetch = async (url, options = {}) => {
     try {
         const controller = new AbortController();
@@ -964,3 +966,4 @@ export const deleteMaterialRequirement = async (id) => {
         };
     }
 };
+

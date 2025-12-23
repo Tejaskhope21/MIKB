@@ -219,17 +219,7 @@ const CategorySection = () => {
                         <p className="text-gray-600">Discover products by category</p>
                     </div>
 
-                    {/* Search Bar */}
-                    <div className="relative w-full lg:w-auto lg:min-w-[300px]">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                        <input
-                            type="text"
-                            placeholder="Search categories..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                        />
-                    </div>
+            
                 </div>
 
                 {/* Navigation Indicators (dots for pages) */}
@@ -322,17 +312,7 @@ const CategorySection = () => {
                                                 </p>
                                             </div>
 
-                                            {/* Subcategory Count Badge */}
-                                            {/* {category.subcategories?.length > 0 && (
-                                                <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-sm text-gray-700 border">
-                                                    {category.subcategories.length} sub
-                                                </div>
-                                            )} */}
-
-                                            {/* Icon Badge */}
-                                            {/* <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm w-9 h-9 rounded-full flex items-center justify-center text-xl">
-                                                {category.icon}
-                                            </div> */}
+                                           
 
                                             {/* Hover Overlay */}
                                             <div className="absolute inset-0 bg-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
@@ -374,16 +354,7 @@ const CategorySection = () => {
                     </div>
                 )}
 
-                {/* View All Button */}
-                {filteredCategories.length > 0 && (
-                    <div className="text-center mt-10">
-                        <Link to="/products">
-                            <button className="px-8 py-3 bg-white border-2 border-blue-600 text-blue-600 font-medium rounded-lg hover:bg-blue-50 transition-all hover:shadow-md hover:scale-105">
-                                View All Categories
-                            </button>
-                        </Link>
-                    </div>
-                )}
+              
             </div>
         </section>
     );
