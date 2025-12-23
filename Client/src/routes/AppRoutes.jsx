@@ -119,12 +119,12 @@ const AppRoutes = () => {
                     <Route path="dashboard" element={<ContractorDashboardPage />} />
 
                     {/* Contractor specific routes */}
-                    <Route path="projects" element={<ProjectsPage />} />
-                    <Route path="portfolio" element={<PortfolioPage />} />
-                    <Route path="quotes" element={<QuotesPage />} />
-                    <Route path="materials" element={<MaterialsPage />} />
-                    <Route path="orders" element={<OrdersPage />} />
-                    <Route path="community" element={<CommunityPage />} />
+                    <Route path="projects" element={<div className="p-6">projects Page (Coming Soon)</div>} />
+                    <Route path="portfolio" element={<div className="p-6">portfolio Page (Coming Soon)</div>} />
+                    <Route path="quotes" element={<div className="p-6">quotes Page (Coming Soon)</div>} />
+                    <Route path="materials" element={<div className="p-6">materials Page (Coming Soon)</div>} />
+                    <Route path="orders" element={<div className="p-6">orders Page (Coming Soon)</div>} />
+                    <Route path="community" element={<div className="p-6">community Page (Coming Soon)</div>} />
                     <Route path="messages" element={<div className="p-6">Messages Page (Coming Soon)</div>} />
                     <Route path="analytics" element={<div className="p-6">Analytics Page (Coming Soon)</div>} />
                     <Route path="finance" element={<div className="p-6">Finance Page (Coming Soon)</div>} />
