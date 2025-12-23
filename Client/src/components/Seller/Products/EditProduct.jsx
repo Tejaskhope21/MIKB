@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Save, ArrowLeft, Upload, X, Plus, Trash2 } from 'lucide-react';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://bricks-com-backend.vercel.app/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://bricks-backend-qyea.onrender.com/api';
 
 const EditProduct = () => {
     const { productId } = useParams();
@@ -101,73 +101,73 @@ const EditProduct = () => {
         }
     };
 
-   const fetchSubcategories = async (categoryId) => {
-          try {
-              setLoadingSubcategories(true);
-              setSubcategories([]);
-  
-              // Try to get subcategories from the category data first
-              const selectedCategory = categories.find(cat =>
-                  cat._id === categoryId || cat.numericId?.toString() === categoryId
-              );
-  
-              if (selectedCategory && selectedCategory.subcategories && selectedCategory.subcategories.length > 0) {
-                  // Use subcategories from category data
-                  const formattedSubcategories = selectedCategory.subcategories.map((sub, index) => ({
-                      _id: sub._id || `sub-${index}-${Date.now()}`,
-                      numericId: sub.numericId || index + 1,
-                      name: sub.title || sub.name,
-                      title: sub.title || sub.name,
-                      items: sub.items || []
-                  }));
-                  setSubcategories(formattedSubcategories);
-                  setLoadingSubcategories(false);
-                  return;
-              }
-  
-              // If no subcategories in category data, try API endpoint
-              try {
-                  const response = await axios.get(`${API_URL}/categories/${categoryId}/subcategories`);
-  
-                  if (response.data.success) {
-                      const subcategoriesData = response.data.subcategories || response.data.data || [];
-  
-                      if (subcategoriesData.length > 0) {
-                          const formatted = subcategoriesData.map(sub => ({
-                              _id: sub._id || sub.id,
-                              numericId: sub.numericId || sub.id,
-                              name: sub.title || sub.name,
-                              title: sub.title || sub.name,
-                              items: sub.items || []
-                          }));
-                          setSubcategories(formatted);
-                      }
-                  }
-              } catch (apiError) {
-                  console.log('Subcategories API endpoint not available:', apiError.message);
-                  // If API fails, check if there's a different structure
-                  if (selectedCategory) {
-                      // Check for alternative subcategory field names
-                      const altSubcategories = selectedCategory.subCategories || selectedCategory.sub_categories || [];
-                      if (altSubcategories.length > 0) {
-                          const formattedSubcategories = altSubcategories.map((sub, index) => ({
-                              _id: sub._id || `sub-alt-${index}-${Date.now()}`,
-                              numericId: sub.numericId || index + 1,
-                              name: sub.title || sub.name,
-                              title: sub.title || sub.name,
-                              items: sub.items || []
-                          }));
-                          setSubcategories(formattedSubcategories);
-                      }
-                  }
-              }
-          } catch (error) {
-              console.error('Error fetching subcategories:', error);
-              setSubcategories([]);
-          } finally {
-              setLoadingSubcategories(false);
-          }
-      };
+    const fetchSubcategories = async (categoryId) => {
+        try {
+            setLoadingSubcategories(true);
+            setSubcategories([]);
+
+            // Try to get subcategories from the category data first
+            const selectedCategory = categories.find(cat =>
+                cat._id === categoryId || cat.numericId?.toString() === categoryId
+            );
+
+            if (selectedCategory && selectedCategory.subcategories && selectedCategory.subcategories.length > 0) {
+                // Use subcategories from category data
+                const formattedSubcategories = selectedCategory.subcategories.map((sub, index) => ({
+                    _id: sub._id || `sub-${index}-${Date.now()}`,
+                    numericId: sub.numericId || index + 1,
+                    name: sub.title || sub.name,
+                    title: sub.title || sub.name,
+                    items: sub.items || []
+                }));
+                setSubcategories(formattedSubcategories);
+                setLoadingSubcategories(false);
+                return;
+            }
+
+            // If no subcategories in category data, try API endpoint
+            try {
+                const response = await axios.get(`${API_URL}/categories/${categoryId}/subcategories`);
+
+                if (response.data.success) {
+                    const subcategoriesData = response.data.subcategories || response.data.data || [];
+
+                    if (subcategoriesData.length > 0) {
+                        const formatted = subcategoriesData.map(sub => ({
+                            _id: sub._id || sub.id,
+                            numericId: sub.numericId || sub.id,
+                            name: sub.title || sub.name,
+                            title: sub.title || sub.name,
+                            items: sub.items || []
+                        }));
+                        setSubcategories(formatted);
+                    }
+                }
+            } catch (apiError) {
+                console.log('Subcategories API endpoint not available:', apiError.message);
+                // If API fails, check if there's a different structure
+                if (selectedCategory) {
+                    // Check for alternative subcategory field names
+                    const altSubcategories = selectedCategory.subCategories || selectedCategory.sub_categories || [];
+                    if (altSubcategories.length > 0) {
+                        const formattedSubcategories = altSubcategories.map((sub, index) => ({
+                            _id: sub._id || `sub-alt-${index}-${Date.now()}`,
+                            numericId: sub.numericId || index + 1,
+                            name: sub.title || sub.name,
+                            title: sub.title || sub.name,
+                            items: sub.items || []
+                        }));
+                        setSubcategories(formattedSubcategories);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching subcategories:', error);
+            setSubcategories([]);
+        } finally {
+            setLoadingSubcategories(false);
+        }
+    };
     const handleSubmit = async (e) => {
         e.preventDefault();
         setSaving(true);
@@ -300,7 +300,7 @@ const EditProduct = () => {
                             <input
                                 type="text"
                                 value={productData.name}
-                                onChange={(e) => setProductData({...productData, name: e.target.value})}
+                                onChange={(e) => setProductData({ ...productData, name: e.target.value })}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 required
                             />
@@ -312,7 +312,7 @@ const EditProduct = () => {
                             <input
                                 type="text"
                                 value={productData.brand}
-                                onChange={(e) => setProductData({...productData, brand: e.target.value})}
+                                onChange={(e) => setProductData({ ...productData, brand: e.target.value })}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             />
                         </div>
@@ -322,7 +322,7 @@ const EditProduct = () => {
                             </label>
                             <select
                                 value={productData.categoryId}
-                                onChange={(e) => setProductData({...productData, categoryId: e.target.value, subcategoryId: ''})}
+                                onChange={(e) => setProductData({ ...productData, categoryId: e.target.value, subcategoryId: '' })}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 required
                             >
@@ -340,7 +340,7 @@ const EditProduct = () => {
                             </label>
                             <select
                                 value={productData.subcategoryId}
-                                onChange={(e) => setProductData({...productData, subcategoryId: e.target.value})}
+                                onChange={(e) => setProductData({ ...productData, subcategoryId: e.target.value })}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 disabled={!productData.categoryId}
                             >
@@ -368,7 +368,7 @@ const EditProduct = () => {
                                 <input
                                     type="number"
                                     value={productData.price}
-                                    onChange={(e) => setProductData({...productData, price: e.target.value})}
+                                    onChange={(e) => setProductData({ ...productData, price: e.target.value })}
                                     className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     min="0"
                                     step="0.01"
@@ -385,7 +385,7 @@ const EditProduct = () => {
                                 <input
                                     type="number"
                                     value={productData.originalPrice}
-                                    onChange={(e) => setProductData({...productData, originalPrice: e.target.value})}
+                                    onChange={(e) => setProductData({ ...productData, originalPrice: e.target.value })}
                                     className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     min="0"
                                     step="0.01"
@@ -404,7 +404,7 @@ const EditProduct = () => {
                         </label>
                         <textarea
                             value={productData.description}
-                            onChange={(e) => setProductData({...productData, description: e.target.value})}
+                            onChange={(e) => setProductData({ ...productData, description: e.target.value })}
                             rows="6"
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             required
@@ -460,7 +460,7 @@ const EditProduct = () => {
                                 value={productData.inventory.stock}
                                 onChange={(e) => setProductData({
                                     ...productData,
-                                    inventory: {...productData.inventory, stock: parseInt(e.target.value) || 0}
+                                    inventory: { ...productData.inventory, stock: parseInt(e.target.value) || 0 }
                                 })}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 min="0"
@@ -476,7 +476,7 @@ const EditProduct = () => {
                                 value={productData.inventory.lowStockThreshold}
                                 onChange={(e) => setProductData({
                                     ...productData,
-                                    inventory: {...productData.inventory, lowStockThreshold: parseInt(e.target.value) || 0}
+                                    inventory: { ...productData.inventory, lowStockThreshold: parseInt(e.target.value) || 0 }
                                 })}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 min="1"
@@ -490,7 +490,7 @@ const EditProduct = () => {
                                 value={productData.inventory.backorders}
                                 onChange={(e) => setProductData({
                                     ...productData,
-                                    inventory: {...productData.inventory, backorders: e.target.value}
+                                    inventory: { ...productData.inventory, backorders: e.target.value }
                                 })}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             >
@@ -506,7 +506,7 @@ const EditProduct = () => {
                                 checked={productData.inventory.manageStock}
                                 onChange={(e) => setProductData({
                                     ...productData,
-                                    inventory: {...productData.inventory, manageStock: e.target.checked}
+                                    inventory: { ...productData.inventory, manageStock: e.target.checked }
                                 })}
                                 className="h-4 w-4 text-blue-600 rounded"
                             />
@@ -609,7 +609,7 @@ const EditProduct = () => {
                                 name="status"
                                 value="draft"
                                 checked={productData.status === 'draft'}
-                                onChange={(e) => setProductData({...productData, status: e.target.value})}
+                                onChange={(e) => setProductData({ ...productData, status: e.target.value })}
                                 className="h-4 w-4 text-blue-600"
                             />
                             <label htmlFor="draft" className="ml-2 text-gray-700">
@@ -623,7 +623,7 @@ const EditProduct = () => {
                                 name="status"
                                 value="published"
                                 checked={productData.status === 'published'}
-                                onChange={(e) => setProductData({...productData, status: e.target.value})}
+                                onChange={(e) => setProductData({ ...productData, status: e.target.value })}
                                 className="h-4 w-4 text-blue-600"
                             />
                             <label htmlFor="published" className="ml-2 text-gray-700">

@@ -30,6 +30,12 @@ import StoreSettings from '../components/Seller/Settings/StoreSettings'
 // Contractor Components
 import ContractorLayout from '../layouts/ContractorLayout'
 import ContractorDashboardPage from '../pages/Contractor/DashboardPage'
+import ProjectsPage from '../pages/Contractor/ProjectsPage'
+import PortfolioPage from '../pages/Contractor/PortfolioPage'
+import QuotesPage from '../pages/Contractor/QuotesPage' // Add this import
+import MaterialsPage from '../pages/Contractor/MaterialsPage'
+import OrdersPage from '../pages/Contractor/OrdersPage'
+import CommunityPage from '../pages/Contractor/CommunityPage'
 
 // Public Components
 import InvestorPage from '../pages/Investor/InvestorPage'
@@ -38,6 +44,7 @@ import CategoryWithSubcategories from '../pages/Category/CategoryWithSubcategori
 import BrandsPage from '../pages/Brands/BrandPage'
 import AllProductsPage from "../pages/Products/AllProductsPage"
 import SubcategoryProductsPage from "../pages/Products/SubcategoryProductsPage"
+
 const AppRoutes = () => {
     return (
         <ErrorBoundary>
@@ -56,12 +63,9 @@ const AppRoutes = () => {
                     <Route path="/brands" element={<BrandsPage />} />
 
                     {/* Protected User Routes (general users) */}
+                    <Route path="/category/:categoryId" element={<CategoryWithSubcategories />} />
+                    <Route path="/category/:categoryId/subcategory/:subcategoryId/products" element={<SubcategoryProductsPage />} />
 
-                    // Inside your routes
-                    <Route path="/category/:categoryId" element={
-                        <CategoryWithSubcategories />} />
-                    <Route path="/category/:categoryId/subcategory/:subcategoryId/products" element={
-                        <SubcategoryProductsPage />} />
                     {/* Protected User Routes */}
                     <Route path="/checkout" element={
                         <ProtectedRoute>
@@ -115,12 +119,12 @@ const AppRoutes = () => {
                     <Route path="dashboard" element={<ContractorDashboardPage />} />
 
                     {/* Contractor specific routes */}
-                    <Route path="projects" element={<div className="p-6">Projects Page (Coming Soon)</div>} />
-                    <Route path="portfolio" element={<div className="p-6">Portfolio Page (Coming Soon)</div>} />
-                    <Route path="quotes" element={<div className="p-6">Quotes Page (Coming Soon)</div>} />
-                    <Route path="materials" element={<div className="p-6">Materials Page (Coming Soon)</div>} />
-                    <Route path="orders" element={<div className="p-6">Orders Page (Coming Soon)</div>} />
-                    <Route path="community" element={<div className="p-6">Community Page (Coming Soon)</div>} />
+                    <Route path="projects" element={<ProjectsPage />} />
+                    <Route path="portfolio" element={<PortfolioPage />} />
+                    <Route path="quotes" element={<QuotesPage />} />
+                    <Route path="materials" element={<MaterialsPage />} />
+                    <Route path="orders" element={<OrdersPage />} />
+                    <Route path="community" element={<CommunityPage />} />
                     <Route path="messages" element={<div className="p-6">Messages Page (Coming Soon)</div>} />
                     <Route path="analytics" element={<div className="p-6">Analytics Page (Coming Soon)</div>} />
                     <Route path="finance" element={<div className="p-6">Finance Page (Coming Soon)</div>} />

@@ -11,7 +11,7 @@ import axios from 'axios';
 
 const API_URL =
     import.meta.env.VITE_API_URL ||
-    (import.meta.env.DEV ? 'http://localhost:5000/api' : 'https://bricks-com-backend.vercel.app/api');
+    (import.meta.env.DEV ? 'http://localhost:5000/api' : 'https://bricks-backend-qyea.onrender.com/api');
 
 
 const RegisterPage = () => {

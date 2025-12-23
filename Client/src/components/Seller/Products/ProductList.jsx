@@ -6,10 +6,10 @@ import axios from 'axios';
 // Define API URL - use environment variable or fallback
 const API_URL = window.location.hostname === 'localhost'
     ? 'http://localhost:5000/api'
-    : 'https://bricks-com-backend.vercel.app/api';
+    : 'https://bricks-backend-qyea.onrender.com/api';
 
 // Or if you're using Vite, use this:
-// const API_URL = import.meta.env.VITE_API_URL || 'https://bricks-com-backend.vercel.app/api';
+// const API_URL = import.meta.env.VITE_API_URL || 'https://bricks-backend-qyea.onrender.com/api';
 
 const ProductList = () => {
     const [products, setProducts] = useState([]);

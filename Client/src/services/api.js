@@ -3,7 +3,7 @@
 import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:5000/api'; // Make sure your backend runs on port 5000
-const API_URL='http://localhost:5000/api'
+const API_URL = 'http://localhost:5000/api'
 const safeFetch = async (url, options = {}) => {
     try {
         const controller = new AbortController();
@@ -31,7 +31,7 @@ const safeFetch = async (url, options = {}) => {
             throw new Error('Request timed out. Check your internet or server.');
         }
         if (error.message.includes('Failed to fetch')) {
-            throw new Error('Cannot reach the server. Is the backend running on https://bricks-com-backend.vercel.app?');
+            throw new Error('Cannot reach the server. Is the backend running on https://bricks-backend-qyea.onrender.com?');
         }
         throw error;
     }

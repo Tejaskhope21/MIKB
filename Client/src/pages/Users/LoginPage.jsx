@@ -10,7 +10,7 @@ const API_URL =
     import.meta.env.VITE_API_URL ||
     (import.meta.env.MODE === 'development'
         ? 'http://localhost:5000/api'
-        : 'https://bricks-com-backend.vercel.app/api');
+        : 'https://bricks-backend-qyea.onrender.com/api');
 
 const LoginPage = () => {
     const navigate = useNavigate();

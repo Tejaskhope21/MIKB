@@ -24,7 +24,7 @@ import axios from 'axios';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://bricks-com-backend.vercel.app/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://bricks-backend-qyea.onrender.com/api';
 
 const OrderDetails = () => {
     const { orderId } = useParams();

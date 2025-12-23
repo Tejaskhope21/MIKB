@@ -5,7 +5,7 @@ import axios from 'axios';
 
 const API_URL = window.location.hostname === 'localhost'
     ? 'http://localhost:5000/api'
-    : 'https://bricks-com-backend.vercel.app/api';
+    : 'https://bricks-backend-qyea.onrender.com/api';
 
 const AddProduct = () => {
     const navigate = useNavigate();

@@ -11,7 +11,7 @@ import {
     ShoppingBag
 } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://bricks-com-backend.vercel.app/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://bricks-backend-qyea.onrender.com/api';
 
 const MyOrdersPage = () => {
     const navigate = useNavigate();
