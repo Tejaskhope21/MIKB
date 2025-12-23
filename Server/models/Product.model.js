@@ -1,3 +1,5 @@
+// models/Product.model.js
+
 import mongoose from 'mongoose';
 
 /* ===============================
@@ -18,7 +20,7 @@ const productSchema = new mongoose.Schema(
 
         name: {
             type: String,
-            required: true,
+            required: [true, 'Product name is required'],
             trim: true
         },
 
@@ -29,13 +31,13 @@ const productSchema = new mongoose.Schema(
 
         description: {
             type: String,
-            required: true
+            required: [true, 'Product description is required']
         },
 
         categoryId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Category',
-            required: true
+            required: [true, 'Category is required']
         },
 
         subcategoryId: {
@@ -77,13 +79,13 @@ const productSchema = new mongoose.Schema(
 
         price: {
             type: Number,
-            required: true,
-            min: 0
+            required: [true, 'Price is required'],
+            min: [0, 'Price cannot be negative']
         },
 
         originalPrice: {
             type: Number,
-            min: 0
+            min: [0, 'Original price cannot be negative']
         },
 
         discount: {
@@ -93,7 +95,7 @@ const productSchema = new mongoose.Schema(
 
         images: {
             type: [String],
-            required: true,
+            required: [true, 'At least one product image is required'],
             validate: [arrayLimit, 'At least one image is required']
         },
 
@@ -109,7 +111,8 @@ const productSchema = new mongoose.Schema(
             },
             moq: {
                 type: Number,
-                default: 1
+                default: 1,
+                min: 1
             },
             manageStock: {
                 type: Boolean,
@@ -119,19 +122,20 @@ const productSchema = new mongoose.Schema(
 
         unitType: {
             type: String,
-            enum: ['piece', 'kg', 'ton', 'bag', 'meter', 'roll'],
+            enum: ['piece', 'kg', 'ton', 'meter', 'sq-meter', 'cubic-meter', 'bag', 'set', 'roll'],
             default: 'piece'
         },
 
         packaging: {
             type: {
                 type: String,
-                enum: ['box', 'bag', 'bundle', 'roll', 'pallet', 'crate', 'loose'],
+                enum: ['box', 'bag', 'bundle', 'pallet', 'roll', 'crate', 'loose'],
                 default: 'box'
             },
             quantityPerPackage: {
                 type: Number,
-                default: 1
+                default: 1,
+                min: 1
             }
         },
 
@@ -159,20 +163,22 @@ const productSchema = new mongoose.Schema(
 );
 
 /* ===============================
-   PRE-SAVE HOOKS
+   PRE-SAVE HOOK (FIXED)
 ================================ */
-productSchema.pre('save', async function (next) {
+// IMPORTANT: This is an async middleware → NO 'next' parameter and NO call to next()
+productSchema.pre('save', async function () {
     try {
-        // Auto-generate numericId
+        // Auto-generate numericId if not present
         if (!this.numericId) {
             const lastProduct = await this.constructor
                 .findOne({}, { numericId: 1 })
-                .sort({ numericId: -1 });
+                .sort({ numericId: -1 })
+                .lean(); // .lean() for better performance (no Mongoose document overhead)
 
             this.numericId = lastProduct ? lastProduct.numericId + 1 : 1000;
         }
 
-        // Auto-calculate discount
+        // Auto-calculate discount percentage
         if (this.originalPrice && this.originalPrice > this.price) {
             this.discount = Math.round(
                 ((this.originalPrice - this.price) / this.originalPrice) * 100
@@ -181,9 +187,10 @@ productSchema.pre('save', async function (next) {
             this.discount = 0;
         }
 
-        next();
+        // No need to call next() — just let the async function resolve
     } catch (error) {
-        next(error);
+        // Propagate the error so Mongoose rejects the save
+        throw error;
     }
 });
 
@@ -191,4 +198,5 @@ productSchema.pre('save', async function (next) {
    EXPORT MODEL
 ================================ */
 const Product = mongoose.model('Product', productSchema);
+
 export default Product;

@@ -3,7 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Filter, Plus, Edit, Trash2, Eye, Download, Upload, ChevronLeft, ChevronRight } from 'lucide-react';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://bricks-com-backend.vercel.app/api';
+// Define API URL - use environment variable or fallback
+const API_URL = window.location.hostname === 'localhost'
+    ? 'http://localhost:5000/api'
+    : 'https://bricks-com-backend.vercel.app/api';
+
+// Or if you're using Vite, use this:
+// const API_URL = import.meta.env.VITE_API_URL || 'https://bricks-com-backend.vercel.app/api';
 
 const ProductList = () => {
     const [products, setProducts] = useState([]);
@@ -35,27 +41,46 @@ const ProductList = () => {
         try {
             setLoading(true);
             const token = localStorage.getItem('token');
-            const queryParams = new URLSearchParams({
-                ...filters,
-                page: filters.page.toString(),
-                limit: filters.limit.toString()
-            }).toString();
 
-            const response = await axios.get(`${API_URL}/products?${queryParams}`, {
-                headers: { Authorization: `Bearer ${token}` }
+            // Build query params
+            const queryParams = new URLSearchParams();
+            queryParams.append('page', filters.page.toString());
+            queryParams.append('limit', filters.limit.toString());
+
+            if (filters.search) queryParams.append('search', filters.search);
+            if (filters.status) queryParams.append('status', filters.status);
+            if (filters.category) queryParams.append('category', filters.category);
+            if (filters.sort) queryParams.append('sort', filters.sort);
+
+            const response = await axios.get(`${API_URL}/seller/products?${queryParams}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
             });
 
             if (response.data.success) {
                 setProducts(response.data.products);
                 setPagination(response.data.pagination || {
-                    total: response.data.count || response.data.total || 0,
-                    pages: response.data.pagination?.totalPages || 1,
+                    total: response.data.total || 0,
+                    pages: Math.ceil((response.data.total || 0) / filters.limit),
                     currentPage: filters.page
                 });
+            } else {
+                throw new Error(response.data.message || 'Failed to fetch products');
             }
         } catch (error) {
             console.error('Error fetching products:', error);
-            alert('Failed to fetch products');
+
+            // Handle authentication errors
+            if (error.response?.status === 401) {
+                localStorage.removeItem('token');
+                navigate('/login');
+                alert('Session expired. Please login again.');
+                return;
+            }
+
+            alert(error.response?.data?.message || 'Failed to fetch products');
         } finally {
             setLoading(false);
         }
@@ -65,8 +90,12 @@ const ProductList = () => {
         try {
             const token = localStorage.getItem('token');
             const response = await axios.get(`${API_URL}/categories`, {
-                headers: { Authorization: `Bearer ${token}` }
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
             });
+
             if (response.data.success) {
                 setCategories(response.data.categories || []);
             }
@@ -75,18 +104,23 @@ const ProductList = () => {
         }
     };
 
-    const handleDeleteProduct = async (productId, productName) => {
-        if (!window.confirm(`Are you sure you want to delete "${productName}"?`)) return;
+    const handleDeleteProduct = async (productId) => {
+        if (!window.confirm('Are you sure you want to delete this product?')) return;
 
         try {
             const token = localStorage.getItem('token');
             const response = await axios.delete(`${API_URL}/products/${productId}`, {
-                headers: { Authorization: `Bearer ${token}` }
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
             });
 
             if (response.data.success) {
                 alert('Product deleted successfully');
                 fetchProducts();
+            } else {
+                throw new Error(response.data.message || 'Failed to delete product');
             }
         } catch (error) {
             console.error('Error deleting product:', error);
@@ -95,7 +129,10 @@ const ProductList = () => {
     };
 
     const handleBulkAction = async (action) => {
-        if (selectedProducts.length === 0) return;
+        if (selectedProducts.length === 0) {
+            alert('Please select products first');
+            return;
+        }
 
         try {
             const token = localStorage.getItem('token');
@@ -103,31 +140,38 @@ const ProductList = () => {
             if (action === 'delete') {
                 if (!window.confirm(`Delete ${selectedProducts.length} selected products?`)) return;
 
-                const response = await axios.post(`${API_URL}/products/bulk-delete`, {
-                    productIds: selectedProducts
-                }, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                // Delete products one by one
+                const deletePromises = selectedProducts.map(productId =>
+                    axios.delete(`${API_URL}/products/${productId}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    })
+                );
 
-                if (response.data.success) {
-                    alert(`${selectedProducts.length} products deleted successfully`);
-                    setSelectedProducts([]);
-                    fetchProducts();
-                }
+                await Promise.all(deletePromises);
+
+                alert(`${selectedProducts.length} products deleted successfully`);
+                setSelectedProducts([]);
+                fetchProducts();
+
             } else if (action === 'publish' || action === 'draft') {
                 const status = action === 'publish' ? 'published' : 'draft';
 
-                const response = await axios.post(`${API_URL}/products/bulk-status`, {
+                const response = await axios.put(`${API_URL}/products/bulk/update`, {
                     productIds: selectedProducts,
-                    status
+                    updates: { status }
                 }, {
-                    headers: { Authorization: `Bearer ${token}` }
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
                 });
 
                 if (response.data.success) {
                     alert(`${selectedProducts.length} products updated to ${status}`);
                     setSelectedProducts([]);
                     fetchProducts();
+                } else {
+                    throw new Error(response.data.message || 'Failed to update products');
                 }
             }
         } catch (error) {
@@ -139,19 +183,30 @@ const ProductList = () => {
     const exportProducts = async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get(`${API_URL}/products/export`, {
-                headers: { Authorization: `Bearer ${token}` },
-                responseType: 'blob'
+            const response = await axios.get(`${API_URL}/seller/products/export`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json'
+                }
             });
 
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `products_${new Date().toISOString().split('T')[0]}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.URL.revokeObjectURL(url);
+            // Handle different export formats
+            if (response.data.downloadUrl) {
+                // If backend provides a download URL
+                window.open(`${API_URL}${response.data.downloadUrl}`, '_blank');
+            } else {
+                // Create downloadable file
+                const dataStr = JSON.stringify(response.data, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                const url = window.URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', `products_${new Date().toISOString().split('T')[0]}.json`);
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                window.URL.revokeObjectURL(url);
+            }
         } catch (error) {
             console.error('Error exporting products:', error);
             alert('Failed to export products');
@@ -186,8 +241,6 @@ const ProductList = () => {
             case 'published': return 'bg-green-100 text-green-800';
             case 'draft': return 'bg-gray-100 text-gray-800';
             case 'out_of_stock': return 'bg-red-100 text-red-800';
-            case 'archived': return 'bg-purple-100 text-purple-800';
-            case 'discontinued': return 'bg-orange-100 text-orange-800';
             default: return 'bg-gray-100 text-gray-800';
         }
     };
@@ -221,7 +274,7 @@ const ProductList = () => {
     };
 
     return (
-        <div className="p-6">
+        <div className="p-4 md:p-6">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
                 <div>
@@ -231,23 +284,15 @@ const ProductList = () => {
                 <div className="flex flex-wrap gap-3 mt-4 md:mt-0">
                     <button
                         onClick={exportProducts}
-                        className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 flex items-center"
+                        className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 flex items-center transition-colors"
                         disabled={loading}
                     >
                         <Download className="w-4 h-4 mr-2" />
                         Export
                     </button>
                     <button
-                        className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 flex items-center"
-                        onClick={() => document.getElementById('import-file').click()}
-                    >
-                        <Upload className="w-4 h-4 mr-2" />
-                        Import
-                        <input type="file" id="import-file" className="hidden" accept=".csv,.xlsx" />
-                    </button>
-                    <button
                         onClick={handleAddProduct}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center transition-colors"
                     >
                         <Plus className="w-4 h-4 mr-2" />
                         Add Product
@@ -277,7 +322,6 @@ const ProductList = () => {
                         <option value="published">Published</option>
                         <option value="draft">Draft</option>
                         <option value="out_of_stock">Out of Stock</option>
-                        <option value="archived">Archived</option>
                     </select>
                     <select
                         value={filters.category}
@@ -287,13 +331,13 @@ const ProductList = () => {
                         <option value="">All Categories</option>
                         {categories.map(cat => (
                             <option key={cat._id} value={cat._id}>
-                                {cat.name}
+                                {cat.name || cat.title}
                             </option>
                         ))}
                     </select>
                     <button
                         onClick={() => setShowFilters(!showFilters)}
-                        className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 flex items-center justify-center"
+                        className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 flex items-center justify-center transition-colors"
                     >
                         <Filter className="w-4 h-4 mr-2" />
                         More Filters
@@ -311,21 +355,7 @@ const ProductList = () => {
                             <option value="oldest">Oldest First</option>
                             <option value="price-low">Price: Low to High</option>
                             <option value="price-high">Price: High to Low</option>
-                            <option value="rating">Highest Rated</option>
-                            <option value="discount">Highest Discount</option>
                         </select>
-                        <input
-                            type="number"
-                            placeholder="Min Price"
-                            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            onChange={(e) => setFilters({ ...filters, minPrice: e.target.value, page: 1 })}
-                        />
-                        <input
-                            type="number"
-                            placeholder="Max Price"
-                            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value, page: 1 })}
-                        />
                     </div>
                 )}
             </div>
@@ -342,25 +372,25 @@ const ProductList = () => {
                         <div className="flex flex-wrap gap-2">
                             <button
                                 onClick={() => handleBulkAction('publish')}
-                                className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
+                                className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors"
                             >
                                 Publish Selected
                             </button>
                             <button
                                 onClick={() => handleBulkAction('draft')}
-                                className="px-4 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700"
+                                className="px-4 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors"
                             >
                                 Move to Draft
                             </button>
                             <button
                                 onClick={() => handleBulkAction('delete')}
-                                className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700"
+                                className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
                             >
                                 Delete Selected
                             </button>
                             <button
                                 onClick={() => setSelectedProducts([])}
-                                className="px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50"
+                                className="px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors"
                             >
                                 Clear Selection
                             </button>
@@ -381,7 +411,7 @@ const ProductList = () => {
                                         checked={selectedProducts.length > 0 && selectedProducts.length === products.length}
                                         onChange={(e) => {
                                             if (e.target.checked) {
-                                                setSelectedProducts(products.map(p => p.numericId || p._id));
+                                                setSelectedProducts(products.map(p => p._id));
                                             } else {
                                                 setSelectedProducts([]);
                                             }
@@ -433,7 +463,7 @@ const ProductList = () => {
                                             {!filters.search && !filters.status && !filters.category && (
                                                 <button
                                                     onClick={handleAddProduct}
-                                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
+                                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center transition-colors"
                                                 >
                                                     <Plus className="w-4 h-4 mr-2" />
                                                     Add Your First Product
@@ -452,13 +482,12 @@ const ProductList = () => {
                                             <td className="px-6 py-4">
                                                 <input
                                                     type="checkbox"
-                                                    checked={selectedProducts.includes(product.numericId || product._id)}
+                                                    checked={selectedProducts.includes(product._id)}
                                                     onChange={(e) => {
-                                                        const productId = product.numericId || product._id;
                                                         if (e.target.checked) {
-                                                            setSelectedProducts([...selectedProducts, productId]);
+                                                            setSelectedProducts([...selectedProducts, product._id]);
                                                         } else {
-                                                            setSelectedProducts(selectedProducts.filter(id => id !== productId));
+                                                            setSelectedProducts(selectedProducts.filter(id => id !== product._id));
                                                         }
                                                     }}
                                                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
@@ -481,7 +510,7 @@ const ProductList = () => {
                                                             {product.name}
                                                         </div>
                                                         <div className="text-sm text-gray-500">
-                                                            SKU: {product.inventory?.sku || 'N/A'}
+                                                            ID: {product.numericId}
                                                         </div>
                                                         {product.brand && (
                                                             <div className="text-xs text-gray-400">
@@ -491,10 +520,9 @@ const ProductList = () => {
                                                     </div>
                                                 </div>
                                             </td>
-                                            {/* FIXED CATEGORY DISPLAY */}
                                             <td className="px-6 py-4">
                                                 <span className="text-sm text-gray-700 bg-gray-100 px-2 py-1 rounded">
-                                                    {product.categoryId?.name || 'Uncategorized'}
+                                                    {product.categoryId?.name || product.categoryId?.title || 'Uncategorized'}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4">
@@ -518,7 +546,7 @@ const ProductList = () => {
                                                         {stockStatus.text}
                                                     </span>
                                                     <span className="text-xs text-gray-500">
-                                                        {product.inventory?.stock || 0} units available
+                                                        {product.inventory?.stock || 0} units
                                                     </span>
                                                 </div>
                                             </td>
@@ -537,14 +565,14 @@ const ProductList = () => {
                                                         <Eye className="w-4 h-4" />
                                                     </button>
                                                     <button
-                                                        onClick={() => handleEditProduct(product.numericId || product._id)}
+                                                        onClick={() => handleEditProduct(product._id)}
                                                         className="p-1.5 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-md transition-colors"
                                                         title="Edit"
                                                     >
                                                         <Edit className="w-4 h-4" />
                                                     </button>
                                                     <button
-                                                        onClick={() => handleDeleteProduct(product.numericId || product._id, product.name)}
+                                                        onClick={() => handleDeleteProduct(product._id)}
                                                         className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors"
                                                         title="Delete"
                                                     >
@@ -573,7 +601,7 @@ const ProductList = () => {
                                 <button
                                     onClick={() => handlePageChange(filters.page - 1)}
                                     disabled={filters.page === 1}
-                                    className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
                                     <ChevronLeft className="w-4 h-4" />
                                 </button>
@@ -583,7 +611,7 @@ const ProductList = () => {
                                         key={index}
                                         onClick={() => typeof pageNum === 'number' ? handlePageChange(pageNum) : null}
                                         disabled={pageNum === '...'}
-                                        className={`min-w-[40px] px-3 py-2 border rounded-lg text-sm font-medium ${pageNum === '...'
+                                        className={`min-w-[40px] px-3 py-2 border rounded-lg text-sm font-medium transition-colors ${pageNum === '...'
                                             ? 'border-transparent cursor-default'
                                             : filters.page === pageNum
                                                 ? 'bg-blue-600 text-white border-blue-600'
@@ -597,7 +625,7 @@ const ProductList = () => {
                                 <button
                                     onClick={() => handlePageChange(filters.page + 1)}
                                     disabled={filters.page === pagination.pages}
-                                    className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
                                     <ChevronRight className="w-4 h-4" />
                                 </button>
@@ -607,7 +635,7 @@ const ProductList = () => {
                                 <select
                                     value={filters.limit}
                                     onChange={(e) => setFilters({ ...filters, limit: Number(e.target.value), page: 1 })}
-                                    className="px-2 py-1 border border-gray-300 rounded-lg text-sm"
+                                    className="px-2 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 >
                                     <option value="10">10</option>
                                     <option value="20">20</option>

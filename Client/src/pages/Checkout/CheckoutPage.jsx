@@ -396,7 +396,7 @@ const CheckoutPage = () => {
 
                             <div className="my-8 flex items-center text-green-700 bg-green-50 p-4 rounded-lg">
                                 <Truck className="w-6 h-6 mr-3" />
-                                <span className="font-semibold">Estimated Delivery: 3-7 days</span>
+                                <span className="font-semibold">Estimated Delivery: 3-7 hours</span>
                             </div>
 
                             <button
