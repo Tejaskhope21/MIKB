@@ -130,14 +130,14 @@ const CategoryHeader = () => {
                             <h2 className="text-xl font-bold text-gray-800">
                                 {categories[hoveredIndex].name}
                             </h2>
-                            <Link 
+                            {/* <Link 
                                 to={`/category/${categories[hoveredIndex].id}`}
                                 state={{ categoryName: categories[hoveredIndex].name }}
                                 className="text-[#800000] hover:text-red-700 font-medium text-sm flex items-center gap-1 border border-[#800000] px-3 py-1.5 rounded-md hover:bg-red-50 transition-colors"
                             >
                                 View All Categories
                                 <span className="ml-1">→</span>
-                            </Link>
+                            </Link> */}
                         </div>
                         
                         {/* 4-Column Grid Subcategories */}
