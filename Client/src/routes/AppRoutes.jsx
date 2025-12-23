@@ -58,8 +58,10 @@ const AppRoutes = () => {
                     {/* Protected User Routes (general users) */}
 
                     // Inside your routes
-                    <Route path="/category/:categoryId" element={<CategoryWithSubcategories />} />
-                    <Route path="/category/:categoryId/subcategory/:subcategoryId/products" element={<SubcategoryProductsPage />} />
+                    <Route path="/category/:categoryId" element={
+                        <CategoryWithSubcategories />} />
+                    <Route path="/category/:categoryId/subcategory/:subcategoryId/products" element={
+                        <SubcategoryProductsPage />} />
                     {/* Protected User Routes */}
                     <Route path="/checkout" element={
                         <ProtectedRoute>
