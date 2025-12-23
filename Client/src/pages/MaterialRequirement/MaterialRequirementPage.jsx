@@ -194,11 +194,11 @@ const MaterialRequirementsDashboard = () => {
         setLoading(true);
         setError('');
         try {
-            // For demo, using mock data
+            // Simulate API delay
             setTimeout(() => {
                 setRequirements(mockRequirements);
                 setLoading(false);
-            }, 500);
+            }, 800);
             
         } catch (err) {
             console.error('Error fetching requirements:', err);
@@ -500,13 +500,111 @@ const MaterialRequirementsDashboard = () => {
         navigate('/material-requirement');
     };
 
+    // Loading skeleton for table rows
+    const TableRowSkeleton = () => (
+        <tr className="animate-pulse">
+            <td className="px-6 py-4 whitespace-nowrap">
+                <div className="h-4 bg-gray-200 rounded w-32 mb-2"></div>
+                <div className="h-3 bg-amber-200 rounded w-24"></div>
+            </td>
+            <td className="px-6 py-4">
+                <div className="h-4 bg-gray-200 rounded w-36 mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-24 mb-1"></div>
+                <div className="h-3 bg-gray-200 rounded w-20"></div>
+            </td>
+            <td className="px-6 py-4">
+                <div className="h-4 bg-gray-200 rounded w-16 mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-28"></div>
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap">
+                <div className="flex flex-col space-y-2">
+                    <div className="h-6 bg-gray-200 rounded w-20"></div>
+                    <div className="h-6 bg-amber-200 rounded w-16"></div>
+                </div>
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap">
+                <div className="h-4 bg-gray-200 rounded w-16"></div>
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap">
+                <div className="flex space-x-3">
+                    <div className="h-6 bg-gray-200 rounded w-10"></div>
+                    <div className="h-6 bg-gray-200 rounded w-10"></div>
+                    <div className="h-6 bg-gray-200 rounded w-12"></div>
+                </div>
+            </td>
+        </tr>
+    );
+
+    // Loading skeleton for stats cards
+    const StatsCardSkeleton = () => (
+        <div className="bg-white rounded-lg shadow p-4">
+            <div className="h-6 bg-gray-200 rounded w-32 mb-4"></div>
+            <div className="h-10 bg-gray-200 rounded w-20"></div>
+        </div>
+    );
+
+    // Loading skeleton for filters
+    const FiltersSkeleton = () => (
+        <div className="bg-white rounded-lg shadow p-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {[...Array(4)].map((_, i) => (
+                    <div key={i}>
+                        <div className="h-4 bg-gray-200 rounded w-16 mb-2"></div>
+                        <div className="h-10 bg-gray-200 rounded w-full"></div>
+                    </div>
+                ))}
+            </div>
+            <div className="mt-4 flex justify-end space-x-3">
+                <div className="h-10 bg-gray-200 rounded w-24"></div>
+                <div className="h-10 bg-gray-200 rounded w-24"></div>
+            </div>
+        </div>
+    );
+
+    // Loading skeleton for header
+    const HeaderSkeleton = () => (
+        <div className="mb-8">
+            <div className="h-6 bg-gray-200 rounded w-48 mb-2"></div>
+            <div className="h-4 bg-gray-200 rounded w-64"></div>
+        </div>
+    );
+
     // Loading state
-    if (userLoading || loading) {
+    if (userLoading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Loading...</p>
+            <div className="min-h-screen bg-gray-50 py-8">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <HeaderSkeleton />
+                    <FiltersSkeleton />
+                    
+                    {/* Stats Summary Skeleton */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                        {[...Array(4)].map((_, i) => (
+                            <StatsCardSkeleton key={i} />
+                        ))}
+                    </div>
+                    
+                    {/* Table Skeleton */}
+                    <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        {[...Array(6)].map((_, i) => (
+                                            <th key={i} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <div className="h-4 bg-gray-300 rounded w-24"></div>
+                                            </th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {[...Array(3)].map((_, i) => (
+                                        <TableRowSkeleton key={i} />
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         );
@@ -553,77 +651,83 @@ const MaterialRequirementsDashboard = () => {
 
                 {/* Filters */}
                 <div className="bg-white rounded-lg shadow p-4 mb-6">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                            <select
-                                value={filters.status}
-                                onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                            >
-                                {statusOptions.map(option => (
-                                    <option key={option.value} value={option.value}>
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Project Type</label>
-                            <select
-                                value={filters.projectType}
-                                onChange={(e) => setFilters({ ...filters, projectType: e.target.value })}
-                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                            >
-                                <option value="">All Types</option>
-                                {projectTypes.map(type => (
-                                    <option key={type} value={type}>{type}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
-                            <input
-                                type="text"
-                                value={filters.search}
-                                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                                placeholder="Search requirements..."
-                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
-                            <select
-                                value={filters.sortBy}
-                                onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
-                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                            >
-                                <option value="-createdAt">Newest First</option>
-                                <option value="createdAt">Oldest First</option>
-                                <option value="urgencyLevel">Urgency</option>
-                                <option value="projectType">Project Type</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div className="mt-4 flex justify-end space-x-3">
-                        <button
-                            onClick={fetchRequirements}
-                            className="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 text-sm"
-                        >
-                            Apply Filters
-                        </button>
-                        <button
-                            onClick={() => setFilters({
-                                status: '',
-                                projectType: '',
-                                search: '',
-                                sortBy: '-createdAt'
-                            })}
-                            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-sm"
-                        >
-                            Clear Filters
-                        </button>
-                    </div>
+                    {loading ? (
+                        <FiltersSkeleton />
+                    ) : (
+                        <>
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                    <select
+                                        value={filters.status}
+                                        onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                                    >
+                                        {statusOptions.map(option => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Project Type</label>
+                                    <select
+                                        value={filters.projectType}
+                                        onChange={(e) => setFilters({ ...filters, projectType: e.target.value })}
+                                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                                    >
+                                        <option value="">All Types</option>
+                                        {projectTypes.map(type => (
+                                            <option key={type} value={type}>{type}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+                                    <input
+                                        type="text"
+                                        value={filters.search}
+                                        onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                                        placeholder="Search requirements..."
+                                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+                                    <select
+                                        value={filters.sortBy}
+                                        onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
+                                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                                    >
+                                        <option value="-createdAt">Newest First</option>
+                                        <option value="createdAt">Oldest First</option>
+                                        <option value="urgencyLevel">Urgency</option>
+                                        <option value="projectType">Project Type</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="mt-4 flex justify-end space-x-3">
+                                <button
+                                    onClick={fetchRequirements}
+                                    className="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 text-sm"
+                                >
+                                    Apply Filters
+                                </button>
+                                <button
+                                    onClick={() => setFilters({
+                                        status: '',
+                                        projectType: '',
+                                        search: '',
+                                        sortBy: '-createdAt'
+                                    })}
+                                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-sm"
+                                >
+                                    Clear Filters
+                                </button>
+                            </div>
+                        </>
+                    )}
                 </div>
 
                 {/* Horizontal Line */}
@@ -633,33 +737,60 @@ const MaterialRequirementsDashboard = () => {
 
                 {/* Stats Summary */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                    <div className="bg-white rounded-lg shadow p-4">
-                        <h3 className="text-lg font-semibold text-gray-900">Total Requirements</h3>
-                        <p className="text-3xl font-bold text-amber-600 mt-2">{requirements.length}</p>
-                    </div>
-                    <div className="bg-white rounded-lg shadow p-4">
-                        <h3 className="text-lg font-semibold text-gray-900">Pending</h3>
-                        <p className="text-3xl font-bold text-yellow-600 mt-2">
-                            {requirements.filter(r => r.status === 'pending').length}
-                        </p>
-                    </div>
-                    <div className="bg-white rounded-lg shadow p-4">
-                        <h3 className="text-lg font-semibold text-gray-900">In Progress</h3>
-                        <p className="text-3xl font-bold text-blue-600 mt-2">
-                            {requirements.filter(r => r.status === 'in-progress').length}
-                        </p>
-                    </div>
-                    <div className="bg-white rounded-lg shadow p-4">
-                        <h3 className="text-lg font-semibold text-gray-900">Completed</h3>
-                        <p className="text-3xl font-bold text-green-600 mt-2">
-                            {requirements.filter(r => r.status === 'completed').length}
-                        </p>
-                    </div>
+                    {loading ? (
+                        [...Array(4)].map((_, i) => (
+                            <StatsCardSkeleton key={i} />
+                        ))
+                    ) : (
+                        <>
+                            <div className="bg-white rounded-lg shadow p-4">
+                                <h3 className="text-lg font-semibold text-gray-900">Total Requirements</h3>
+                                <p className="text-3xl font-bold text-amber-600 mt-2">{requirements.length}</p>
+                            </div>
+                            <div className="bg-white rounded-lg shadow p-4">
+                                <h3 className="text-lg font-semibold text-gray-900">Pending</h3>
+                                <p className="text-3xl font-bold text-yellow-600 mt-2">
+                                    {requirements.filter(r => r.status === 'pending').length}
+                                </p>
+                            </div>
+                            <div className="bg-white rounded-lg shadow p-4">
+                                <h3 className="text-lg font-semibold text-gray-900">In Progress</h3>
+                                <p className="text-3xl font-bold text-blue-600 mt-2">
+                                    {requirements.filter(r => r.status === 'in-progress').length}
+                                </p>
+                            </div>
+                            <div className="bg-white rounded-lg shadow p-4">
+                                <h3 className="text-lg font-semibold text-gray-900">Completed</h3>
+                                <p className="text-3xl font-bold text-green-600 mt-2">
+                                    {requirements.filter(r => r.status === 'completed').length}
+                                </p>
+                            </div>
+                        </>
+                    )}
                 </div>
 
                 {/* Requirements List */}
                 <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-                    {requirements.length === 0 ? (
+                    {loading ? (
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        {[...Array(6)].map((_, i) => (
+                                            <th key={i} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <div className="h-4 bg-gray-300 rounded w-24"></div>
+                                            </th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {[...Array(3)].map((_, i) => (
+                                        <TableRowSkeleton key={i} />
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : requirements.length === 0 ? (
                         <div className="p-8 text-center">
                             <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />

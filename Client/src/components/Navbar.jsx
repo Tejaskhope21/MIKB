@@ -356,7 +356,7 @@ export default function Navbar({ user, onLogout }) {
                                                 )}
 
                                                 {/* Subcategories Section */}
-                                                {searchResults.subcategories.length > 0 && (
+                                                {/* {searchResults.subcategories.length > 0 && (
                                                     <div className="border-b border-gray-100 last:border-b-0">
                                                         <div className="px-4 py-3 bg-gray-50 text-gray-700 text-sm font-semibold">
                                                             Subcategories ({searchResults.subcategories.length})
@@ -387,7 +387,7 @@ export default function Navbar({ user, onLogout }) {
                                                             );
                                                         })}
                                                     </div>
-                                                )}
+                                                )} */}
 
                                                 {/* View all results */}
                                                 {(searchResults.totalResults > 0 || searchQuery.length > 0) && (

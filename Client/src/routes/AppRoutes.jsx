@@ -30,10 +30,10 @@ import Inventory from '../components/Seller/Inventory/Inventory'
 import StoreSettings from '../components/Seller/Settings/StoreSettings'
 import InvestorPage from '../pages/Investor/InvestorPage'
 import MaterialRequirementPage from '../pages/MaterialRequirement/MaterialRequirementPage'
-import CategoryDetailsPage from '../pages/Category/CategoryDetailsPage'
+import CategoryWithSubcategories from '../pages/Category/CategoryWithSubcategories'
 import BrandsPage from '../pages/Brands/BrandPage'
 import AllProductsPage from "../pages/Products/AllProductsPage"
-
+import SubcategoryProductsPage from "../pages/Products/SubcategoryProductsPage"
 const AppRoutes = () => {
     return (
         <ErrorBoundary>
@@ -46,10 +46,13 @@ const AppRoutes = () => {
                     <Route path="/post-requirement" element={<MaterialRequirementPage />} />
                     <Route path="/products/category/:categoryId" element={<ProductsPage />} />
                     <Route path="/product/:productId" element={<ProductDetailsPage />} />
+                    
                     <Route path="/cart" element={<CartPage />} />
-                    <Route path="/category/:categoryId" element={<CategoryDetailsPage />} />
+                    
                     <Route path="/brands" element={<BrandsPage />} />
-
+                    // Inside your routes
+<Route path="/category/:categoryId" element={<CategoryWithSubcategories />} />
+<Route path="/category/:categoryId/subcategory/:subcategoryId/products" element={<SubcategoryProductsPage />} />
                     {/* Protected User Routes */}
                     <Route path="/checkout" element={
                         <ProtectedRoute>
