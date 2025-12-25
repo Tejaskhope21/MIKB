@@ -621,3 +621,4 @@ export const formatRequirementForDisplay = (requirement) => ({
     createdAt: new Date(requirement.createdAt).toLocaleDateString('en-IN'),
     quotesCount: requirement.quotes?.length || 0
 });
+

@@ -437,10 +437,16 @@ export default function Navbar({ user, onLogout }) {
                     {/* Right Side Icons */}
                     <div className="hidden md:flex items-center space-x-6 text-white">
                         <button
+                            onClick={() => navigate('/contractors')}
+                            className="hover:text-gray-300 transition-colors font-medium cursor-pointer"
+                        >
+                            Contractors
+                        </button>
+                        <button
                             onClick={() => navigate('/login')}
                             className="hover:text-gray-300 transition-colors font-medium cursor-pointer"
                         >
-                            Sell
+                            Seller
                         </button>
                         <Link to="/investors" className="hover:text-gray-300 transition-colors font-medium">
                             Investors
