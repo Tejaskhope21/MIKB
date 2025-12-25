@@ -1,11 +1,11 @@
 import React, { useState } from "react";
-import { Lock, Mail, Store } from "lucide-react";
+import { Lock, Mail, Store, Eye, EyeOff } from "lucide-react";
 import { staticLogin } from "../utils/api";
 
 const Login = () => {
   const [credentials, setCredentials] = useState({
-    email: "admin@bricks.com",
-    password: "Admin@123",
+    email: "",
+    password: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -17,19 +17,15 @@ const Login = () => {
     setError("");
 
     try {
-      const response = await staticLogin(credentials);
-      
-      if (response.success) {
-        window.location.href = "/admin/dashboard";
-      }
+      await staticLogin(credentials);
+      window.location.href = "/admin/dashboard";
     } catch (err) {
-      setError(err.message || "Login failed. Please try again.");
+      setError(err.message || "Login failed. Check credentials.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Quick login with demo credentials
   const handleDemoLogin = () => {
     setCredentials({
       email: "admin@bricks.com",
@@ -38,77 +34,68 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full space-y-8">
-        {/* Logo */}
+        {/* Logo & Title */}
         <div className="text-center">
-          <div className="flex justify-center">
-            <div className="bg-blue-600 p-3 rounded-full">
-              <Store className="h-10 w-10 text-white" />
+          <div className="flex justify-center mb-6">
+            <div className="bg-indigo-600 p-4 rounded-2xl shadow-lg">
+              <Store className="h-12 w-12 text-white" />
             </div>
           </div>
-          <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            Admin Dashboard
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Use the credentials below to login
-          </p>
-          
-          {/* Demo Credentials Card */}
-          <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="text-sm font-medium text-blue-800 mb-2">Demo Credentials</h3>
-            <div className="text-left space-y-1">
-              <div className="flex items-center">
-                <span className="text-xs text-gray-600 w-16">Email:</span>
-                <code className="text-xs bg-white px-2 py-1 rounded border">
+          <h2 className="text-4xl font-bold text-gray-900">Admin Portal</h2>
+          <p className="mt-2 text-gray-600">Manage users, sellers & platform</p>
+
+          {/* Demo Credentials Box */}
+          <div className="mt-6 bg-amber-50 border border-amber-200 rounded-xl p-5 text-left">
+            <h3 className="font-semibold text-amber-900 mb-3">Demo Login</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center gap-3">
+                <span className="text-gray-700">Email:</span>
+                <code className="bg-white px-3 py-1 rounded border font-mono">
                   admin@bricks.com
                 </code>
               </div>
-              <div className="flex items-center">
-                <span className="text-xs text-gray-600 w-16">Password:</span>
-                <code className="text-xs bg-white px-2 py-1 rounded border">
+              <div className="flex items-center gap-3">
+                <span className="text-gray-700">Pass:</span>
+                <code className="bg-white px-3 py-1 rounded border font-mono">
                   Admin@123
                 </code>
               </div>
             </div>
             <button
-              type="button"
               onClick={handleDemoLogin}
-              className="mt-3 w-full px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+              className="mt-4 w-full bg-amber-600 hover:bg-amber-700 text-white font-medium py-2 rounded-lg transition"
             >
-              Auto-fill Credentials
+              Auto-fill Demo Credentials
             </button>
           </div>
         </div>
 
         {/* Login Form */}
-        <div className="bg-white py-8 px-4 shadow-lg rounded-lg sm:px-10">
-          <form className="space-y-6" onSubmit={handleSubmit}>
+        <div className="bg-white rounded-2xl shadow-xl p-8">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+              <div className="bg-red-50 text-red-700 p-4 rounded-lg text-sm">
                 {error}
               </div>
             )}
 
             {/* Email */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Email Address
               </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
-                </div>
+              <div className="relative">
+                <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                 <input
-                  id="email"
-                  name="email"
                   type="email"
                   required
                   value={credentials.email}
                   onChange={(e) =>
                     setCredentials({ ...credentials, email: e.target.value })
                   }
-                  className="appearance-none block w-full pl-10 px-3 py-2 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
                   placeholder="admin@bricks.com"
                 />
               </div>
@@ -116,69 +103,44 @@ const Login = () => {
 
             {/* Password */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Password
               </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
-                </div>
+              <div className="relative">
+                <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                 <input
-                  id="password"
-                  name="password"
                   type={showPassword ? "text" : "password"}
                   required
                   value={credentials.password}
                   onChange={(e) =>
                     setCredentials({ ...credentials, password: e.target.value })
                   }
-                  className="appearance-none block w-full pl-10 pr-10 px-3 py-2 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-3 text-gray-500 hover:text-gray-700"
                 >
-                  {showPassword ? (
-                    <span className="text-sm">Hide</span>
-                  ) : (
-                    <span className="text-sm">Show</span>
-                  )}
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
             </div>
 
-            {/* Submit Button */}
-            <div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? "Signing in..." : "Sign in"}
-              </button>
-            </div>
-
-            {/* Quick Login Button */}
-            <div>
-              <button
-                type="button"
-                onClick={handleDemoLogin}
-                disabled={loading}
-                className="w-full py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm"
-              >
-                Use Demo Credentials
-              </button>
-            </div>
-
-            {/* Security Note */}
-            <div className="text-center">
-              <p className="text-xs text-gray-500">
-                Note: This is a static demo login. For production, implement proper authentication.
-              </p>
-            </div>
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-70 text-white font-semibold py-3 rounded-lg transition duration-200"
+            >
+              {loading ? "Signing in..." : "Sign In to Dashboard"}
+            </button>
           </form>
+
+          <p className="text-center text-xs text-gray-500 mt-6">
+            Note: This uses static demo login. In production, replace with real JWT auth.
+          </p>
         </div>
       </div>
     </div>

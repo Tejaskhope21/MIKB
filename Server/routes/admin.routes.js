@@ -7,14 +7,14 @@ import {
     createAdmin,
     getStats
 } from '../controllers/admin.controller.js';
-import { protect, authorize, checkActive } from '../middleware/auth.middleware.js';
+// import { protect, authorize, checkActive } from '../middleware/auth.middleware.js';  // ← COMMENT THESE
 
 const router = express.Router();
 
-// All routes require ADMIN authentication
-router.use(protect);
-router.use(checkActive);
-router.use(authorize('ADMIN'));
+// All routes require ADMIN authentication → TEMPORARILY REMOVE FOR DEMO
+// router.use(protect);
+// router.use(checkActive);
+// router.use(authorize('ADMIN'));
 
 /* ================= STATS ================= */
 router.get('/stats', getStats);

@@ -11,18 +11,18 @@ const API_BASE_URL =
     : "https://bricks-backend-qyea.onrender.com/api");
 
 /* ===============================
-   AXIOS INSTANCE
+   AXIOS INSTANCE - POINTS TO ADMIN V1 ROUTES
 ================================ */
 
 const api = axios.create({
-  baseURL: `${API_BASE_URL}/admin`,
+  baseURL: `${API_BASE_URL}/v1/admin`, // ← Correct path matching your backend
   headers: {
     "Content-Type": "application/json",
   },
 });
 
 /* ===============================
-   STATIC ADMIN CREDENTIALS
+   STATIC ADMIN CREDENTIALS (DEMO ONLY)
 ================================ */
 
 export const STATIC_ADMIN_CREDENTIALS = {
@@ -33,7 +33,7 @@ export const STATIC_ADMIN_CREDENTIALS = {
 };
 
 /* ===============================
-   AUTH HELPERS
+   STATIC AUTH HELPERS (CLIENT-SIDE ONLY)
 ================================ */
 
 export const validateStaticCredentials = (email, password) => {
@@ -67,7 +67,7 @@ export const validateStaticToken = (token) => {
       return false;
     }
 
-    // Token expiry: 24 hours
+    // Token valid for 24 hours
     const tokenTime = new Date(decoded.timestamp);
     const now = new Date();
     const hoursDiff = Math.abs(now - tokenTime) / 36e5;
@@ -79,7 +79,7 @@ export const validateStaticToken = (token) => {
 };
 
 /* ===============================
-   MOCK LOGIN / LOGOUT
+   MOCK LOGIN / LOGOUT (DEMO PURPOSES)
 ================================ */
 
 export const staticLogin = async ({ email, password }) => {
@@ -106,7 +106,7 @@ export const staticLogin = async ({ email, password }) => {
           message: "Invalid email or password",
         });
       }
-    }, 500);
+    }, 800);
   });
 };
 
@@ -120,6 +120,7 @@ export const staticLogout = () => {
    AXIOS INTERCEPTORS
 ================================ */
 
+// Add token to every request if valid
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("adminToken");
@@ -133,10 +134,12 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// Handle 401 → auto logout
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      console.warn("Unauthorized access - logging out");
       staticLogout();
     }
     return Promise.reject(error);
@@ -170,5 +173,9 @@ export const getCurrentUser = () => {
     return null;
   }
 };
+
+/* ===============================
+   EXPORT AXIOS INSTANCE
+================================ */
 
 export { api };
