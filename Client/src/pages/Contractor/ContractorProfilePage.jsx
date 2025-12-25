@@ -19,8 +19,8 @@ import {
 
 const API_BASE = import.meta.env.VITE_API_URL ||
         (window.location.hostname.includes('localhost') || window.location.hostname === '127.0.0.1')
-        ? 'https://bricks-backend-qyea.onrender.com/api'
-        : 'https://bricks-backend-qyea.onrender.com/api';
+        ? 'https://bricks-backend-qyea.onrender.com/api/contractor'
+        : 'https://bricks-backend-qyea.onrender.com/api/contractor';
 
 const ContractorProfilePage = () => {
   const { id } = useParams();
