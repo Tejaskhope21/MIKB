@@ -11,6 +11,7 @@ const contractorSchema = new mongoose.Schema({
         trim: true,
         minlength: 2,
         maxlength: 100,
+        index: true, // Added index
     },
     email: {
         type: String,
@@ -37,6 +38,7 @@ const contractorSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Company name is required'],
         trim: true,
+        index: true, // Added index
     },
     contractorType: {
         type: String,
@@ -51,6 +53,7 @@ const contractorSchema = new mongoose.Schema({
             'Landscaper'
         ],
         required: true,
+        index: true, // Added index
     },
     licenseNumber: {
         type: String,
@@ -62,6 +65,7 @@ const contractorSchema = new mongoose.Schema({
         required: true,
         min: 1,
         default: 1,
+        index: true, // Added index
     },
     specialties: [{
         type: String,
@@ -76,12 +80,14 @@ const contractorSchema = new mongoose.Schema({
             'Interior Design',
             'Landscaping',
             'Project Management'
-        ]
+        ],
+        index: true, // Added index
     }],
     teamSize: {
         type: String,
         enum: ['1-5', '5-20', '20-50', '50+'],
         default: '1-5',
+        index: true, // Added index
     },
     projectsCompleted: {
         type: Number,
@@ -92,8 +98,14 @@ const contractorSchema = new mongoose.Schema({
     // Business Details
     address: {
         street: String,
-        city: String,
-        state: String,
+        city: {
+            type: String,
+            index: true, // Added index
+        },
+        state: {
+            type: String,
+            index: true, // Added index
+        },
         pincode: String,
         country: {
             type: String,
@@ -134,7 +146,13 @@ const contractorSchema = new mongoose.Schema({
 
     // Ratings & Reviews
     ratings: {
-        average: { type: Number, default: 0, min: 0, max: 5 },
+        average: { 
+            type: Number, 
+            default: 0, 
+            min: 0, 
+            max: 5,
+            index: true, // Added index
+        },
         count: { type: Number, default: 0 },
         breakdown: {
             5: { type: Number, default: 0 },
@@ -156,7 +174,11 @@ const contractorSchema = new mongoose.Schema({
     // Status & Verification
     isEmailVerified: { type: Boolean, default: false },
     isPhoneVerified: { type: Boolean, default: false },
-    isVerified: { type: Boolean, default: false },
+    isVerified: { 
+        type: Boolean, 
+        default: false,
+        index: true, // Added index
+    },
     verificationStatus: {
         type: String,
         enum: ['pending', 'under_review', 'verified', 'rejected'],
@@ -168,7 +190,11 @@ const contractorSchema = new mongoose.Schema({
         pan: String,
         gst: String,
     },
-    isActive: { type: Boolean, default: true },
+    isActive: { 
+        type: Boolean, 
+        default: true,
+        index: true, // Added index
+    },
 
     // Analytics
     profileViews: { type: Number, default: 0 },
@@ -183,6 +209,12 @@ const contractorSchema = new mongoose.Schema({
 }, {
     timestamps: true,
 });
+
+// Add compound indexes for better query performance
+contractorSchema.index({ 'address.city': 1, 'ratings.average': -1 });
+contractorSchema.index({ experience: -1, 'ratings.average': -1 });
+contractorSchema.index({ specialties: 1, 'ratings.average': -1 });
+contractorSchema.index({ contractorType: 1, isVerified: 1 });
 
 // FIXED: Modern Mongoose way - No 'next' parameter needed
 contractorSchema.pre('save', async function () {

@@ -44,7 +44,8 @@ import CategoryWithSubcategories from '../pages/Category/CategoryWithSubcategori
 import BrandsPage from '../pages/Brands/BrandPage'
 import AllProductsPage from "../pages/Products/AllProductsPage"
 import SubcategoryProductsPage from "../pages/Products/SubcategoryProductsPage"
-
+import ContractorProfilePage from "../pages/Contractor/ContractorProfilePage"
+import ContractorsListPage from "../pages/Contractor/ContractorsListPage"
 const AppRoutes = () => {
     return (
         <ErrorBoundary>
@@ -57,9 +58,9 @@ const AppRoutes = () => {
                     <Route path="/post-requirement" element={<MaterialRequirementPage />} />
                     <Route path="/products/category/:categoryId" element={<ProductsPage />} />
                     <Route path="/product/:productId" element={<ProductDetailsPage />} />
-
+                    <Route path="/contractor/:id" element={<ContractorProfilePage />} />
                     <Route path="/cart" element={<CartPage />} />
-
+                    <Route path="/contractors" element={<ContractorsListPage />} />
                     <Route path="/brands" element={<BrandsPage />} />
 
                     {/* Protected User Routes (general users) */}
