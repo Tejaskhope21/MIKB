@@ -3,7 +3,10 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { Star, MapPin, Briefcase, CheckCircle, Users } from 'lucide-react';
 
-const API_BASE = 'http://localhost:5000/api/contractor';
+const API_BASE = import.meta.env.VITE_API_URL ||
+        (window.location.hostname.includes('localhost') || window.location.hostname === '127.0.0.1')
+        ? 'https://bricks-backend-qyea.onrender.com/api'
+        : 'https://bricks-backend-qyea.onrender.com/api';
 
 const ContractorsListPage = () => {
   const [contractors, setContractors] = useState([]);
