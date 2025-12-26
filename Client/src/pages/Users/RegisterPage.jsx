@@ -458,7 +458,7 @@ const RegisterPage = () => {
                     <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-[#800000] to-[#a00000] rounded-full mb-4 shadow-lg">
                         <ShoppingBag className="w-8 h-8 text-white" />
                     </div>
-                    <h1 className="text-3xl font-bold text-gray-800">Join BricksKart</h1>
+                    <h1 className="text-3xl font-bold text-gray-800">Join BricksIT</h1>
                     <p className="text-gray-600 mt-2">Choose your account type to get started</p>
                 </div>
 
@@ -575,7 +575,7 @@ const RegisterPage = () => {
                 </div>
 
                 <div className="text-center mt-8 text-sm text-gray-500">
-                    <p>© {new Date().getFullYear()} BricksKart. All rights reserved.</p>
+                    <p>© {new Date().getFullYear()} BricksIT. All rights reserved.</p>
                 </div>
             </div>
         </div>
