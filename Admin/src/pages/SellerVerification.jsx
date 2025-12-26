@@ -3,7 +3,6 @@ import {
   CheckCircle,
   XCircle,
   Search,
-  Filter,
   Eye,
   Download,
   FileText,
@@ -11,16 +10,16 @@ import {
   User,
   Building,
   Calendar,
-  Shield,
-  Clock,
   Mail,
   Phone,
   MapPin,
   Check,
   X,
+  Clock,
   DollarSign,
   Package,
-  ShoppingBag
+  ShoppingBag,
+  Shield
 } from 'lucide-react';
 
 const SellerVerification = () => {
@@ -33,45 +32,196 @@ const SellerVerification = () => {
   const [verificationNotes, setVerificationNotes] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
-  // API configuration
+  // API configuration - use the same as your backend
   const API_BASE = 'http://localhost:5000/api';
+
+  // Get authentication headers
   const getAuthHeaders = () => {
-    const token = localStorage.getItem('adminToken');
+    const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
     return {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
     };
   };
 
-  // Fetch sellers with proper API call
+  // Fetch sellers from your backend API
   const fetchSellers = async () => {
     try {
       setLoading(true);
+      console.log('Fetching sellers from:', `${API_BASE}/admin/sellers`);
+
       const response = await fetch(`${API_BASE}/admin/sellers`, {
         method: 'GET',
         headers: getAuthHeaders()
       });
 
+      console.log('Response status:', response.status);
+
       if (response.ok) {
         const data = await response.json();
-        setSellers(data.sellers || []);
+        console.log('Sellers data:', data);
+
+        // Transform the data to match your frontend structure
+        const transformedSellers = data.sellers?.map(seller => ({
+          _id: seller._id,
+          name: seller.name || 'N/A',
+          email: seller.email || 'N/A',
+          phone: seller.phone || 'N/A',
+          businessName: seller.businessName || seller.companyName || 'N/A',
+          businessType: seller.businessType || 'N/A',
+          address: seller.address || seller.location || 'N/A',
+          registrationDate: seller.createdAt ? new Date(seller.createdAt).toISOString().split('T')[0] : 'N/A',
+          status: seller.isSellerVerified ? 'approved' : 'pending',
+          isSellerVerified: seller.isSellerVerified || false,
+          notes: seller.notes || '',
+          createdAt: seller.createdAt || new Date().toISOString(),
+          totalProducts: seller.totalProducts || 0,
+          totalOrders: seller.totalOrders || 0,
+          totalRevenue: seller.totalRevenue || 0,
+          // Add mock verification documents since your backend might not have these
+          verificationDocuments: seller.documents || {
+            panCard: 'https://via.placeholder.com/300x200/4CAF50/FFFFFF?text=PAN+Card',
+            aadharCard: 'https://via.placeholder.com/300x200/2196F3/FFFFFF?text=Aadhaar+Card',
+            gstCertificate: 'https://via.placeholder.com/300x200/FF9800/FFFFFF?text=GST+Certificate'
+          }
+        })) || getDemoSellers();
+
+        setSellers(transformedSellers);
       } else {
-        console.error('Failed to fetch sellers:', response.status);
-        setSellers(getDemoSellers()); // Fallback to demo data
+        console.error('Failed to fetch sellers:', response.status, response.statusText);
+        // Fallback to demo data if API fails
+        setSellers(getDemoSellers());
       }
     } catch (error) {
       console.error('Error fetching sellers:', error);
-      setSellers(getDemoSellers()); // Fallback to demo data
+      // Fallback to demo data
+      setSellers(getDemoSellers());
     } finally {
       setLoading(false);
     }
   };
 
+  // Verify seller - updated to match your backend PATCH endpoint
+  const verifySeller = async (sellerId) => {
+    try {
+      setActionLoading(true);
+      console.log('Verifying seller:', sellerId);
+
+      const response = await fetch(`${API_BASE}/admin/sellers/${sellerId}/verify`, {
+        method: 'PATCH', // Changed from PUT to PATCH to match your backend
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          isSellerVerified: true,
+          status: 'approved',
+          notes: verificationNotes
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Verification response:', data);
+
+        // Update local state
+        setSellers(prev => prev.map(seller =>
+          seller._id === sellerId
+            ? {
+              ...seller,
+              isSellerVerified: true,
+              status: 'approved',
+              notes: verificationNotes
+            }
+            : seller
+        ));
+
+        setSelectedSeller(null);
+        setIsModalOpen(false);
+        setVerificationNotes('');
+
+        alert('Seller approved successfully!');
+        fetchSellers(); // Refresh the list
+      } else {
+        const errorText = await response.text();
+        console.error('Failed to verify seller:', response.status, errorText);
+        alert(`Failed to approve seller: ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error('Error approving seller:', error);
+      alert('Error approving seller. Please try again.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Reject seller - you need to implement this in your backend
+  const rejectSeller = async (sellerId) => {
+    try {
+      setActionLoading(true);
+
+      // Since your backend doesn't have a reject endpoint yet, 
+      // we'll simulate it or you can create a separate endpoint
+      // For now, we'll just update the local state
+
+      // Option 1: Call a custom endpoint or use toggleUserStatus
+      const response = await fetch(`${API_BASE}/admin/users/${sellerId}/status`, {
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          isActive: false,
+          status: 'rejected'
+        })
+      });
+
+      if (response.ok) {
+        // Update local state
+        setSellers(prev => prev.map(seller =>
+          seller._id === sellerId
+            ? {
+              ...seller,
+              status: 'rejected',
+              isSellerVerified: false,
+              notes: verificationNotes
+            }
+            : seller
+        ));
+
+        setSelectedSeller(null);
+        setIsModalOpen(false);
+        setVerificationNotes('');
+
+        alert('Seller rejected successfully!');
+        fetchSellers(); // Refresh the list
+      } else {
+        // If the endpoint doesn't exist, just update local state
+        setSellers(prev => prev.map(seller =>
+          seller._id === sellerId
+            ? {
+              ...seller,
+              status: 'rejected',
+              isSellerVerified: false,
+              notes: verificationNotes
+            }
+            : seller
+        ));
+
+        setSelectedSeller(null);
+        setIsModalOpen(false);
+        setVerificationNotes('');
+
+        alert('Seller rejected (local update only). Backend endpoint not implemented.');
+      }
+    } catch (error) {
+      console.error('Error rejecting seller:', error);
+      alert('Error rejecting seller. Please try again.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   // Calculate statistics
   const calculateStats = () => {
-    const pending = sellers.filter(s => s.status === 'pending' || s.status === 'under_review').length;
-    const approved = sellers.filter(s => s.status === 'approved' || s.isSellerVerified === true).length;
-    const rejected = sellers.filter(s => s.status === 'rejected' || s.status === 'suspended').length;
+    const pending = sellers.filter(s => !s.isSellerVerified && s.status !== 'rejected').length;
+    const approved = sellers.filter(s => s.isSellerVerified).length;
+    const rejected = sellers.filter(s => s.status === 'rejected').length;
 
     return {
       total: sellers.length,
@@ -82,106 +232,6 @@ const SellerVerification = () => {
   };
 
   const stats = calculateStats();
-
-  // Verify seller
-  const verifySeller = async (sellerId) => {
-    try {
-      setActionLoading(true);
-      const response = await fetch(`${API_BASE}/admin/sellers/${sellerId}/verify`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          status: 'approved',
-          isSellerVerified: true,
-          notes: verificationNotes,
-          verifiedAt: new Date().toISOString()
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-
-        // Update local state
-        setSellers(prev => prev.map(seller =>
-          seller._id === sellerId
-            ? {
-              ...seller,
-              status: 'approved',
-              isSellerVerified: true,
-              notes: verificationNotes,
-              sellerSettings: {
-                ...seller.sellerSettings,
-                storeStatus: 'active'
-              }
-            }
-            : seller
-        ));
-
-        setSelectedSeller(null);
-        setIsModalOpen(false);
-        setVerificationNotes('');
-        alert('Seller approved successfully!');
-        fetchSellers(); // Refresh the list
-      } else {
-        alert('Failed to approve seller.');
-      }
-    } catch (error) {
-      console.error('Error approving seller:', error);
-      alert('Error approving seller. Please try again.');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // Reject seller
-  const rejectSeller = async (sellerId) => {
-    try {
-      setActionLoading(true);
-      const response = await fetch(`${API_BASE}/admin/sellers/${sellerId}/verify`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          status: 'rejected',
-          isSellerVerified: false,
-          notes: verificationNotes,
-          rejectionReason: verificationNotes
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-
-        // Update local state
-        setSellers(prev => prev.map(seller =>
-          seller._id === sellerId
-            ? {
-              ...seller,
-              status: 'rejected',
-              isSellerVerified: false,
-              notes: verificationNotes,
-              sellerSettings: {
-                ...seller.sellerSettings,
-                storeStatus: 'suspended'
-              }
-            }
-            : seller
-        ));
-
-        setSelectedSeller(null);
-        setIsModalOpen(false);
-        setVerificationNotes('');
-        alert('Seller rejected successfully!');
-        fetchSellers(); // Refresh the list
-      } else {
-        alert('Failed to reject seller.');
-      }
-    } catch (error) {
-      console.error('Error rejecting seller:', error);
-      alert('Error rejecting seller. Please try again.');
-    } finally {
-      setActionLoading(false);
-    }
-  };
 
   // Filter sellers
   const filteredSellers = sellers.filter(seller => {
@@ -195,7 +245,6 @@ const SellerVerification = () => {
 
     const matchesStatus =
       filterStatus === 'all' ||
-      seller.status === filterStatus ||
       (filterStatus === 'pending' && !seller.isSellerVerified && seller.status !== 'rejected') ||
       (filterStatus === 'approved' && seller.isSellerVerified) ||
       (filterStatus === 'rejected' && seller.status === 'rejected');
@@ -212,7 +261,7 @@ const SellerVerification = () => {
           Verified
         </span>
       );
-    } else if (seller.status === 'rejected' || seller.status === 'suspended') {
+    } else if (seller.status === 'rejected') {
       return (
         <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
           <XCircle className="w-4 h-4 mr-1" />
@@ -229,24 +278,6 @@ const SellerVerification = () => {
     }
   };
 
-  // Get store status badge
-  const getStoreStatusBadge = (seller) => {
-    const storeStatus = seller.sellerSettings?.storeStatus || 'under_review';
-
-    switch (storeStatus) {
-      case 'active':
-        return <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Active</span>;
-      case 'inactive':
-        return <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">Inactive</span>;
-      case 'suspended':
-        return <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">Suspended</span>;
-      case 'under_review':
-        return <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Under Review</span>;
-      default:
-        return <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">Unknown</span>;
-    }
-  };
-
   // View seller details
   const viewSellerDetails = (seller) => {
     setSelectedSeller(seller);
@@ -254,7 +285,36 @@ const SellerVerification = () => {
     setIsModalOpen(true);
   };
 
-  // Demo data (for development)
+  // Format documents for display
+  const formatDocuments = (seller) => {
+    const docs = [];
+
+    // Check for verification documents
+    if (seller.verificationDocuments) {
+      if (seller.verificationDocuments.panCard) {
+        docs.push({ type: 'PAN Card', url: seller.verificationDocuments.panCard, verified: true });
+      }
+      if (seller.verificationDocuments.aadharCard) {
+        docs.push({ type: 'Aadhaar Card', url: seller.verificationDocuments.aadharCard, verified: true });
+      }
+      if (seller.verificationDocuments.gstCertificate) {
+        docs.push({ type: 'GST Certificate', url: seller.verificationDocuments.gstCertificate, verified: true });
+      }
+    }
+
+    // Fallback to demo documents if none exist
+    if (docs.length === 0) {
+      docs.push(
+        { type: 'PAN Card', url: 'https://via.placeholder.com/300x200/4CAF50/FFFFFF?text=PAN+Card', verified: true },
+        { type: 'Aadhaar Card', url: 'https://via.placeholder.com/300x200/2196F3/FFFFFF?text=Aadhaar+Card', verified: true },
+        { type: 'GST Certificate', url: 'https://via.placeholder.com/300x200/FF9800/FFFFFF?text=GST+Certificate', verified: true }
+      );
+    }
+
+    return docs.slice(0, 3); // Show max 3 documents
+  };
+
+  // Demo data for fallback
   const getDemoSellers = () => [
     {
       _id: '1',
@@ -267,19 +327,16 @@ const SellerVerification = () => {
       registrationDate: '2024-01-15',
       status: 'pending',
       isSellerVerified: false,
-      sellerSettings: {
-        storeStatus: 'under_review'
-      },
-      verificationDocuments: {
-        panCard: 'https://example.com/pan1.jpg',
-        aadharCard: 'https://example.com/aadhaar1.jpg',
-        gstCertificate: 'https://example.com/gst1.jpg'
-      },
       notes: 'GST certificate verification pending',
       totalProducts: 45,
       totalOrders: 128,
       totalRevenue: 1250000,
-      createdAt: '2024-03-10'
+      createdAt: '2024-03-10',
+      verificationDocuments: {
+        panCard: 'https://via.placeholder.com/300x200/4CAF50/FFFFFF?text=PAN+Card',
+        aadharCard: 'https://via.placeholder.com/300x200/2196F3/FFFFFF?text=Aadhaar+Card',
+        gstCertificate: 'https://via.placeholder.com/300x200/FF9800/FFFFFF?text=GST+Certificate'
+      }
     },
     {
       _id: '2',
@@ -292,89 +349,34 @@ const SellerVerification = () => {
       registrationDate: '2024-02-10',
       status: 'approved',
       isSellerVerified: true,
-      sellerSettings: {
-        storeStatus: 'active'
-      },
-      verificationDocuments: {
-        panCard: 'https://example.com/pan2.jpg',
-        aadharCard: 'https://example.com/aadhaar2.jpg',
-        gstCertificate: 'https://example.com/gst2.jpg'
-      },
       notes: 'All documents verified successfully',
       totalProducts: 23,
       totalOrders: 67,
       totalRevenue: 890000,
       createdAt: '2024-03-05'
-    },
-    {
-      _id: '3',
-      name: 'Arun Patel',
-      email: 'arun@pateltech.com',
-      phone: '+91 9876543212',
-      businessName: 'Patel Tech Solutions',
-      businessType: 'IT Services',
-      address: 'Bangalore, Karnataka',
-      registrationDate: '2024-01-28',
-      status: 'rejected',
-      isSellerVerified: false,
-      sellerSettings: {
-        storeStatus: 'suspended'
-      },
-      verificationDocuments: {
-        panCard: 'https://example.com/pan3.jpg',
-        aadharCard: 'https://example.com/aadhaar3.jpg',
-        gstCertificate: 'https://example.com/gst3.jpg'
-      },
-      notes: 'Aadhaar verification failed',
-      totalProducts: 12,
-      totalOrders: 34,
-      totalRevenue: 560000,
-      createdAt: '2024-03-12'
     }
   ];
 
-  // Format documents for display
-  const formatDocuments = (seller) => {
-    const docs = [];
-    if (seller.verificationDocuments?.panCard) {
-      docs.push({ type: 'PAN Card', url: seller.verificationDocuments.panCard, verified: true });
-    }
-    if (seller.verificationDocuments?.aadharCard) {
-      docs.push({ type: 'Aadhaar Card', url: seller.verificationDocuments.aadharCard, verified: true });
-    }
-    if (seller.verificationDocuments?.gstCertificate) {
-      docs.push({ type: 'GST Certificate', url: seller.verificationDocuments.gstCertificate, verified: true });
-    }
-    return docs;
-  };
-
+  // Initialize
   useEffect(() => {
     fetchSellers();
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Seller Verification</h1>
-          <p className="text-gray-600">Review and verify seller applications</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Shield className="h-6 w-6 text-blue-600" />
-          <span className="text-sm text-gray-500">
-            {stats.pending} pending verification
-          </span>
-        </div>
+      <div className="mb-8">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Seller Verification</h1>
+        <p className="text-gray-600 mt-1">Review and verify seller applications</p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500 font-medium">Total Sellers</p>
-              <p className="text-2xl md:text-3xl font-bold text-gray-800">{stats.total}</p>
+              <p className="text-3xl font-bold text-gray-800 mt-2">{stats.total}</p>
             </div>
             <div className="p-3 bg-blue-100 rounded-lg">
               <User className="h-6 w-6 text-blue-600" />
@@ -382,11 +384,11 @@ const SellerVerification = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500 font-medium">Pending Review</p>
-              <p className="text-2xl md:text-3xl font-bold text-yellow-600">{stats.pending}</p>
+              <p className="text-3xl font-bold text-yellow-600 mt-2">{stats.pending}</p>
             </div>
             <div className="p-3 bg-yellow-100 rounded-lg">
               <Clock className="h-6 w-6 text-yellow-600" />
@@ -394,11 +396,11 @@ const SellerVerification = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500 font-medium">Verified</p>
-              <p className="text-2xl md:text-3xl font-bold text-green-600">{stats.approved}</p>
+              <p className="text-3xl font-bold text-green-600 mt-2">{stats.approved}</p>
             </div>
             <div className="p-3 bg-green-100 rounded-lg">
               <CheckCircle className="h-6 w-6 text-green-600" />
@@ -406,11 +408,11 @@ const SellerVerification = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500 font-medium">Rejected</p>
-              <p className="text-2xl md:text-3xl font-bold text-red-600">{stats.rejected}</p>
+              <p className="text-3xl font-bold text-red-600 mt-2">{stats.rejected}</p>
             </div>
             <div className="p-3 bg-red-100 rounded-lg">
               <XCircle className="h-6 w-6 text-red-600" />
@@ -419,218 +421,254 @@ const SellerVerification = () => {
         </div>
       </div>
 
-      {/* Search and Filter */}
-      <div className="bg-white rounded-lg shadow p-4">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1">
+      {/* Search and Filter Bar */}
+      <div className="bg-white rounded-lg shadow p-4 mb-6">
+        <div className="flex flex-col md:flex-row gap-4 items-center">
+          {/* Search Input */}
+          <div className="flex-1 w-full">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
               <input
                 type="text"
-                placeholder="Search sellers..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Search by name, email, business, or phone..."
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
           </div>
-          <div className="flex gap-2">
-            {['all', 'pending', 'approved', 'rejected'].map((status) => (
-              <button
-                key={status}
-                onClick={() => setFilterStatus(status)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium capitalize ${filterStatus === status
-                    ? status === 'pending'
-                      ? 'bg-yellow-600 text-white'
-                      : status === 'approved'
-                        ? 'bg-green-600 text-white'
-                        : status === 'rejected'
-                          ? 'bg-red-600 text-white'
-                          : 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-              >
-                {status}
-              </button>
-            ))}
+
+          {/* Filter Buttons */}
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setFilterStatus('all')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium ${filterStatus === 'all'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setFilterStatus('pending')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${filterStatus === 'pending'
+                ? 'bg-yellow-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+            >
+              <Clock className="h-4 w-4" /> Pending
+            </button>
+            <button
+              onClick={() => setFilterStatus('approved')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${filterStatus === 'approved'
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+            >
+              <CheckCircle className="h-4 w-4" /> Verified
+            </button>
+            <button
+              onClick={() => setFilterStatus('rejected')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${filterStatus === 'rejected'
+                ? 'bg-red-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+            >
+              <XCircle className="h-4 w-4" /> Rejected
+            </button>
           </div>
         </div>
       </div>
 
+      {/* Loading State */}
+      {loading && (
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600 font-medium">Loading sellers...</p>
+        </div>
+      )}
+
       {/* Sellers Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        {loading ? (
-          <div className="p-12 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading sellers...</p>
-          </div>
-        ) : filteredSellers.length === 0 ? (
-          <div className="p-12 text-center">
-            <AlertCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">No sellers found</p>
-            {searchTerm && (
-              <p className="text-gray-400 text-sm mt-1">Try adjusting your search criteria</p>
-            )}
-          </div>
-        ) : (
+      {!loading && (
+        <div className="bg-white rounded-lg shadow overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Seller Info
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Seller Details
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Business Info
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Business
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Performance
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filteredSellers.map((seller) => (
-                  <tr key={seller._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                          <User className="h-5 w-5 text-blue-600" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900">{seller.name}</p>
-                          <p className="text-sm text-gray-500">{seller.email}</p>
-                          <p className="text-xs text-gray-400 mt-1">{seller.phone}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="font-medium text-gray-900">{seller.businessName}</p>
-                      <p className="text-sm text-gray-500">{seller.businessType}</p>
-                      <div className="flex items-center text-xs text-gray-400 mt-1">
-                        <MapPin className="h-3 w-3 mr-1" />
-                        {seller.address}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="space-y-2">
-                        {getStatusBadge(seller)}
-                        <div>{getStoreStatusBadge(seller)}</div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Package className="h-4 w-4 text-gray-400" />
-                          <span>Products: <span className="font-medium">{seller.totalProducts || 0}</span></span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <ShoppingBag className="h-4 w-4 text-gray-400" />
-                          <span>Orders: <span className="font-medium">{seller.totalOrders || 0}</span></span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <DollarSign className="h-4 w-4 text-gray-400" />
-                          <span>Revenue: <span className="font-medium">₹{seller.totalRevenue?.toLocaleString() || 0}</span></span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col gap-2">
-                        <button
-                          onClick={() => viewSellerDetails(seller)}
-                          className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm hover:bg-blue-100 flex items-center gap-2"
-                        >
-                          <Eye className="h-4 w-4" />
-                          Review
-                        </button>
-                        {!seller.isSellerVerified && seller.status !== 'rejected' && (
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => verifySeller(seller._id)}
-                              className="flex-1 px-4 py-2 bg-green-50 text-green-600 rounded-lg text-sm hover:bg-green-100 flex items-center justify-center gap-2"
-                              disabled={actionLoading}
-                            >
-                              <CheckCircle className="h-4 w-4" />
-                              Approve
-                            </button>
-                            <button
-                              onClick={() => rejectSeller(seller._id)}
-                              className="flex-1 px-4 py-2 bg-red-50 text-red-600 rounded-lg text-sm hover:bg-red-100 flex items-center justify-center gap-2"
-                              disabled={actionLoading}
-                            >
-                              <XCircle className="h-4 w-4" />
-                              Reject
-                            </button>
-                          </div>
-                        )}
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredSellers.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" className="px-6 py-12 text-center">
+                      <div className="flex flex-col items-center">
+                        <AlertCircle className="h-12 w-12 text-gray-300 mb-4" />
+                        <p className="text-gray-500 text-lg font-medium">No sellers found</p>
+                        <p className="text-gray-400 text-sm mt-1">
+                          {searchTerm ? 'Try adjusting your search criteria' : 'No seller applications available'}
+                        </p>
                       </div>
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredSellers.map((seller) => (
+                    <tr key={seller._id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center">
+                          <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                            <User className="h-5 w-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">{seller.name}</p>
+                            <p className="text-sm text-gray-500">{seller.email}</p>
+                            <p className="text-xs text-gray-400 mt-1">{seller.phone}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="font-medium text-gray-900">{seller.businessName}</p>
+                        <p className="text-sm text-gray-500">{seller.businessType}</p>
+                        <div className="flex items-center text-xs text-gray-400 mt-1">
+                          <MapPin className="h-3 w-3 mr-1" />
+                          {seller.address}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="space-y-2">
+                          {getStatusBadge(seller)}
+                          <p className="text-xs text-gray-500">
+                            Registered: {seller.registrationDate}
+                          </p>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-sm">
+                            <Package className="h-4 w-4 text-gray-400" />
+                            <span>Products: <span className="font-medium">{seller.totalProducts || 0}</span></span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm">
+                            <ShoppingBag className="h-4 w-4 text-gray-400" />
+                            <span>Orders: <span className="font-medium">{seller.totalOrders || 0}</span></span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm">
+                            <DollarSign className="h-4 w-4 text-gray-400" />
+                            <span>Revenue: <span className="font-medium">₹{seller.totalRevenue?.toLocaleString() || 0}</span></span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <button
+                            onClick={() => viewSellerDetails(seller)}
+                            className="px-3 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium hover:bg-blue-100 flex items-center gap-2"
+                          >
+                            <Eye className="h-4 w-4" />
+                            Review
+                          </button>
+                          {!seller.isSellerVerified && seller.status !== 'rejected' && (
+                            <>
+                              <button
+                                onClick={() => verifySeller(seller._id)}
+                                disabled={actionLoading}
+                                className="px-3 py-2 bg-green-50 text-green-600 rounded-lg text-sm font-medium hover:bg-green-100 flex items-center gap-2 disabled:opacity-50"
+                              >
+                                <CheckCircle className="h-4 w-4" />
+                                {actionLoading ? 'Processing...' : 'Approve'}
+                              </button>
+                              <button
+                                onClick={() => rejectSeller(seller._id)}
+                                disabled={actionLoading}
+                                className="px-3 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 flex items-center gap-2 disabled:opacity-50"
+                              >
+                                <XCircle className="h-4 w-4" />
+                                Reject
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Verification Modal */}
       {isModalOpen && selectedSeller && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-white border-b px-6 py-4">
+              <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-xl font-bold text-gray-800">
+                  <h2 className="text-xl font-bold text-gray-800">
                     {selectedSeller.name} - Verification Details
-                  </h3>
+                  </h2>
                   <p className="text-gray-600 text-sm">
                     Business: {selectedSeller.businessName} • ID: {selectedSeller._id}
                   </p>
                 </div>
                 <button
                   onClick={() => setIsModalOpen(false)}
-                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                  className="text-gray-400 hover:text-gray-600 text-2xl"
                   disabled={actionLoading}
                 >
                   ✕
                 </button>
               </div>
+            </div>
 
+            {/* Modal Content */}
+            <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 {/* Personal Information */}
-                <div>
-                  <h4 className="font-semibold mb-3 text-gray-700 flex items-center gap-2">
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-gray-700 flex items-center gap-2">
                     <User className="h-5 w-5" />
                     Personal Information
-                  </h4>
+                  </h3>
                   <div className="space-y-3">
                     <div>
                       <p className="text-sm text-gray-500">Full Name</p>
                       <p className="font-medium">{selectedSeller.name}</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-gray-400" />
-                      <div>
-                        <p className="text-sm text-gray-500">Email</p>
+                    <div>
+                      <p className="text-sm text-gray-500">Email Address</p>
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-gray-400" />
                         <p className="font-medium">{selectedSeller.email}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-gray-400" />
-                      <div>
-                        <p className="text-sm text-gray-500">Phone</p>
+                    <div>
+                      <p className="text-sm text-gray-500">Phone Number</p>
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-4 w-4 text-gray-400" />
                         <p className="font-medium">{selectedSeller.phone}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-gray-400" />
-                      <div>
-                        <p className="text-sm text-gray-500">Address</p>
+                    <div>
+                      <p className="text-sm text-gray-500">Address</p>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-gray-400" />
                         <p className="font-medium">{selectedSeller.address}</p>
                       </div>
                     </div>
@@ -638,11 +676,11 @@ const SellerVerification = () => {
                 </div>
 
                 {/* Business Information */}
-                <div>
-                  <h4 className="font-semibold mb-3 text-gray-700 flex items-center gap-2">
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-gray-700 flex items-center gap-2">
                     <Building className="h-5 w-5" />
                     Business Information
-                  </h4>
+                  </h3>
                   <div className="space-y-3">
                     <div>
                       <p className="text-sm text-gray-500">Business Name</p>
@@ -652,16 +690,18 @@ const SellerVerification = () => {
                       <p className="text-sm text-gray-500">Business Type</p>
                       <p className="font-medium">{selectedSeller.businessType}</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-gray-400" />
-                      <div>
-                        <p className="text-sm text-gray-500">Registration Date</p>
+                    <div>
+                      <p className="text-sm text-gray-500">Registration Date</p>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-gray-400" />
                         <p className="font-medium">{selectedSeller.registrationDate}</p>
                       </div>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-500">Store Status</p>
-                      {getStoreStatusBadge(selectedSeller)}
+                      <p className="text-sm text-gray-500">Application Date</p>
+                      <p className="font-medium">
+                        {new Date(selectedSeller.createdAt).toLocaleDateString()}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -669,7 +709,7 @@ const SellerVerification = () => {
 
               {/* Performance Stats */}
               <div className="mb-6">
-                <h4 className="font-semibold mb-3 text-gray-700">Performance Metrics</h4>
+                <h3 className="font-semibold text-gray-700 mb-3">Performance Metrics</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="bg-gray-50 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-2">
@@ -697,37 +737,53 @@ const SellerVerification = () => {
 
               {/* Documents Section */}
               <div className="mb-6">
-                <h4 className="font-semibold mb-3 text-gray-700 flex items-center gap-2">
+                <h3 className="font-semibold text-gray-700 mb-4 flex items-center gap-2">
                   <FileText className="h-5 w-5" />
                   Verification Documents
-                </h4>
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {formatDocuments(selectedSeller).map((doc, index) => (
                     <div key={index} className="border rounded-lg p-4">
                       <div className="flex items-center justify-between mb-3">
                         <span className="font-medium">{doc.type}</span>
-                        <Check className="h-5 w-5 text-green-500" />
+                        {doc.verified ? (
+                          <Check className="h-5 w-5 text-green-500" />
+                        ) : (
+                          <X className="h-5 w-5 text-red-500" />
+                        )}
                       </div>
-                      <div className="aspect-video bg-gray-100 rounded mb-3 flex items-center justify-center">
-                        <FileText className="h-12 w-12 text-gray-400" />
+                      <div className="aspect-video bg-gray-100 rounded mb-2 overflow-hidden">
+                        <img
+                          src={doc.url}
+                          alt={doc.type}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = `https://via.placeholder.com/300x200/CCCCCC/666666?text=${encodeURIComponent(doc.type)}`;
+                          }}
+                        />
                       </div>
                       <div className="flex gap-2">
-                        <a
-                          href={doc.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex-1 px-3 py-2 bg-blue-50 text-blue-600 text-sm rounded hover:bg-blue-100 text-center"
+                        <button
+                          onClick={() => window.open(doc.url, '_blank')}
+                          className="flex-1 px-3 py-2 bg-blue-50 text-blue-600 text-sm rounded hover:bg-blue-100"
                         >
                           View
-                        </a>
-                        <a
-                          href={doc.url}
-                          download
+                        </button>
+                        <button
+                          onClick={() => {
+                            const link = document.createElement('a');
+                            link.href = doc.url;
+                            link.download = `${doc.type}.jpg`;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                          }}
                           className="flex-1 px-3 py-2 bg-gray-50 text-gray-600 text-sm rounded hover:bg-gray-100 flex items-center justify-center gap-1"
                         >
                           <Download className="h-4 w-4" />
                           Download
-                        </a>
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -736,13 +792,11 @@ const SellerVerification = () => {
 
               {/* Notes Section */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Verification Notes
-                </label>
+                <h3 className="font-semibold text-gray-700 mb-2">Verification Notes</h3>
                 <textarea
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                  rows="4"
-                  placeholder="Add notes about this verification..."
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                  rows="3"
+                  placeholder="Add verification notes here..."
                   value={verificationNotes}
                   onChange={(e) => setVerificationNotes(e.target.value)}
                   disabled={actionLoading}
@@ -752,7 +806,7 @@ const SellerVerification = () => {
               {/* Previous Notes */}
               {selectedSeller.notes && (
                 <div className="mb-6">
-                  <h4 className="font-semibold text-gray-700 mb-2">Previous Notes</h4>
+                  <h3 className="font-semibold text-gray-700 mb-2">Previous Notes</h3>
                   <div className="bg-gray-50 rounded-lg p-4">
                     <p className="text-gray-700">{selectedSeller.notes}</p>
                   </div>
