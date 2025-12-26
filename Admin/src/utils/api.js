@@ -7,8 +7,8 @@ import axios from "axios";
 const API_BASE_URL =
   import.meta.env.VITE_API_URL ||
   (window.location.hostname === "localhost"
-    ? "https://bricks-backend-qyea.onrender.com/api"
-    : "https://bricks-backend-qyea.onrender.com/api");
+    ? " https://bricks-backend-qyea.onrender.com/api"
+    : " https://bricks-backend-qyea.onrender.com/api");
 
 /* ===============================
    AXIOS INSTANCE

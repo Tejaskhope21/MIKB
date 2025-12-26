@@ -30,12 +30,7 @@ import StoreSettings from '../components/Seller/Settings/StoreSettings'
 // Contractor Components
 import ContractorLayout from '../layouts/ContractorLayout'
 import ContractorDashboardPage from '../pages/Contractor/DashboardPage'
-import ProjectsPage from '../pages/Contractor/ProjectsPage'
-import PortfolioPage from '../pages/Contractor/PortfolioPage'
-import QuotesPage from '../pages/Contractor/QuotesPage' // Add this import
-import MaterialsPage from '../pages/Contractor/MaterialsPage'
-import OrdersPage from '../pages/Contractor/OrdersPage'
-import CommunityPage from '../pages/Contractor/CommunityPage'
+import ContractorPortfolioPage from '../pages/Contractor/ContractorPortfolioPage'
 
 // Public Components
 import InvestorPage from '../pages/Investor/InvestorPage'
@@ -46,6 +41,7 @@ import AllProductsPage from "../pages/Products/AllProductsPage"
 import SubcategoryProductsPage from "../pages/Products/SubcategoryProductsPage"
 import ContractorProfilePage from "../pages/Contractor/ContractorProfilePage"
 import ContractorsListPage from "../pages/Contractor/ContractorsListPage"
+
 const AppRoutes = () => {
     return (
         <ErrorBoundary>
@@ -121,7 +117,7 @@ const AppRoutes = () => {
 
                     {/* Contractor specific routes */}
                     <Route path="projects" element={<div className="p-6">projects Page (Coming Soon)</div>} />
-                    <Route path="portfolio" element={<div className="p-6">portfolio Page (Coming Soon)</div>} />
+                    <Route path="portfolio" element={<ContractorPortfolioPage/>} />
                     <Route path="quotes" element={<div className="p-6">quotes Page (Coming Soon)</div>} />
                     <Route path="materials" element={<div className="p-6">materials Page (Coming Soon)</div>} />
                     <Route path="orders" element={<div className="p-6">orders Page (Coming Soon)</div>} />

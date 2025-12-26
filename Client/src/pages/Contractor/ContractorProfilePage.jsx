@@ -2,25 +2,25 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
-  Star, 
   MapPin, 
   Users, 
   Calendar, 
   CheckCircle, 
-  MessageSquare, 
   Building2, 
   ArrowLeft,
   Camera,
   X,
   Upload,
-  Edit,
+  Phone,
+  Mail,
+  Globe,
+  FileText,
+  Award,
+  Briefcase,
   Loader2
 } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_URL ||
-        (window.location.hostname.includes('localhost') || window.location.hostname === '127.0.0.1')
-        ? 'https://bricks-backend-qyea.onrender.com/api/contractor'
-        : 'https://bricks-backend-qyea.onrender.com/api/contractor';
+const API_BASE = 'https://bricks-backend-qyea.onrender.com/api/contractor';
 
 const ContractorProfilePage = () => {
   const { id } = useParams();
@@ -28,13 +28,8 @@ const ContractorProfilePage = () => {
   const fileInputRef = useRef(null);
 
   const [contractor, setContractor] = useState(null);
-  const [ratingsData, setRatingsData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showReviewForm, setShowReviewForm] = useState(false);
-  const [reviewRating, setReviewRating] = useState(5);
-  const [reviewComment, setReviewComment] = useState('');
-  const [submitting, setSubmitting] = useState(false);
   
   // Image upload states
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -44,15 +39,10 @@ const ContractorProfilePage = () => {
 
   const isLoggedIn = !!localStorage.getItem('token');
   const currentUserId = localStorage.getItem('userId');
-  const currentUserRole = localStorage.getItem('role');
 
   // Check if current user is the contractor
   const isContractorOwner = contractor?.userId?._id === currentUserId || 
                           contractor?.userId === currentUserId;
-
-  const userHasReviewed = ratingsData?.reviews?.some(
-    (review) => review.clientId?.toString() === currentUserId
-  );
 
   useEffect(() => {
     if (!id || id === 'undefined' || id.trim() === '') {
@@ -61,15 +51,10 @@ const ContractorProfilePage = () => {
       return;
     }
 
-    const fetchData = async () => {
+    const fetchContractor = async () => {
       try {
-        const [contractorRes, ratingsRes] = await Promise.all([
-          axios.get(`${API_BASE}/${id}`),
-          axios.get(`${API_BASE}/${id}/ratings`)
-        ]);
-
-        setContractor(contractorRes.data.data);
-        setRatingsData(ratingsRes.data.data);
+        const response = await axios.get(`${API_BASE}/${id}`);
+        setContractor(response.data.data);
       } catch (err) {
         setError(err.response?.data?.message || 'Contractor not found.');
       } finally {
@@ -77,7 +62,7 @@ const ContractorProfilePage = () => {
       }
     };
 
-    fetchData();
+    fetchContractor();
   }, [id]);
 
   // Handle image selection
@@ -174,58 +159,26 @@ const ContractorProfilePage = () => {
     }
   };
 
-  const handleSubmitReview = async (e) => {
-    e.preventDefault();
-    
-    if (!isLoggedIn) {
-      alert('Please login to submit a review.');
-      return;
+  const formatPhoneNumber = (phone) => {
+    if (!phone) return 'Not available';
+    // Format as XXX-XXX-XXXX for 10 digit numbers
+    const cleaned = phone.replace(/\D/g, '');
+    if (cleaned.length === 10) {
+      return cleaned.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
     }
+    return phone;
+  };
 
-    if (!reviewComment.trim()) {
-      alert('Please add a comment to your review.');
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const token = localStorage.getItem('token');
-      await axios.post(
-        `${API_BASE}/${id}/reviews`,
-        { rating: reviewRating, comment: reviewComment.trim() },
-        { 
-          headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      alert('Review submitted successfully!');
-      setShowReviewForm(false);
-      setReviewComment('');
-      
-      // Refresh ratings data
-      const res = await axios.get(`${API_BASE}/${id}/ratings`);
-      setRatingsData(res.data.data);
-    } catch (err) {
-      alert(err.response?.data?.message || 'Failed to submit review.');
-    } finally {
-      setSubmitting(false);
+  const handleContactClick = () => {
+    if (contractor.phone) {
+      window.location.href = `tel:${contractor.phone}`;
     }
   };
 
-  const renderStars = (rating) => {
-    return (
-      <div className="flex items-center gap-1">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <Star
-            key={i}
-            className={`w-5 h-5 ${i <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
-          />
-        ))}
-      </div>
-    );
+  const handleEmailClick = () => {
+    if (contractor.email) {
+      window.location.href = `mailto:${contractor.email}`;
+    }
   };
 
   if (loading) {
@@ -233,7 +186,7 @@ const ContractorProfilePage = () => {
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-gray-600">Loading contractor profile...</p>
         </div>
       </div>
     );
@@ -255,9 +208,6 @@ const ContractorProfilePage = () => {
     );
   }
 
-  const averageRating = ratingsData?.averageRating || 0;
-  const totalReviews = ratingsData?.totalReviews || 0;
-
   return (
     <div className="min-h-screen bg-white">
       {/* Simple Header */}
@@ -276,7 +226,7 @@ const ContractorProfilePage = () => {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Contractor Info */}
         <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8">
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-6 mb-8">
+          <div className="flex flex-col md:flex-row items-start gap-6 mb-8">
             {/* Profile Image with Upload Option */}
             <div className="relative group">
               <div className="w-32 h-32 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
@@ -318,9 +268,60 @@ const ContractorProfilePage = () => {
             <div className="flex-1">
               <h1 className="text-3xl font-bold text-gray-900 mb-2">{contractor.companyName}</h1>
               <p className="text-lg text-gray-600 mb-4">{contractor.name}</p>
-              <span className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded text-sm font-medium">
+              
+              {/* Contractor Type Badge */}
+              <span className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded text-sm font-medium mb-4">
                 {contractor.contractorType}
               </span>
+
+              {/* Contact Information */}
+              <div className="space-y-3 mt-6">
+                {contractor.phone && (
+                  <div className="flex items-center gap-3">
+                    <Phone className="w-5 h-5 text-gray-500" />
+                    <div>
+                      <div className="text-sm text-gray-600">Phone Number</div>
+                      <button
+                        onClick={handleContactClick}
+                        className="text-blue-600 hover:text-blue-800 font-medium text-lg"
+                      >
+                        {formatPhoneNumber(contractor.phone)}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {contractor.email && (
+                  <div className="flex items-center gap-3">
+                    <Mail className="w-5 h-5 text-gray-500" />
+                    <div>
+                      <div className="text-sm text-gray-600">Email</div>
+                      <button
+                        onClick={handleEmailClick}
+                        className="text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        {contractor.email}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {contractor.address && (contractor.address.city || contractor.address.state) && (
+                  <div className="flex items-center gap-3">
+                    <MapPin className="w-5 h-5 text-gray-500" />
+                    <div>
+                      <div className="text-sm text-gray-600">Location</div>
+                      <div className="font-medium text-gray-900">
+                        {contractor.address.city && contractor.address.state
+                          ? `${contractor.address.city}, ${contractor.address.state}`
+                          : contractor.address.city || contractor.address.state || 'Nationwide'}
+                        {contractor.address.country && contractor.address.country !== 'India' && 
+                          `, ${contractor.address.country}`}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -339,182 +340,161 @@ const ContractorProfilePage = () => {
             <div className="text-center p-4 bg-gray-50 rounded">
               <Calendar className="w-5 h-5 text-gray-600 mx-auto mb-2" />
               <div className="text-sm text-gray-600">Experience</div>
-              <div className="font-semibold text-gray-900">{contractor.experience || 12}+ Years</div>
+              <div className="font-semibold text-gray-900">{contractor.experience || 1}+ Years</div>
             </div>
             
             <div className="text-center p-4 bg-gray-50 rounded">
               <Users className="w-5 h-5 text-gray-600 mx-auto mb-2" />
               <div className="text-sm text-gray-600">Team Size</div>
-              <div className="font-semibold text-gray-900">{contractor.teamSize || '5-20'}</div>
+              <div className="font-semibold text-gray-900">{contractor.teamSize || '1-5'}</div>
             </div>
             
             <div className="text-center p-4 bg-gray-50 rounded">
               <CheckCircle className="w-5 h-5 text-gray-600 mx-auto mb-2" />
               <div className="text-sm text-gray-600">Projects Done</div>
-              <div className="font-semibold text-gray-900">{contractor.projectsCompleted || 100}+</div>
+              <div className="font-semibold text-gray-900">{contractor.projectsCompleted || 0}</div>
             </div>
           </div>
 
-          {/* Description */}
-          {contractor.description && (
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">About</h3>
-              <p className="text-gray-600">{contractor.description}</p>
-            </div>
-          )}
-
-          {/* Specialties */}
-          {contractor.specialties && contractor.specialties.length > 0 && (
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Specialties</h3>
-              <div className="flex flex-wrap gap-2">
-                {contractor.specialties.map((spec, index) => (
-                  <span 
-                    key={index} 
-                    className="bg-gray-100 text-gray-800 px-3 py-1 rounded text-sm"
-                  >
-                    {spec}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Ratings Section */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Customer Ratings</h2>
-              <div className="flex items-center gap-4">
-                <div className="text-4xl font-bold text-gray-900">{averageRating.toFixed(1)}</div>
-                <div>
-                  <div className="flex items-center gap-1 mb-1">
-                    {renderStars(averageRating)}
-                  </div>
-                  <div className="text-gray-600">{totalReviews} reviews</div>
+          {/* Business Details Section */}
+          <div className="space-y-6">
+            {/* License Information */}
+            {contractor.licenseNumber && (
+              <div className="border-t border-gray-200 pt-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <FileText className="w-6 h-6 text-green-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">License Information</h3>
                 </div>
-              </div>
-            </div>
-            
-            <div className="text-center">
-              <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-2" />
-              <div className="text-gray-900 font-medium">OK Positive Feedback</div>
-            </div>
-          </div>
-
-          {/* Rating Bars */}
-          <div className="space-y-3 mb-8">
-            {[5, 4, 3, 2, 1].map((stars) => {
-              const count = ratingsData?.ratingBreakdown?.[stars] || 0;
-              const total = totalReviews;
-              const percentage = total > 0 ? (count / total) * 100 : 0;
-
-              return (
-                <div key={stars} className="flex items-center gap-4">
-                  <div className="flex items-center gap-2 w-16">
-                    <span className="text-sm font-medium text-gray-700">{stars}</span>
-                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                  </div>
-                  <div className="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">
-                    <div 
-                      className="bg-yellow-400 h-2 rounded-full" 
-                      style={{ width: `${percentage}%` }} 
-                    />
-                  </div>
-                  <span className="text-sm text-gray-600 w-20">
-                    {count} ({percentage.toFixed(0)}%)
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Share Experience */}
-          <div className="bg-gray-50 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-center mb-4">Share Your Experience</h3>
-            
-            {!isLoggedIn ? (
-              <div className="text-center">
-                <button
-                  onClick={() => navigate('/login')}
-                  className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors text-sm"
-                >
-                  Login to Review
-                </button>
-              </div>
-            ) : userHasReviewed ? (
-              <div className="text-center text-green-600 font-medium text-sm">
-                ✓ You've already reviewed this contractor
-              </div>
-            ) : (
-              <div className="text-center">
-                <button
-                  onClick={() => setShowReviewForm(true)}
-                  className="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-2 mx-auto text-sm"
-                >
-                  <MessageSquare className="w-4 h-4" />
-                  Write Detailed Review
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Reviews */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Customer Reviews ({totalReviews})</h2>
-          
-          {(!ratingsData?.reviews || ratingsData.reviews.length === 0) ? (
-            <div className="text-center py-12 bg-gray-50 rounded">
-              <p className="text-gray-600 mb-4">No reviews yet</p>
-              {isLoggedIn && !userHasReviewed && (
-                <button
-                  onClick={() => setShowReviewForm(true)}
-                  className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors text-sm"
-                >
-                  Be the first to review
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {ratingsData.reviews.map((review) => (
-                <div key={review._id} className="border-b border-gray-200 pb-6 last:border-0 last:pb-0">
-                  <div className="flex justify-between items-start mb-4">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex justify-between items-center">
                     <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                          <span className="text-sm font-medium">
-                            {review.clientName?.[0] || 'A'}
-                          </span>
-                        </div>
-                        <div>
-                          <div className="font-medium text-gray-900 text-sm">
-                            {review.clientName || 'Anonymous'}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {new Date(review.createdAt).toLocaleDateString()}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        {renderStars(review.rating)}
-                      </div>
+                      <div className="text-sm text-gray-600">License Number</div>
+                      <div className="font-mono text-gray-900">{contractor.licenseNumber}</div>
                     </div>
-                    {review.wouldRecommend && (
-                      <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
-                        ✓ Would recommend
+                    {contractor.isVerified && (
+                      <span className="inline-flex items-center gap-1 bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
+                        <CheckCircle className="w-4 h-4" />
+                        Verified
                       </span>
                     )}
                   </div>
-                  {review.comment && (
-                    <p className="text-gray-700 text-sm">"{review.comment}"</p>
-                  )}
                 </div>
-              ))}
+              </div>
+            )}
+
+            {/* Specialties */}
+            {contractor.specialties && contractor.specialties.length > 0 && (
+              <div className="border-t border-gray-200 pt-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <Award className="w-6 h-6 text-blue-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Specialties</h3>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {contractor.specialties.map((spec, index) => (
+                    <span 
+                      key={index} 
+                      className="bg-blue-50 text-blue-700 border border-blue-200 px-3 py-2 rounded-lg text-sm font-medium"
+                    >
+                      {spec}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Portfolio Summary */}
+            {contractor.portfolio && contractor.portfolio.length > 0 && (
+              <div className="border-t border-gray-200 pt-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <Briefcase className="w-6 h-6 text-purple-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Portfolio ({contractor.portfolio.length} Projects)</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {contractor.portfolio.slice(0, 3).map((project, index) => (
+                    <div key={index} className="bg-gray-50 rounded-lg p-4">
+                      <div className="font-medium text-gray-900 mb-2">{project.title}</div>
+                      <div className="text-sm text-gray-600 mb-2">{project.category}</div>
+                      <div className="text-xs text-gray-500">
+                        {project.year} • {project.status}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {contractor.portfolio.length > 3 && (
+                  <div className="text-center mt-4">
+                    <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                      View all {contractor.portfolio.length} projects →
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Additional Business Info */}
+            <div className="border-t border-gray-200 pt-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Additional Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {contractor.website && (
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded">
+                    <Globe className="w-5 h-5 text-gray-500" />
+                    <div>
+                      <div className="text-sm text-gray-600">Website</div>
+                      <a 
+                        href={contractor.website.startsWith('http') ? contractor.website : `https://${contractor.website}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        {contractor.website.replace(/^https?:\/\//, '')}
+                      </a>
+                    </div>
+                  </div>
+                )}
+
+                {contractor.gstNumber && (
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded">
+                    <FileText className="w-5 h-5 text-gray-500" />
+                    <div>
+                      <div className="text-sm text-gray-600">GST Number</div>
+                      <div className="font-mono text-gray-900">{contractor.gstNumber}</div>
+                    </div>
+                  </div>
+                )}
+
+                {contractor.bankDetails && (
+                  <div className="md:col-span-2 p-4 bg-blue-50 border border-blue-200 rounded">
+                    <h4 className="font-semibold text-blue-900 mb-2">Banking Information</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {contractor.bankDetails.accountName && (
+                        <div>
+                          <div className="text-xs text-blue-700">Account Name</div>
+                          <div className="font-medium">{contractor.bankDetails.accountName}</div>
+                        </div>
+                      )}
+                      {contractor.bankDetails.bankName && (
+                        <div>
+                          <div className="text-xs text-blue-700">Bank Name</div>
+                          <div className="font-medium">{contractor.bankDetails.bankName}</div>
+                        </div>
+                      )}
+                      {contractor.bankDetails.ifscCode && (
+                        <div>
+                          <div className="text-xs text-blue-700">IFSC Code</div>
+                          <div className="font-mono">{contractor.bankDetails.ifscCode}</div>
+                        </div>
+                      )}
+                      {contractor.bankDetails.upiId && (
+                        <div>
+                          <div className="text-xs text-blue-700">UPI ID</div>
+                          <div className="font-medium">{contractor.bankDetails.upiId}</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          )}
+          </div>
         </div>
       </div>
 
@@ -624,76 +604,6 @@ const ContractorProfilePage = () => {
                   </button>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Review Modal */}
-      {showReviewForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-lg max-w-md w-full">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-bold text-gray-900">Write Review</h3>
-                <button 
-                  onClick={() => setShowReviewForm(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  ×
-                </button>
-              </div>
-              
-              <form onSubmit={handleSubmitReview} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Your Rating</label>
-                  <div className="flex justify-center gap-2">
-                    {[1, 2, 3, 4, 5].map((num) => (
-                      <button
-                        key={num}
-                        type="button"
-                        onClick={() => setReviewRating(num)}
-                        className="hover:scale-110 transition-transform"
-                      >
-                        <Star
-                          className={`w-8 h-8 ${num <= reviewRating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
-                        />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Your Review *
-                  </label>
-                  <textarea
-                    required
-                    rows={4}
-                    value={reviewComment}
-                    onChange={(e) => setReviewComment(e.target.value)}
-                    placeholder="Share your experience..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                  />
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowReviewForm(false)}
-                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors text-sm"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="flex-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors disabled:opacity-50 text-sm"
-                  >
-                    {submitting ? 'Submitting...' : 'Submit Review'}
-                  </button>
-                </div>
-              </form>
             </div>
           </div>
         </div>
