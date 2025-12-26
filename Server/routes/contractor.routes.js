@@ -56,4 +56,4 @@ router.get('/:id/ratings', getContractorRatings);
 // Protected review route (already there)
 router.post('/:id/reviews', protect, authorize('user'), addContractorReview);
 
-export default router;
+export default router; 
