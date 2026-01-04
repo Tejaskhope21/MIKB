@@ -1,5 +1,3 @@
-// app/(tabs)/_layout.jsx
-import React from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -10,30 +8,29 @@ export default function TabLayout() {
         tabBarActiveTintColor: '#800000',
         tabBarInactiveTintColor: '#666',
         tabBarStyle: {
-          backgroundColor: '#fff',
-          borderTopColor: '#e0e0e0',
+          borderTopWidth: 1,
+          borderTopColor: '#eee',
+          paddingBottom: 5,
+          paddingTop: 5,
           height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
         },
-        headerShown: false,
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ size, color }) => (
             <Ionicons name="home" size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="products"
+        name="search"
         options={{
-          title: 'Products',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="grid" size={size} color={color} />
+          title: 'Search',
+          tabBarIcon: ({ size, color }) => (
+            <Ionicons name="search" size={size} color={color} />
           ),
         }}
       />
@@ -41,19 +38,25 @@ export default function TabLayout() {
         name="cart"
         options={{
           title: 'Cart',
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ size, color }) => (
             <Ionicons name="cart" size={size} color={color} />
           ),
-          tabBarBadge: 3, // Dynamic badge will be implemented
+          tabBarBadge: 3, // You can make this dynamic
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ size, color }) => (
             <Ionicons name="person" size={size} color={color} />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="product/[id]"
+        options={{
+          href: null, // Hide from tab bar
         }}
       />
     </Tabs>
