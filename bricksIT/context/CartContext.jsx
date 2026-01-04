@@ -1,5 +1,5 @@
-// context/CartContext.jsx
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CartContext = createContext();
 
@@ -13,17 +13,53 @@ export const useCart = () => {
 
 export const CartProvider = ({ children }) => {
     const [cartItems, setCartItems] = useState([]);
+    const [isCartOpen, setIsCartOpen] = useState(false);
+
+    // Load cart from AsyncStorage on mount
+    useEffect(() => {
+        loadCart();
+    }, []);
+
+    // Save cart to AsyncStorage whenever it changes
+    useEffect(() => {
+        saveCart();
+    }, [cartItems]);
+
+    const loadCart = async () => {
+        try {
+            const savedCart = await AsyncStorage.getItem('bricksit_cart');
+            if (savedCart) {
+                setCartItems(JSON.parse(savedCart));
+            }
+        } catch (error) {
+            console.error('Error loading cart:', error);
+        }
+    };
+
+    const saveCart = async () => {
+        try {
+            await AsyncStorage.setItem('bricksit_cart', JSON.stringify(cartItems));
+        } catch (error) {
+            console.error('Error saving cart:', error);
+        }
+    };
 
     const addToCart = (product, quantity = 1) => {
         setCartItems(prevItems => {
-            const existingItemIndex = prevItems.findIndex(item => item.id === product.id);
+            const existingItem = prevItems.find(item => item.id === product.id);
 
-            if (existingItemIndex > -1) {
-                const updatedItems = [...prevItems];
-                updatedItems[existingItemIndex].quantity += quantity;
-                return updatedItems;
+            if (existingItem) {
+                return prevItems.map(item =>
+                    item.id === product.id
+                        ? { ...item, quantity: item.quantity + quantity }
+                        : item
+                );
             } else {
-                return [...prevItems, { ...product, quantity }];
+                return [...prevItems, {
+                    ...product,
+                    quantity,
+                    addedDate: new Date().toISOString()
+                }];
             }
         });
     };
@@ -32,15 +68,17 @@ export const CartProvider = ({ children }) => {
         setCartItems(prevItems => prevItems.filter(item => item.id !== productId));
     };
 
-    const updateQuantity = (productId, quantity) => {
-        if (quantity < 1) {
+    const updateQuantity = (productId, newQuantity) => {
+        if (newQuantity < 1) {
             removeFromCart(productId);
             return;
         }
 
         setCartItems(prevItems =>
             prevItems.map(item =>
-                item.id === productId ? { ...item, quantity } : item
+                item.id === productId
+                    ? { ...item, quantity: newQuantity }
+                    : item
             )
         );
     };
@@ -49,12 +87,26 @@ export const CartProvider = ({ children }) => {
         setCartItems([]);
     };
 
-    const getCartCount = () => {
-        return cartItems.reduce((total, item) => total + item.quantity, 0);
+    const getCartTotal = () => {
+        return cartItems.reduce((total, item) => {
+            return total + (item.price * item.quantity);
+        }, 0);
     };
 
-    const getCartTotal = () => {
-        return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+    const getCartCount = () => {
+        return cartItems.reduce((count, item) => count + item.quantity, 0);
+    };
+
+    const toggleCart = () => {
+        setIsCartOpen(!isCartOpen);
+    };
+
+    const openCart = () => {
+        setIsCartOpen(true);
+    };
+
+    const closeCart = () => {
+        setIsCartOpen(false);
     };
 
     return (
@@ -64,8 +116,12 @@ export const CartProvider = ({ children }) => {
             removeFromCart,
             updateQuantity,
             clearCart,
-            getCartCount,
             getCartTotal,
+            getCartCount,
+            isCartOpen,
+            toggleCart,
+            openCart,
+            closeCart
         }}>
             {children}
         </CartContext.Provider>
