@@ -1,7 +1,11 @@
+// app/(tabs)/_layout.tsx (updated)
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useCart } from '../../context/CartContext';
 
 export default function TabLayout() {
+  const { getCartCount } = useCart();
+
   return (
     <Tabs
       screenOptions={{
@@ -14,6 +18,7 @@ export default function TabLayout() {
           paddingTop: 5,
           height: 60,
         },
+        headerShown: false,
       }}
     >
       <Tabs.Screen
@@ -41,7 +46,13 @@ export default function TabLayout() {
           tabBarIcon: ({ size, color }) => (
             <Ionicons name="cart" size={size} color={color} />
           ),
-          tabBarBadge: 3, // You can make this dynamic
+          tabBarBadge: getCartCount() > 0 ? getCartCount() : undefined,
+          tabBarBadgeStyle: {
+            backgroundColor: '#ff4444',
+            fontSize: 10,
+            minWidth: 16,
+            height: 16,
+          },
         }}
       />
       <Tabs.Screen
@@ -51,12 +62,6 @@ export default function TabLayout() {
           tabBarIcon: ({ size, color }) => (
             <Ionicons name="person" size={size} color={color} />
           ),
-        }}
-      />
-      <Tabs.Screen
-        name="product/[id]"
-        options={{
-          href: null, // Hide from tab bar
         }}
       />
     </Tabs>

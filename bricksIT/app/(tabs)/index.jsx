@@ -1,3 +1,4 @@
+// app/(tabs)/index.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -12,132 +13,183 @@ import {
   FlatList,
   Image,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/Ionicons';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
-// Import API
+// Import API functions directly
 import {
-  productsAPI,
-  categoriesAPI,
+  fetchAllCategories,
+  fetchFeaturedProducts,
   formatPrice,
-  getProductImage
+  getProductImage,
 } from '../../services/api';
-
-// Import Components
-import Navbar from '../../components/Navbar';
-import HeroCarousel from '../../components/Common/HeroCarousel';
-import SearchBar from '../../components/Common/SearchBar';
 
 const { width } = Dimensions.get('window');
 
 const HomeScreen = () => {
-  const navigation = useNavigation();
+  const router = useRouter();
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Hero images for carousel
+  // Hero images
   const heroImages = [
     { id: 1, image: require('../../assets/images/b2.jpg'), title: 'Premium Building Materials' },
     { id: 2, image: require('../../assets/images/b3.jpg'), title: 'Trusted Brands' },
     { id: 3, image: require('../../assets/images/b4.jpg'), title: 'Fast Delivery' },
   ];
 
-  // Load all data
   const loadData = async () => {
     try {
-      // Load categories
-      const categoriesData = await categoriesAPI.fetchAllCategories();
-      setCategories(categoriesData);
+      setLoading(true);
 
-      // Load products
-      const productsData = await productsAPI.fetchAllProducts({ limit: 12 });
+      // Fetch categories and products
+      const [categoriesData, productsData] = await Promise.all([
+        fetchAllCategories(),
+        fetchFeaturedProducts(),
+      ]);
 
-      const transformedProducts = productsData.map(product => ({
-        id: product.numericId || product._id || product.id,
-        name: product.name || "Building Material",
-        brand: product.brand || "Premium Brand",
-        price: product.price || 0,
-        originalPrice: product.originalPrice || product.price,
-        discount: product.discount || 0,
-        image: getProductImage(product.images),
-        inStock: product.inventory?.stock > 0 || false,
-        category: product.categoryId?.name || 'Construction',
-        rating: product.rating || 4.0,
-        description: product.description || '',
-      }));
+      // Set categories
+      const cats = categoriesData && categoriesData.length > 0
+        ? categoriesData
+        : [
+          { _id: '1', name: 'Cement', image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400' },
+          { _id: '2', name: 'Steel', image: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=400' },
+          { _id: '3', name: 'Bricks', image: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=400' },
+        ];
 
-      setFeaturedProducts(transformedProducts);
+      setCategories(cats.map(cat => ({
+        id: cat._id || `cat-${Math.random()}`,
+        _id: cat._id,
+        name: cat.name || 'Category',
+        image: cat.image || `https://via.placeholder.com/80/cccccc/ffffff?text=${(cat.name || '?').charAt(0)}`,
+      })));
+
+      // Handle products
+      const transformedProducts = (productsData || [])
+        .filter(product => product && (product._id || product.name))
+        .map((product, index) => {
+          const safeId = product._id || `product-${index}`;
+          return {
+            id: safeId,
+            _id: safeId,
+            name: product.name || 'Building Material',
+            brand: product.brand || 'Premium Brand',
+            price: Number(product.price) || 0,
+            originalPrice: Number(product.originalPrice || product.price) || 0,
+            image: product.image || getProductImage(product.images),
+            inStock: product.inStock !== false,
+            category: product.category || 'Construction',
+            rating: Number(product.rating) || 4.0,
+          };
+        });
+
+      // Fallback if no products
+      if (transformedProducts.length === 0) {
+        const fallbackProducts = [
+          {
+            id: '1',
+            _id: '1',
+            name: 'UltraTech Cement 53 Grade',
+            brand: 'UltraTech',
+            price: 380,
+            originalPrice: 420,
+            image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400',
+            inStock: true,
+            category: 'Cement',
+            rating: 4.5,
+          },
+          {
+            id: '2',
+            _id: '2',
+            name: 'TATA Tiscon TMT Steel Bars',
+            brand: 'TATA',
+            price: 65000,
+            originalPrice: 68000,
+            image: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=400',
+            inStock: true,
+            category: 'Steel',
+            rating: 4.7,
+          },
+        ];
+        setFeaturedProducts(fallbackProducts);
+      } else {
+        setFeaturedProducts(transformedProducts);
+      }
+
     } catch (error) {
-      console.error("Error loading home data:", error);
-      Alert.alert(
-        "Connection Error",
-        "Unable to load data. Please check your internet connection.",
-        [{ text: "Retry", onPress: loadData }]
-      );
+      console.error('Error loading home data:', error);
+      // Load sample data on error
+      const sampleCategories = [
+        { id: '1', _id: '1', name: 'Cement', image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400' },
+        { id: '2', _id: '2', name: 'Steel', image: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=400' },
+        { id: '3', _id: '3', name: 'Bricks', image: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=400' },
+      ];
 
-      // Load sample data as fallback
-      loadSampleData();
+      const sampleProducts = [
+        {
+          id: '1',
+          _id: '1',
+          name: 'UltraTech Cement 53 Grade',
+          brand: 'UltraTech',
+          price: 380,
+          originalPrice: 420,
+          image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400',
+          inStock: true,
+          category: 'Cement',
+          rating: 4.5,
+        },
+        {
+          id: '2',
+          _id: '2',
+          name: 'TATA Tiscon TMT Steel Bars',
+          brand: 'TATA',
+          price: 65000,
+          originalPrice: 68000,
+          image: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=400',
+          inStock: true,
+          category: 'Steel',
+          rating: 4.7,
+        },
+      ];
+
+      setCategories(sampleCategories);
+      setFeaturedProducts(sampleProducts);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const loadSampleData = () => {
-    const sampleCategories = [
-      { id: '1', name: 'Cement', image: 'https://via.placeholder.com/150/800000/ffffff?text=C' },
-      { id: '2', name: 'Steel', image: 'https://via.placeholder.com/150/333333/ffffff?text=S' },
-      { id: '3', name: 'Bricks', image: 'https://via.placeholder.com/150/cc0000/ffffff?text=B' },
-      { id: '4', name: 'Tiles', image: 'https://via.placeholder.com/150/0066cc/ffffff?text=T' },
-      { id: '5', name: 'Paints', image: 'https://via.placeholder.com/150/ff9900/ffffff?text=P' },
-      { id: '6', name: 'Plumbing', image: 'https://via.placeholder.com/150/009999/ffffff?text=P' },
-    ];
-
-    const sampleProducts = Array.from({ length: 8 }, (_, i) => ({
-      id: `sample-${i + 1}`,
-      name: `Premium Construction Material ${i + 1}`,
-      brand: ['UltraTech', 'Ambuja', 'Jindal', 'Kajaria'][i % 4],
-      price: Math.floor(Math.random() * 5000) + 500,
-      originalPrice: Math.floor(Math.random() * 7000) + 1000,
-      discount: Math.random() > 0.3 ? Math.floor(Math.random() * 40) + 10 : 0,
-      image: `https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=400&fit=crop&${i}`,
-      inStock: true,
-      category: ['Cement', 'Steel', 'Bricks', 'Tiles'][i % 4],
-      rating: 3.8 + Math.random() * 1.2,
-    }));
-
-    setCategories(sampleCategories);
-    setFeaturedProducts(sampleProducts);
-  };
-
   useEffect(() => {
-    loadData().finally(() => setLoading(false));
+    loadData();
   }, []);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    loadData().finally(() => setRefreshing(false));
+    loadData();
   }, []);
 
   const handleProductPress = (product) => {
-    navigation.navigate('ProductDetail', { productId: product.id });
+    router.push(`/product/${product.id}`);
   };
 
   const handleCategoryPress = (category) => {
-    navigation.navigate('Category', {
-      categoryId: category.id,
-      categoryName: category.name
-    });
+    router.push(`/categories/${category.id}`);
   };
 
   const renderCategoryItem = ({ item }) => (
     <TouchableOpacity
       style={styles.categoryCard}
       onPress={() => handleCategoryPress(item)}
+      activeOpacity={0.7}
     >
       <View style={styles.categoryImageContainer}>
         <Image
-          source={{ uri: item.image || `https://via.placeholder.com/150?text=${item.name.charAt(0)}` }}
+          source={{ uri: item.image }}
           style={styles.categoryImage}
+          resizeMode="cover"
         />
       </View>
       <Text style={styles.categoryName} numberOfLines={1}>
@@ -147,7 +199,7 @@ const HomeScreen = () => {
   );
 
   const renderProductItem = ({ item }) => {
-    const discount = item.originalPrice > item.price
+    const discountPercent = item.originalPrice > item.price
       ? Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)
       : 0;
 
@@ -161,39 +213,48 @@ const HomeScreen = () => {
           <Image
             source={{ uri: item.image }}
             style={styles.productImage}
-            defaultSource={require('../../assets//images/b2.jpg')}
+            resizeMode="cover"
           />
-          {discount > 0 && (
+          {discountPercent > 0 && (
             <View style={styles.discountBadge}>
-              <Text style={styles.discountText}>{discount}% OFF</Text>
+              <Text style={styles.discountText}>{discountPercent}% OFF</Text>
+            </View>
+          )}
+          {!item.inStock && (
+            <View style={styles.outOfStockOverlay}>
+              <Text style={styles.outOfStockOverlayText}>Out of Stock</Text>
             </View>
           )}
         </View>
 
         <View style={styles.productInfo}>
-          <Text style={styles.productBrand} numberOfLines={1}>
-            {item.brand}
-          </Text>
-          <Text style={styles.productName} numberOfLines={2}>
-            {item.name}
-          </Text>
+          <Text style={styles.productBrand} numberOfLines={1}>{item.brand}</Text>
+          <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
 
           <View style={styles.priceContainer}>
-            <Text style={styles.productPrice}>
-              {formatPrice(item.price)}
-            </Text>
+            <Text style={styles.productPrice}>{formatPrice(item.price)}</Text>
             {item.originalPrice > item.price && (
-              <Text style={styles.originalPrice}>
-                {formatPrice(item.originalPrice)}
-              </Text>
+              <Text style={styles.originalPrice}>{formatPrice(item.originalPrice)}</Text>
             )}
           </View>
 
-          {item.inStock ? (
-            <Text style={styles.inStockText}>In Stock</Text>
-          ) : (
-            <Text style={styles.outOfStockText}>Out of Stock</Text>
-          )}
+          <View style={styles.stockRatingContainer}>
+            {item.inStock ? (
+              <View style={styles.stockBadge}>
+                <Ionicons name="checkmark-circle" size={12} color="#28a745" />
+                <Text style={styles.inStockText}>In Stock</Text>
+              </View>
+            ) : (
+              <View style={styles.stockBadge}>
+                <Ionicons name="close-circle" size={12} color="#dc3545" />
+                <Text style={styles.outOfStockText}>Out of Stock</Text>
+              </View>
+            )}
+            <View style={styles.ratingContainer}>
+              <Ionicons name="star" size={12} color="#ffc107" />
+              <Text style={styles.ratingText}>{item.rating?.toFixed(1) || '4.0'}</Text>
+            </View>
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -211,7 +272,17 @@ const HomeScreen = () => {
   return (
     <View style={styles.container}>
       {/* Navbar */}
-      <Navbar />
+      <View style={styles.navbar}>
+        <Text style={styles.navbarTitle}>BricksIT</Text>
+        <View style={styles.navbarIcons}>
+          <TouchableOpacity style={styles.navbarIcon} onPress={() => router.push('/search')}>
+            <Ionicons name="search-outline" size={24} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.navbarIcon} onPress={() => router.push('/cart')}>
+            <Ionicons name="cart-outline" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      </View>
 
       <ScrollView
         style={styles.scrollView}
@@ -226,25 +297,47 @@ const HomeScreen = () => {
         }
       >
         {/* Hero Carousel */}
-        <HeroCarousel images={heroImages} />
+        <View style={styles.heroContainer}>
+          <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false}>
+            {heroImages.map((image) => (
+              <View key={image.id} style={styles.heroSlide}>
+                <Image source={image.image} style={styles.heroImage} />
+                <View style={styles.heroOverlay}>
+                  <Text style={styles.heroTitle}>{image.title}</Text>
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
 
         {/* Search Bar */}
         <View style={styles.searchContainer}>
-          <SearchBar />
+          <TouchableOpacity
+            style={styles.searchBar}
+            onPress={() => router.push('/search')}
+          >
+            <Ionicons name="search" size={20} color="#666" />
+            <Text style={styles.searchPlaceholder}>Search building materials...</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Categories Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Shop by Category</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('CategoriesMain')}>
+            <TouchableOpacity
+              onPress={() => router.push('/categories')}
+              style={styles.seeAllButton}
+            >
               <Text style={styles.seeAllText}>See All</Text>
+              <Ionicons name="chevron-forward" size={16} color="#800000" />
             </TouchableOpacity>
           </View>
+
           <FlatList
-            data={categories.slice(0, 6)}
+            data={categories}
             renderItem={renderCategoryItem}
-            keyExtractor={item => item.id.toString()}
+            keyExtractor={(item) => item.id}
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.categoriesList}
@@ -255,14 +348,19 @@ const HomeScreen = () => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Featured Products</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Products')}>
+            <TouchableOpacity
+              onPress={() => router.push('/products')}
+              style={styles.seeAllButton}
+            >
               <Text style={styles.seeAllText}>See All</Text>
+              <Ionicons name="chevron-forward" size={16} color="#800000" />
             </TouchableOpacity>
           </View>
+
           <FlatList
             data={featuredProducts}
             renderItem={renderProductItem}
-            keyExtractor={item => item.id.toString()}
+            keyExtractor={(item) => item.id}
             numColumns={2}
             scrollEnabled={false}
             columnWrapperStyle={styles.productsGrid}
@@ -273,62 +371,18 @@ const HomeScreen = () => {
         <View style={styles.quickActions}>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => navigation.navigate('PostRequirement')}
+            onPress={() => router.push('/post-requirement')}
           >
-            <Icon name="document-text" size={24} color="#800000" />
+            <Ionicons name="document-text-outline" size={28} color="#800000" />
             <Text style={styles.actionText}>Post Requirement</Text>
           </TouchableOpacity>
-
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => navigation.navigate('ContractorDashboard')}
+            onPress={() => router.push('/contractors')}
           >
-            <Icon name="construct" size={24} color="#800000" />
-            <Text style={styles.actionText}>Contractors</Text>
+            <Ionicons name="construct-outline" size={28} color="#800000" />
+            <Text style={styles.actionText}>Find Contractors</Text>
           </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => navigation.navigate('SellerDashboard')}
-          >
-            <Icon name="storefront" size={24} color="#800000" />
-            <Text style={styles.actionText}>Sell</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Why Choose Us Section */}
-        <View style={[styles.section, styles.whyChooseSection]}>
-          <Text style={styles.sectionTitle}>Why Choose BricksIT?</Text>
-          <View style={styles.featuresGrid}>
-            <View style={styles.featureItem}>
-              <Icon name="shield-checkmark" size={32} color="#800000" />
-              <Text style={styles.featureTitle}>100% Authentic</Text>
-              <Text style={styles.featureDescription}>
-                Certified and genuine materials only
-              </Text>
-            </View>
-            <View style={styles.featureItem}>
-              <Icon name="time" size={32} color="#800000" />
-              <Text style={styles.featureTitle}>Fast Delivery</Text>
-              <Text style={styles.featureDescription}>
-                Quick delivery to your construction site
-              </Text>
-            </View>
-            <View style={styles.featureItem}>
-              <Icon name="cash" size={32} color="#800000" />
-              <Text style={styles.featureTitle}>Best Prices</Text>
-              <Text style={styles.featureDescription}>
-                Competitive pricing with no hidden charges
-              </Text>
-            </View>
-            <View style={styles.featureItem}>
-              <Icon name="headset" size={32} color="#800000" />
-              <Text style={styles.featureTitle}>24/7 Support</Text>
-              <Text style={styles.featureDescription}>
-                Expert support for all your queries
-              </Text>
-            </View>
-          </View>
         </View>
 
         {/* Footer Space */}
@@ -341,201 +395,287 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f8f9fa'
+  },
+  navbar: {
+    backgroundColor: '#800000',
+    paddingTop: 50,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  navbarTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  navbarIcons: {
+    flexDirection: 'row',
+  },
+  navbarIcon: {
+    marginLeft: 16,
   },
   scrollView: {
-    flex: 1,
+    flex: 1
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f8f9fa'
   },
   loadingText: {
-    marginTop: 10,
+    marginTop: 12,
     color: '#666',
     fontSize: 16,
+    fontWeight: '500'
+  },
+  heroContainer: {
+    height: 200,
+  },
+  heroSlide: {
+    width: width,
+    height: 200,
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  heroOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  heroTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+    textAlign: 'center',
+    paddingHorizontal: 20,
   },
   searchContainer: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
+    backgroundColor: '#fff'
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  searchPlaceholder: {
+    marginLeft: 12,
+    fontSize: 16,
+    color: '#666',
   },
   section: {
     backgroundColor: '#fff',
     marginVertical: 8,
-    paddingVertical: 16,
+    paddingVertical: 16
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    marginBottom: 12,
+    marginBottom: 16
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1a1a1a'
+  },
+  seeAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4
   },
   seeAllText: {
     color: '#800000',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '600'
   },
   categoriesList: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 16
   },
   categoryCard: {
     width: 100,
-    marginRight: 12,
     alignItems: 'center',
+    marginRight: 16
   },
   categoryImageContainer: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#f0f0f0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
+    backgroundColor: '#f8f9fa',
     overflow: 'hidden',
+    marginBottom: 8,
+    borderWidth: 2,
+    borderColor: '#f0f0f0'
   },
   categoryImage: {
     width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
+    height: '100%'
   },
   categoryName: {
-    fontSize: 12,
+    fontSize: 13,
     textAlign: 'center',
     color: '#333',
-    fontWeight: '500',
+    fontWeight: '600'
   },
   productsGrid: {
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: 16
   },
   productCard: {
-    width: (width - 40) / 2,
+    flex: 1,
+    maxWidth: (width - 56) / 2,
     backgroundColor: '#fff',
-    borderRadius: 8,
+    borderRadius: 12,
     marginBottom: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 8,
+    elevation: 5
   },
   productImageContainer: {
     position: 'relative',
+    height: 160
   },
   productImage: {
     width: '100%',
-    height: 150,
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
+    height: 160,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12
   },
   discountBadge: {
     position: 'absolute',
     top: 8,
     left: 8,
     backgroundColor: '#ff4444',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6
   },
   discountText: {
     color: '#fff',
-    fontSize: 10,
-    fontWeight: 'bold',
+    fontSize: 11,
+    fontWeight: '700'
+  },
+  outOfStockOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12
+  },
+  outOfStockOverlayText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600'
   },
   productInfo: {
-    padding: 8,
+    padding: 12,
+    flex: 1
   },
   productBrand: {
-    fontSize: 10,
+    fontSize: 11,
     color: '#666',
     marginBottom: 4,
+    fontWeight: '500'
   },
   productName: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#333',
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1a1a1a',
     marginBottom: 8,
-    lineHeight: 16,
+    lineHeight: 16
   },
   priceContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 8
   },
   productPrice: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#800000',
+    marginRight: 4
   },
   originalPrice: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#999',
-    textDecorationLine: 'line-through',
-    marginLeft: 6,
+    textDecorationLine: 'line-through'
+  },
+  stockRatingContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  stockBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 6
   },
   inStockText: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#28a745',
+    fontWeight: '600'
   },
   outOfStockText: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#dc3545',
+    fontWeight: '600'
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2
+  },
+  ratingText: {
+    fontSize: 11,
+    color: '#666',
+    fontWeight: '500'
   },
   quickActions: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    padding: 16,
+    padding: 20,
     backgroundColor: '#fff',
-    marginTop: 8,
+    marginTop: 8
   },
   actionButton: {
     alignItems: 'center',
-    padding: 12,
+    padding: 16,
+    flex: 1,
+    borderRadius: 12,
+    backgroundColor: '#f8f9fa',
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+    marginHorizontal: 8
   },
   actionText: {
     marginTop: 8,
-    fontSize: 12,
+    fontSize: 13,
     color: '#800000',
-    fontWeight: '500',
-  },
-  whyChooseSection: {
-    backgroundColor: '#f8f9fa',
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-  },
-  featuresGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 16,
-  },
-  featureItem: {
-    width: '50%',
-    alignItems: 'center',
-    padding: 16,
-  },
-  featureTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333',
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  featureDescription: {
-    fontSize: 12,
-    color: '#666',
-    textAlign: 'center',
+    fontWeight: '600',
+    textAlign: 'center'
   },
   footerSpace: {
-    height: 80,
+    height: 100
   },
 });
 

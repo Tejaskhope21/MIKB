@@ -1,124 +1,163 @@
+// app/(tabs)/search.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
-    TextInput,
-    StyleSheet,
-    FlatList,
     Text,
+    StyleSheet,
+    ScrollView,
+    TextInput,
     TouchableOpacity,
+    FlatList,
     Image,
+    Dimensions,
     ActivityIndicator,
-    Keyboard,
+    Alert,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { productsAPI, hasSearchResults } from '../../services/api';
+import { productsAPI } from '../../services/api';
 
-const SearchScreen = () => {
-    const { query: initialQuery } = useLocalSearchParams();
+const { width } = Dimensions.get('window');
+
+export default function SearchScreen() {
     const router = useRouter();
-    const [searchQuery, setSearchQuery] = useState(initialQuery || '');
+    const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState([]);
-    const [loading, setLoading] = useState(false);
     const [recentSearches, setRecentSearches] = useState([]);
+    const [trendingProducts, setTrendingProducts] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [showResults, setShowResults] = useState(false);
 
     useEffect(() => {
-        if (initialQuery) {
-            performSearch(initialQuery);
-        }
+        loadTrendingProducts();
         loadRecentSearches();
-    }, [initialQuery]);
+    }, []);
 
-    const loadRecentSearches = () => {
-        // In a real app, you would load this from AsyncStorage
-        const recent = ['Cement', 'Steel', 'Tiles', 'Paint'];
-        setRecentSearches(recent);
+    const loadTrendingProducts = async () => {
+        try {
+            const products = await productsAPI.fetchFeaturedProducts();
+            setTrendingProducts(products.slice(0, 6));
+        } catch (error) {
+            console.error('Error loading trending products:', error);
+        }
     };
 
-    const performSearch = async (query) => {
-        if (!query.trim()) {
-            setSearchResults([]);
+    const loadRecentSearches = async () => {
+        // Load from AsyncStorage
+        try {
+            // This would be implemented with AsyncStorage
+            setRecentSearches(['Cement', 'Steel', 'Bricks', 'Tiles']);
+        } catch (error) {
+            console.error('Error loading recent searches:', error);
+        }
+    };
+
+    const handleSearch = async () => {
+        if (!searchQuery.trim()) {
+            Alert.alert('Search', 'Please enter a search term');
             return;
         }
 
-        setLoading(true);
-        Keyboard.dismiss();
-
         try {
-            const results = await productsAPI.searchProducts(query);
+            setLoading(true);
+            const results = await productsAPI.searchProducts(searchQuery);
             setSearchResults(results);
+            setShowResults(true);
 
             // Save to recent searches
-            if (query.trim() && !recentSearches.includes(query.trim())) {
-                const updated = [query.trim(), ...recentSearches.slice(0, 4)];
+            if (!recentSearches.includes(searchQuery)) {
+                const updated = [searchQuery, ...recentSearches.slice(0, 4)];
                 setRecentSearches(updated);
+                // Save to AsyncStorage
             }
         } catch (error) {
             console.error('Search error:', error);
+            Alert.alert('Error', 'Failed to search products');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleSearch = () => {
-        if (searchQuery.trim()) {
-            performSearch(searchQuery.trim());
-        }
-    };
-
     const handleProductPress = (product) => {
-        router.push(`/product/${product.id}`);
-    };
-
-    const handleRecentSearchPress = (query) => {
-        setSearchQuery(query);
-        performSearch(query);
-    };
-
-    const clearSearch = () => {
+        router.push(`/product/${product._id || product.id}`);
+        setShowResults(false);
         setSearchQuery('');
-        setSearchResults([]);
     };
 
-    const renderProductItem = ({ item }) => (
+    const handleClearSearch = () => {
+        setSearchQuery('');
+        setShowResults(false);
+    };
+
+    const renderProductItem = ({ item }) => {
+        const discount = item.originalPrice > item.price
+            ? Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)
+            : 0;
+
+        return (
+            <TouchableOpacity
+                style={styles.productCard}
+                onPress={() => handleProductPress(item)}
+            >
+                <Image
+                    source={{ uri: item.images?.[0] || item.image }}
+                    style={styles.productImage}
+                />
+                <View style={styles.productInfo}>
+                    <Text style={styles.productBrand} numberOfLines={1}>
+                        {item.brand}
+                    </Text>
+                    <Text style={styles.productName} numberOfLines={2}>
+                        {item.name}
+                    </Text>
+                    <View style={styles.priceContainer}>
+                        <Text style={styles.productPrice}>₹{item.price?.toLocaleString()}</Text>
+                        {discount > 0 && (
+                            <Text style={styles.discountText}>{discount}% OFF</Text>
+                        )}
+                    </View>
+                </View>
+            </TouchableOpacity>
+        );
+    };
+
+    const renderSearchSuggestion = ({ item }) => (
         <TouchableOpacity
-            style={styles.productItem}
-            onPress={() => handleProductPress(item)}
+            style={styles.suggestionItem}
+            onPress={() => {
+                setSearchQuery(item);
+                handleSearch();
+            }}
         >
-            <Image
-                source={{ uri: item.images?.[0] || 'https://via.placeholder.com/100' }}
-                style={styles.productImage}
-            />
-            <View style={styles.productInfo}>
-                <Text style={styles.productName} numberOfLines={2}>
-                    {item.name}
-                </Text>
-                <Text style={styles.productBrand}>{item.brand}</Text>
-                <Text style={styles.productPrice}>₹{item.price?.toLocaleString()}</Text>
-            </View>
+            <Icon name="time-outline" size={18} color="#666" />
+            <Text style={styles.suggestionText}>{item}</Text>
         </TouchableOpacity>
     );
 
     return (
         <View style={styles.container}>
-            {/* Search Bar */}
-            <View style={styles.searchContainer}>
-                <Icon name="search" size={20} color="#666" style={styles.searchIcon} />
-                <TextInput
-                    style={styles.searchInput}
-                    placeholder="Search products, brands, categories..."
-                    placeholderTextColor="#999"
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                    onSubmitEditing={handleSearch}
-                    returnKeyType="search"
-                    autoFocus={!initialQuery}
-                />
-                {searchQuery ? (
-                    <TouchableOpacity onPress={clearSearch}>
-                        <Icon name="close-circle" size={20} color="#666" />
-                    </TouchableOpacity>
-                ) : null}
+            {/* Search Header */}
+            <View style={styles.searchHeader}>
+                <View style={styles.searchContainer}>
+                    <Icon name="search" size={20} color="#666" style={styles.searchIcon} />
+                    <TextInput
+                        style={styles.searchInput}
+                        placeholder="Search building materials..."
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                        onSubmitEditing={handleSearch}
+                        returnKeyType="search"
+                        autoCapitalize="none"
+                    />
+                    {searchQuery.length > 0 && (
+                        <TouchableOpacity onPress={handleClearSearch}>
+                            <Icon name="close-circle" size={20} color="#999" />
+                        </TouchableOpacity>
+                    )}
+                </View>
+                <TouchableOpacity onPress={handleSearch} style={styles.searchButton}>
+                    <Text style={styles.searchButtonText}>Search</Text>
+                </TouchableOpacity>
             </View>
 
             {loading ? (
@@ -126,72 +165,111 @@ const SearchScreen = () => {
                     <ActivityIndicator size="large" color="#800000" />
                     <Text style={styles.loadingText}>Searching...</Text>
                 </View>
-            ) : searchResults.length > 0 ? (
+            ) : showResults ? (
                 <FlatList
                     data={searchResults}
                     renderItem={renderProductItem}
-                    keyExtractor={item => item.id.toString()}
-                    contentContainerStyle={styles.resultsList}
-                    ListHeaderComponent={
-                        <Text style={styles.resultsHeader}>
-                            {searchResults.length} results for "{searchQuery}"
-                        </Text>
+                    keyExtractor={(item) => item._id || item.id || String(Math.random())}
+                    numColumns={2}
+                    columnWrapperStyle={styles.productsGrid}
+                    contentContainerStyle={styles.resultsContainer}
+                    ListEmptyComponent={
+                        <View style={styles.emptyContainer}>
+                            <Icon name="search-outline" size={64} color="#ccc" />
+                            <Text style={styles.emptyText}>No results found</Text>
+                            <Text style={styles.emptySubtext}>Try different keywords</Text>
+                        </View>
                     }
                 />
-            ) : searchQuery ? (
-                <View style={styles.emptyResults}>
-                    <Icon name="search-outline" size={60} color="#ccc" />
-                    <Text style={styles.emptyResultsTitle}>No results found</Text>
-                    <Text style={styles.emptyResultsText}>
-                        Try different keywords or check spelling
-                    </Text>
-                </View>
             ) : (
-                <View style={styles.recentSearchesContainer}>
-                    <Text style={styles.sectionTitle}>Recent Searches</Text>
-                    {recentSearches.map((query, index) => (
-                        <TouchableOpacity
-                            key={index}
-                            style={styles.recentSearchItem}
-                            onPress={() => handleRecentSearchPress(query)}
-                        >
-                            <Icon name="time-outline" size={18} color="#666" />
-                            <Text style={styles.recentSearchText}>{query}</Text>
-                            <Icon name="arrow-forward" size={18} color="#999" />
-                        </TouchableOpacity>
-                    ))}
-
-                    <Text style={styles.sectionTitle}>Popular Categories</Text>
-                    <View style={styles.categoriesContainer}>
-                        {['Cement', 'Steel', 'Tiles', 'Paints', 'Bricks', 'Plumbing'].map((category) => (
+                <ScrollView style={styles.suggestionsContainer}>
+                    {/* Recent Searches */}
+                    {recentSearches.length > 0 && (
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Recent Searches</Text>
+                            <FlatList
+                                data={recentSearches}
+                                renderItem={renderSearchSuggestion}
+                                keyExtractor={(item, index) => `recent-${index}`}
+                                scrollEnabled={false}
+                            />
                             <TouchableOpacity
-                                key={category}
-                                style={styles.categoryChip}
-                                onPress={() => handleRecentSearchPress(category)}
+                                style={styles.clearButton}
+                                onPress={() => setRecentSearches([])}
                             >
-                                <Text style={styles.categoryText}>{category}</Text>
+                                <Text style={styles.clearButtonText}>Clear History</Text>
                             </TouchableOpacity>
-                        ))}
+                        </View>
+                    )}
+
+                    {/* Trending Products */}
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Trending Products</Text>
+                        <FlatList
+                            data={trendingProducts}
+                            renderItem={renderProductItem}
+                            keyExtractor={(item) => item._id || item.id || String(Math.random())}
+                            numColumns={2}
+                            columnWrapperStyle={styles.productsGrid}
+                            scrollEnabled={false}
+                        />
                     </View>
-                </View>
+
+                    {/* Popular Categories */}
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Popular Categories</Text>
+                        <View style={styles.categoriesGrid}>
+                            {[
+                                { name: 'Cement', icon: 'cube-outline' },
+                                { name: 'Steel', icon: 'construct-outline' },
+                                { name: 'Bricks', icon: 'cube' },
+                                { name: 'Tiles', icon: 'square-outline' },
+                                { name: 'Paint', icon: 'color-palette-outline' },
+                                { name: 'Pipes', icon: 'water-outline' },
+                            ].map((category) => (
+                                <TouchableOpacity
+                                    key={category.name}
+                                    style={styles.categoryItem}
+                                    onPress={() => {
+                                        setSearchQuery(category.name);
+                                        handleSearch();
+                                    }}
+                                >
+                                    <View style={styles.categoryIcon}>
+                                        <Icon name={category.icon} size={24} color="#800000" />
+                                    </View>
+                                    <Text style={styles.categoryName}>{category.name}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </View>
+                </ScrollView>
             )}
         </View>
     );
-};
+}
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#f8f9fa',
     },
+    searchHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#800000',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        paddingTop: 50,
+    },
     searchContainer: {
+        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#fff',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: '#eee',
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        marginRight: 10,
     },
     searchIcon: {
         marginRight: 8,
@@ -200,7 +278,18 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 16,
         color: '#333',
-        paddingVertical: 8,
+        paddingVertical: 10,
+    },
+    searchButton: {
+        backgroundColor: '#fff',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 8,
+    },
+    searchButtonText: {
+        color: '#800000',
+        fontSize: 14,
+        fontWeight: '600',
     },
     loadingContainer: {
         flex: 1,
@@ -208,83 +297,27 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     loadingText: {
-        marginTop: 10,
+        marginTop: 12,
         color: '#666',
+        fontSize: 14,
     },
-    resultsList: {
+    resultsContainer: {
         padding: 16,
     },
-    resultsHeader: {
-        fontSize: 16,
-        color: '#666',
-        marginBottom: 16,
-    },
-    productItem: {
-        flexDirection: 'row',
-        backgroundColor: '#fff',
-        borderRadius: 8,
-        padding: 12,
-        marginBottom: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
-    },
-    productImage: {
-        width: 80,
-        height: 80,
-        borderRadius: 8,
-    },
-    productInfo: {
+    suggestionsContainer: {
         flex: 1,
-        marginLeft: 12,
-        justifyContent: 'center',
+        padding: 16,
     },
-    productName: {
-        fontSize: 14,
-        fontWeight: '500',
-        color: '#333',
-        marginBottom: 4,
+    section: {
+        marginBottom: 24,
     },
-    productBrand: {
-        fontSize: 12,
-        color: '#666',
-        marginBottom: 4,
-    },
-    productPrice: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#800000',
-    },
-    emptyResults: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 20,
-    },
-    emptyResultsTitle: {
+    sectionTitle: {
         fontSize: 18,
         fontWeight: 'bold',
         color: '#333',
-        marginTop: 16,
+        marginBottom: 16,
     },
-    emptyResultsText: {
-        fontSize: 14,
-        color: '#666',
-        textAlign: 'center',
-        marginTop: 8,
-    },
-    recentSearchesContainer: {
-        padding: 16,
-    },
-    sectionTitle: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#333',
-        marginBottom: 12,
-    },
-    recentSearchItem: {
+    suggestionItem: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#fff',
@@ -292,30 +325,111 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         marginBottom: 8,
     },
-    recentSearchText: {
-        flex: 1,
+    suggestionText: {
         marginLeft: 12,
-        fontSize: 14,
+        fontSize: 16,
         color: '#333',
     },
-    categoriesContainer: {
+    clearButton: {
+        alignSelf: 'flex-start',
+        marginTop: 8,
+    },
+    clearButtonText: {
+        color: '#800000',
+        fontSize: 14,
+    },
+    productsGrid: {
+        justifyContent: 'space-between',
+        marginBottom: 12,
+    },
+    productCard: {
+        width: (width - 40) / 2,
+        backgroundColor: '#fff',
+        borderRadius: 8,
+        marginBottom: 12,
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    productImage: {
+        width: '100%',
+        height: 120,
+        resizeMode: 'cover',
+    },
+    productInfo: {
+        padding: 12,
+    },
+    productBrand: {
+        fontSize: 12,
+        color: '#666',
+        marginBottom: 4,
+    },
+    productName: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: '#333',
+        marginBottom: 8,
+    },
+    priceContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    productPrice: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#800000',
+    },
+    discountText: {
+        fontSize: 12,
+        color: '#ff4444',
+        fontWeight: '600',
+    },
+    categoriesGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 8,
+        justifyContent: 'space-between',
     },
-    categoryChip: {
+    categoryItem: {
+        width: (width - 48) / 3,
+        alignItems: 'center',
         backgroundColor: '#fff',
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: '#ddd',
+        padding: 16,
+        borderRadius: 8,
+        marginBottom: 12,
     },
-    categoryText: {
-        color: '#800000',
+    categoryIcon: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: '#f8f9fa',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    categoryName: {
         fontSize: 12,
+        color: '#333',
+        fontWeight: '500',
+        textAlign: 'center',
+    },
+    emptyContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 40,
+    },
+    emptyText: {
+        fontSize: 18,
+        color: '#666',
+        marginTop: 16,
         fontWeight: '500',
     },
+    emptySubtext: {
+        fontSize: 14,
+        color: '#999',
+        marginTop: 8,
+    },
 });
-
-export default SearchScreen;

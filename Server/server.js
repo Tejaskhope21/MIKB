@@ -40,30 +40,23 @@ connectDB();
 // CORS Configuration
 const corsOptions = {
     origin: [
-        // Local Development
         'http://localhost:3000',
         'http://localhost:5173',
         'http://localhost:5174',
         'http://localhost:5175',
-
-        // Production Frontends
         'https://bricksitnow.netlify.app',
         'https://bricks-com.vercel.app',
         'https://bricksitnow.co.in',
-
-        // Dynamic from env
         process.env.FRONTEND_URL
-    ].filter(Boolean), // Removes undefined/null values
+    ].filter(Boolean),
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     exposedHeaders: ['Content-Length', 'X-Total-Count'],
-    maxAge: 86400 // 24 hours
+    maxAge: 86400
 };
 
-// Apply CORS middleware (this automatically handles preflight OPTIONS requests)
 app.use(cors(corsOptions));
-// REMOVED: app.options('*', cors(corsOptions)); → This was causing the crash!
 
 // Body parsing middleware
 app.use(express.json({ limit: '50mb' }));
@@ -88,7 +81,8 @@ app.get('/api/health', (req, res) => {
     res.json({
         success: true,
         status: 'OK',
-        version: '1.0.0',
+        version: '2.0.0',
+        message: 'BuilderSmart API is healthy!',
         services: {
             database: 'connected',
             contractor_api: 'active',
@@ -125,7 +119,7 @@ app.use('/api/v1/orders', orderRoutes);
 app.use('/api/v1/search', searchRoutes);
 app.use('/api/v1/requirements', materialRequirementRoutes);
 
-// Legacy routes (for backward compatibility)
+// Legacy routes (backward compatibility)
 app.use('/api/admin', adminRoutes);
 app.use('/api/seller', sellerRoutes);
 app.use('/api/categories', categoryRoutes);
@@ -142,15 +136,11 @@ app.get('/', (req, res) => {
         version: '2.0.0',
         contractor_support: true,
         docs: {
-            health: '/health',
-            auth: '/api/auth OR /api/v1/auth',
-            contractor_auth: '/api/contractor/auth/register OR /api/contractor/auth/login',
-            contractor_profile: '/api/contractor/profile',
-            contractor_portfolio: '/api/contractor/portfolio',
-            user_profile: '/api/user/profile',
-            user_addresses: '/api/user/addresses',
+            health: '/api/health',
+            categories: '/api/v1/categories',
             products: '/api/v1/products',
-            categories: '/api/v1/categories'
+            user_login: '/api/auth/user/login',
+            contractor_login: '/api/contractor/auth/login'
         }
     });
 });
@@ -159,22 +149,12 @@ app.get('/', (req, res) => {
 app.get('/api', (req, res) => {
     res.json({
         success: true,
-        message: 'API Root',
-        contractor_endpoints: {
-            register: 'POST /api/contractor/auth/register',
-            login: 'POST /api/contractor/auth/login',
-            profile: 'GET /api/contractor/profile',
-            portfolio: 'GET /api/contractor/portfolio'
-        },
-        user_endpoints: {
-            profile: '/api/user/profile',
-            addresses: '/api/user/addresses'
-        },
-        auth_endpoints: {
-            user_register: '/api/auth/user/register',
-            user_login: '/api/auth/user/login',
-            seller_register: '/api/auth/seller/register',
-            seller_login: '/api/auth/seller/login'
+        message: 'API Root - BuilderSmart',
+        quick_links: {
+            health_check: '/api/health',
+            test_contractor: '/api/test-contractor',
+            categories: '/api/v1/categories',
+            featured_products: '/api/v1/products/featured'
         }
     });
 });
@@ -183,14 +163,8 @@ app.get('/api', (req, res) => {
 app.get('/api/test-contractor', (req, res) => {
     res.json({
         success: true,
-        message: 'Contractor API is working!',
-        endpoints: [
-            'POST /api/contractor/auth/register',
-            'POST /api/contractor/auth/login',
-            'GET /api/contractor/profile',
-            'GET /api/contractor/portfolio',
-            'POST /api/contractor/portfolio'
-        ]
+        message: 'Contractor API is working perfectly!',
+        tip: 'Use this endpoint to verify server is reachable from mobile/emulator'
     });
 });
 
@@ -199,27 +173,13 @@ app.use((req, res) => {
     res.status(404).json({
         success: false,
         message: `Route not found: ${req.method} ${req.originalUrl}`,
-        available_routes: {
-            contractor_auth: [
-                'POST /api/contractor/auth/register',
-                'POST /api/contractor/auth/login'
-            ],
-            contractor: [
-                'GET /api/contractor/profile',
-                'GET /api/contractor/portfolio',
-                'POST /api/contractor/portfolio'
-            ],
-            user: [
-                'GET /api/user/profile',
-                'GET /api/user/addresses'
-            ]
-        }
+        suggestion: 'Check /api/health or /api/test-contractor'
     });
 });
 
 // Global Error Handler
 app.use((err, req, res, next) => {
-    console.error('🔥 Server Error:', err.stack);
+    console.error('Server Error:', err.stack);
 
     const statusCode = err.statusCode || 500;
     const message = err.message || 'Internal Server Error';
@@ -233,31 +193,51 @@ app.use((err, req, res, next) => {
 
 // Graceful Shutdown
 process.on('SIGINT', () => {
-    console.log('🛑 Server shutting down gracefully...');
+    console.log('Shutting down gracefully...');
     process.exit(0);
 });
 
 process.on('SIGTERM', () => {
-    console.log('🛑 Server shutting down gracefully...');
+    console.log('Shutting down gracefully...');
     process.exit(0);
 });
 
-// Start Server
+// ==================== SERVER START ====================
+// Critical: Bind to 0.0.0.0 so Android emulator & real devices can connect!
 const PORT = process.env.PORT || 5000;
-const server = app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`\n📋 CONTRACTOR ENDPOINTS:`);
-    console.log(`   🔐 POST  /api/contractor/auth/register`);
-    console.log(`   🔑 POST  /api/contractor/auth/login`);
-    console.log(`   👤 GET   /api/contractor/profile`);
-    console.log(`   🖼️  GET   /api/contractor/portfolio`);
-    console.log(`   ➕ POST  /api/contractor/portfolio`);
-    console.log(`\n👤 USER ENDPOINTS:`);
-    console.log(`   📋 GET   /api/user/profile`);
-    console.log(`   📍 GET   /api/user/addresses`);
-    console.log(`   ➕ POST  /api/user/addresses`);
-    console.log(`\n🔗 Test endpoint: http://localhost:${PORT}/api/test-contractor`);
+const HOST = '0.0.0.0';
+
+let localIP = 'not detected';
+
+// Detect local network IP (for real device testing on same WiFi)
+(async () => {
+    try {
+        const os = await import('os');
+        const interfaces = os.default.networkInterfaces(); // Note: .default in ESM
+        for (const name of Object.keys(interfaces)) {
+            for (const iface of interfaces[name]) {
+                if (iface.family === 'IPv4' && !iface.internal) {
+                    localIP = iface.address;
+                    return;
+                }
+            }
+        }
+    } catch (err) {
+        console.warn('Could not detect local network IP (this is okay for emulator)');
+        localIP = 'unknown';
+    }
+})();
+
+const server = app.listen(PORT, HOST, () => {
+    console.log(`\n🚀 Server running in ${process.env.NODE_ENV || 'development'} mode\n`);
+    console.log(`🌍 Local (Your Browser):           http://localhost:${PORT}`);
+    console.log(`📱 Android Emulator:              http://10.0.2.2:${PORT}`);
+    console.log(`📶 Real Device (Same WiFi):        http://${localIP}:${PORT}\n`);
+
+    console.log(`🩺 Health Check:                   http://localhost:${PORT}/api/health`);
+    console.log(`🧪 Test Endpoint:                  http://localhost:${PORT}/api/test-contractor\n`);
+    console.log(`✅ Now open Android Emulator browser and visit:`);
+    console.log(`   http://10.0.2.2:${PORT}/api/health\n`);
 });
 
 export default server;

@@ -1,5 +1,4 @@
-// app/_layout.jsx
-import React from 'react';
+// app/_layout.tsx
 import { Stack } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { CartProvider } from '../context/CartContext';
@@ -9,12 +8,11 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <CartProvider>
-        <StatusBar style="dark" backgroundColor="#800000" />
+        <StatusBar style="dark" />
         <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="product/[id]" options={{ title: 'Product Details' }} />
-          <Stack.Screen name="cart" options={{ title: 'Shopping Cart' }} />
-          <Stack.Screen name="search" options={{ title: 'Search' }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="product/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
         </Stack>
       </CartProvider>
     </SafeAreaProvider>

@@ -1,613 +1,308 @@
+// services/api.js - FIXED VERSION
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
 
-/* ============================
-   BASE URL CONFIGURATION
-============================ */
-const getBaseURL = () => {
-    // For development on Android emulator
-    if (__DEV__) {
-        if (Platform.OS === 'android') {
-            // Android emulator uses 10.0.2.2 for localhost
-            return 'http://10.0.2.2:5000/api';
-        } else if (Platform.OS === 'ios') {
-            // iOS simulator
-            return 'http://localhost:5000/api';
-        }
-    }
-    // Production or web
-    return 'https://bricks-backend-qyea.onrender.com/api';
-};
-
-const API_BASE_URL = getBaseURL();
-
-console.log('API Base URL:', API_BASE_URL);
+const API_BASE_URL = 'https://bricks-backend-qyea.onrender.com/api';
 
 const api = axios.create({
     baseURL: API_BASE_URL,
-    timeout: 30000, // Increased timeout for mobile
+    timeout: 30000,
     headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        Accept: 'application/json',
     },
 });
 
-/* ============================
-   REQUEST INTERCEPTOR
-============================ */
-api.interceptors.request.use(
-    async (config) => {
-        try {
-            const token = await AsyncStorage.getItem('token');
-            if (token) {
-                config.headers.Authorization = `Bearer ${token}`;
-            }
-        } catch (error) {
-            console.error('Error getting token from storage:', error);
+// Request interceptor
+api.interceptors.request.use(async (config) => {
+    try {
+        const token = await AsyncStorage.getItem('token');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
         }
-
-        // Log request for debugging
-        console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
-        return config;
-    },
-    (error) => {
-        console.error('Request Interceptor Error:', error);
-        return Promise.reject(error);
+    } catch (error) {
+        console.log('Error getting token:', error);
     }
-);
+    return config;
+});
 
-/* ============================
-   RESPONSE INTERCEPTOR
-============================ */
-api.interceptors.response.use(
-    (response) => {
-        console.log(`API Response: ${response.status} ${response.config.url}`);
-        return response;
-    },
-    async (error) => {
-        console.error('API Error:', {
-            url: error.config?.url,
-            method: error.config?.method,
-            status: error.response?.status,
-            message: error.message,
-            data: error.response?.data
-        });
-
-        if (error.response?.status === 401) {
-            try {
-                await AsyncStorage.multiRemove(['token', 'userData', 'userRole']);
-            } catch (storageError) {
-                console.error('Error clearing storage:', storageError);
-            }
-        }
-
-        // Handle network errors
-        if (!error.response) {
-            return Promise.reject({
-                ...error,
-                message: 'Network error. Please check your internet connection.',
-                isNetworkError: true
-            });
-        }
-
-        return Promise.reject(error);
-    }
-);
-
-/* ============================
-   PRODUCT API METHODS
-============================ */
-export const productsAPI = {
-    fetchAllProducts: async (params = {}) => {
-        try {
-            const response = await api.get('/products', { params });
-            return response.data?.products || response.data || [];
-        } catch (error) {
-            console.error('Error fetching products:', error);
-            // Return sample data for testing if API fails
-            return getSampleProducts();
-        }
-    },
-
-    fetchProductById: async (productId) => {
-        try {
-            const response = await api.get(`/products/${productId}`);
-            return response.data?.product || response.data;
-        } catch (error) {
-            console.error('Error fetching product:', error);
-            // Return sample product
-            return getSampleProducts().find(p => p.id === productId) || null;
-        }
-    },
-
-    fetchFeaturedProducts: async () => {
-        try {
-            const response = await api.get('/products/featured');
-            return response.data?.products || [];
-        } catch (error) {
-            console.error('Error fetching featured products:', error);
-            return getSampleProducts().slice(0, 8);
-        }
-    },
-
-    fetchBestSellers: async () => {
-        try {
-            const response = await api.get('/products/best-sellers');
-            return response.data?.products || [];
-        } catch (error) {
-            console.error('Error fetching best sellers:', error);
-            return getSampleProducts().slice(4, 12);
-        }
-    },
-
-    searchProducts: async (query, params = {}) => {
-        try {
-            const response = await api.get('/products/search', {
-                params: { q: query, ...params }
-            });
-            return response.data?.products || [];
-        } catch (error) {
-            console.error('Error searching products:', error);
-            // Filter sample products by query
-            return getSampleProducts().filter(p =>
-                p.name.toLowerCase().includes(query.toLowerCase()) ||
-                p.brand.toLowerCase().includes(query.toLowerCase()) ||
-                p.category.toLowerCase().includes(query.toLowerCase())
-            );
-        }
-    },
-
-    searchAutocomplete: async (query, limit = 8) => {
-        try {
-            const response = await api.get('/products/autocomplete', {
-                params: { q: query, limit }
-            });
-            return response.data || {
-                success: true,
-                products: [],
-                categories: [],
-                subcategories: [],
-                query: query,
-                totalResults: 0
-            };
-        } catch (error) {
-            console.error('Error in autocomplete:', error);
-            const filtered = getSampleProducts().filter(p =>
-                p.name.toLowerCase().includes(query.toLowerCase())
-            ).slice(0, limit);
-
-            return {
-                success: true,
-                products: filtered,
-                categories: [],
-                subcategories: [],
-                query: query,
-                totalResults: filtered.length
-            };
-        }
-    },
-};
-
-/* ============================
-   CATEGORY API METHODS
-============================ */
-export const categoriesAPI = {
-    fetchAllCategories: async () => {
-        try {
-            const response = await api.get('/categories');
-            const data = response.data?.categories || response.data || [];
-            console.log('Categories loaded:', data.length);
-            return data;
-        } catch (error) {
-            console.error('Error fetching categories:', error);
-            // Return sample categories for testing
-            return getSampleCategories();
-        }
-    },
-
-    fetchCategoryById: async (categoryId) => {
-        try {
-            const response = await api.get(`/categories/${categoryId}`);
-            return response.data?.category || response.data;
-        } catch (error) {
-            console.error('Error fetching category:', error);
-            return getSampleCategories().find(c => c.id === categoryId) || null;
-        }
-    },
-
-    fetchCategoryProducts: async (categoryId, params = {}) => {
-        try {
-            const response = await api.get(`/categories/${categoryId}/products`, { params });
-            return response.data?.products || [];
-        } catch (error) {
-            console.error('Error fetching category products:', error);
-            return getSampleProducts().filter(p => p.categoryId === categoryId);
-        }
-    },
-
-    fetchSubcategories: async (categoryId) => {
-        try {
-            const response = await api.get(`/categories/${categoryId}/subcategories`);
-            return response.data?.subcategories || [];
-        } catch (error) {
-            console.error('Error fetching subcategories:', error);
-            return [];
-        }
-    },
-};
-
-/* ============================
-   AUTH API METHODS
-============================ */
-export const authAPI = {
-    loginUser: async (credentials) => {
-        try {
-            // Determine endpoint based on user type
-            let endpoint;
-            let payload;
-
-            if (credentials.userType === 'seller') {
-                endpoint = '/auth/seller/login';
-                payload = {
-                    email: credentials.email,
-                    password: credentials.password,
-                };
-            } else if (credentials.userType === 'contractor') {
-                endpoint = '/contractor/auth/login';
-                payload = {
-                    email: credentials.email,
-                    password: credentials.password,
-                };
-            } else {
-                endpoint = '/auth/user/login';
-                payload = {
-                    email: credentials.email,
-                    password: credentials.password,
-                };
-            }
-
-            console.log('Login attempt:', { endpoint, email: credentials.email });
-            const response = await api.post(endpoint, payload);
-
-            if (response.data?.token) {
-                await AsyncStorage.setItem('token', response.data.token);
-                await AsyncStorage.setItem('userData', JSON.stringify(response.data.user));
-                await AsyncStorage.setItem('userRole', response.data.user?.role || 'user');
-                console.log('Login successful, token saved');
-            }
-
-            return response.data;
-        } catch (error) {
-            console.error('Login error details:', {
-                message: error.message,
-                response: error.response?.data,
-                status: error.response?.status
-            });
-
-            // For development, return mock user
-            if (__DEV__) {
-                const mockUser = {
-                    token: 'mock-token-123',
-                    user: {
-                        id: '1',
-                        name: 'Test User',
-                        email: credentials.email,
-                        role: credentials.userType || 'user',
-                        phone: '9876543210'
-                    }
-                };
-
-                await AsyncStorage.setItem('token', mockUser.token);
-                await AsyncStorage.setItem('userData', JSON.stringify(mockUser.user));
-                await AsyncStorage.setItem('userRole', mockUser.user.role);
-
-                return mockUser;
-            }
-
-            throw error;
-        }
-    },
-
-    registerUser: async (userData, userType) => {
-        try {
-            const endpoint = userType === 'seller'
-                ? '/auth/seller/register'
-                : userType === 'contractor'
-                    ? '/contractor/auth/register'
-                    : '/auth/user/register';
-
-            const response = await api.post(endpoint, userData);
-            return response.data;
-        } catch (error) {
-            console.error('Registration error:', error);
-            throw error;
-        }
-    },
-
-    getProfile: async () => {
-        try {
-            const response = await api.get('/auth/me');
-            return response.data?.user;
-        } catch (error) {
-            console.error('Error fetching profile:', error);
-            // For testing, return mock profile
-            const userData = await AsyncStorage.getItem('userData');
-            return userData ? JSON.parse(userData) : null;
-        }
-    },
-
-    updateProfile: async (data) => {
-        try {
-            const response = await api.put('/user/profile', data);
-            return response.data;
-        } catch (error) {
-            console.error('Error updating profile:', error);
-            throw error;
-        }
-    },
-
-    logout: async () => {
-        try {
-            await api.post('/auth/logout');
-        } catch (error) {
-            console.error('Logout API error:', error);
-        } finally {
-            try {
-                await AsyncStorage.multiRemove(['token', 'userData', 'userRole']);
-                console.log('Logged out successfully');
-            } catch (storageError) {
-                console.error('Error clearing storage:', storageError);
-            }
-        }
-    },
-};
-
-/* ============================
-   CART API METHODS
-============================ */
-export const cartAPI = {
-    fetchCart: async () => {
-        try {
-            const response = await api.get('/cart');
-            return response.data?.cart || [];
-        } catch (error) {
-            console.error('Error fetching cart:', error);
-            // For testing, return empty cart
-            return [];
-        }
-    },
-
-    addToCart: async (productId, quantity = 1) => {
-        try {
-            const response = await api.post('/cart/add', { productId, quantity });
-            return response.data;
-        } catch (error) {
-            console.error('Error adding to cart:', error);
-            // For testing, return success
-            return { success: true, message: 'Added to cart' };
-        }
-    },
-
-    updateCartItem: async (productId, quantity) => {
-        try {
-            const response = await api.put('/cart/update', { productId, quantity });
-            return response.data;
-        } catch (error) {
-            console.error('Error updating cart:', error);
-            throw error;
-        }
-    },
-
-    removeFromCart: async (productId) => {
-        try {
-            const response = await api.delete(`/cart/remove/${productId}`);
-            return response.data;
-        } catch (error) {
-            console.error('Error removing from cart:', error);
-            throw error;
-        }
-    },
-
-    clearCart: async () => {
-        try {
-            const response = await api.delete('/cart/clear');
-            return response.data;
-        } catch (error) {
-            console.error('Error clearing cart:', error);
-            throw error;
-        }
-    },
-};
-
-/* ============================
-   HELPER FUNCTIONS
-============================ */
-export const hasSearchResults = (results) => {
-    if (!results || !results.success) return false;
-
-    return (
-        results.products?.length > 0 ||
-        results.categories?.length > 0 ||
-        results.subcategories?.length > 0
-    );
-};
-
-export const formatPrice = (price) => {
-    return `₹${Number(price || 0).toLocaleString('en-IN')}`;
-};
-
-export const getProductImage = (images) => {
-    if (Array.isArray(images) && images.length > 0 && images[0]) {
-        return images[0];
-    }
-    return 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=400&fit=crop';
-};
-
-/* ============================
-   SAMPLE DATA FOR TESTING
-============================ */
-const getSampleCategories = () => [
-    { id: '1', name: 'Cement', image: 'https://via.placeholder.com/150/800000/ffffff?text=Cement' },
-    { id: '2', name: 'Steel', image: 'https://via.placeholder.com/150/333333/ffffff?text=Steel' },
-    { id: '3', name: 'Bricks', image: 'https://via.placeholder.com/150/cc0000/ffffff?text=Bricks' },
-    { id: '4', name: 'Tiles', image: 'https://via.placeholder.com/150/0066cc/ffffff?text=Tiles' },
-    { id: '5', name: 'Paints', image: 'https://via.placeholder.com/150/ff9900/ffffff?text=Paints' },
-    { id: '6', name: 'Plumbing', image: 'https://via.placeholder.com/150/009999/ffffff?text=Plumbing' },
+// Sample data
+const sampleCategories = [
+    { _id: '1', name: 'Cement', image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400' },
+    { _id: '2', name: 'Steel', image: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=400' },
+    { _id: '3', name: 'Bricks', image: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=400' },
+    { _id: '4', name: 'Tiles', image: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400' },
+    { _id: '5', name: 'Paints', image: 'https://images.unsplash.com/photo-1545006397-ffe42fa2db97?w=400' },
+    { _id: '6', name: 'Plumbing', image: 'https://images.unsplash.com/photo-1628793320654-4a54f8f7bb05?w=400' },
 ];
 
-const getSampleProducts = () => [
+const sampleProducts = [
     {
-        id: '1',
+        _id: '1',
         name: 'UltraTech Cement 53 Grade',
         brand: 'UltraTech',
         price: 380,
         originalPrice: 420,
-        discount: 10,
-        images: ['https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=400&fit=crop'],
+        image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400',
         category: 'Cement',
-        categoryId: '1',
         inStock: true,
-        inventory: { stock: 100 },
-        description: 'Premium quality 53 grade cement for construction',
-        rating: 4.5
+        rating: 4.5,
     },
     {
-        id: '2',
-        name: 'TATA TMT Steel Bars',
+        _id: '2',
+        name: 'TATA Tiscon TMT Steel Bars',
         brand: 'TATA',
         price: 65000,
         originalPrice: 68000,
-        discount: 5,
-        images: ['https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=400&h=400&fit=crop'],
+        image: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=400',
         category: 'Steel',
-        categoryId: '2',
         inStock: true,
-        inventory: { stock: 50 },
-        description: 'High strength TMT steel bars',
-        rating: 4.7
+        rating: 4.7,
     },
     {
-        id: '3',
+        _id: '3',
         name: 'Red Clay Bricks',
-        brand: 'Classic',
+        brand: 'Premium Bricks',
         price: 8,
         originalPrice: 10,
-        discount: 20,
-        images: ['https://images.unsplash.com/photo-1581092580497-e0d4cb184827?w=400&h=400&fit=crop'],
+        image: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=400',
         category: 'Bricks',
-        categoryId: '3',
         inStock: true,
-        inventory: { stock: 5000 },
-        description: 'High quality red clay bricks',
-        rating: 4.3
+        rating: 4.2,
     },
     {
-        id: '4',
-        name: 'Vitrified Floor Tiles',
+        _id: '4',
+        name: 'Kajaria Vitrified Tiles',
         brand: 'Kajaria',
-        price: 45,
-        originalPrice: 50,
-        discount: 10,
-        images: ['https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=400&h=400&fit=crop'],
+        price: 55,
+        originalPrice: 65,
+        image: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400',
         category: 'Tiles',
-        categoryId: '4',
         inStock: true,
-        inventory: { stock: 200 },
-        description: 'Premium vitrified floor tiles',
-        rating: 4.6
+        rating: 4.6,
     },
-    {
-        id: '5',
-        name: 'Asian Paints Royale',
-        brand: 'Asian Paints',
-        price: 2800,
-        originalPrice: 3200,
-        discount: 12,
-        images: ['https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=400&h=400&fit=crop'],
-        category: 'Paints',
-        categoryId: '5',
-        inStock: true,
-        inventory: { stock: 150 },
-        description: 'Premium emulsion paint with smooth finish',
-        rating: 4.8
-    },
-    {
-        id: '6',
-        name: 'PVC Pipes Set',
-        brand: 'Finolex',
-        price: 1200,
-        originalPrice: 1500,
-        discount: 20,
-        images: ['https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=400&h=400&fit=crop'],
-        category: 'Plumbing',
-        categoryId: '6',
-        inStock: true,
-        inventory: { stock: 80 },
-        description: 'Complete PVC plumbing pipes set',
-        rating: 4.4
-    },
-    {
-        id: '7',
-        name: 'Ambuja Cement',
-        brand: 'Ambuja',
-        price: 370,
-        originalPrice: 400,
-        discount: 8,
-        images: ['https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=400&fit=crop'],
-        category: 'Cement',
-        categoryId: '1',
-        inStock: true,
-        inventory: { stock: 200 },
-        description: 'Quality cement for all construction needs',
-        rating: 4.5
-    },
-    {
-        id: '8',
-        name: 'JSW Steel',
-        brand: 'JSW',
-        price: 62000,
-        originalPrice: 65000,
-        discount: 5,
-        images: ['https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=400&h=400&fit=crop'],
-        category: 'Steel',
-        categoryId: '2',
-        inStock: true,
-        inventory: { stock: 40 },
-        description: 'Premium quality steel bars',
-        rating: 4.6
-    }
 ];
 
-/* ============================
-   LEGACY COMPATIBILITY
-============================ */
-export const fetchProducts = productsAPI.fetchAllProducts;
-export const fetchProductById = productsAPI.fetchProductById;
-export const fetchCategories = categoriesAPI.fetchAllCategories;
-export const fetchProductsByCategory = categoriesAPI.fetchCategoryProducts;
-export const loginUser = authAPI.loginUser;
-export const registerUser = authAPI.registerUser;
-export const fetchCart = cartAPI.fetchCart;
-export const addToCartAPI = cartAPI.addToCart;
-export const createOrder = async (orderData) => {
+// Helper functions
+export const getProductImage = (images) => {
+    if (Array.isArray(images) && images.length > 0) {
+        return images[0];
+    }
+    return 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400';
+};
+
+export const formatPrice = (price) => {
+    const num = Number(price) || 0;
+    return `₹${num.toLocaleString('en-IN')}`;
+};
+
+// Categories API
+export const fetchAllCategories = async () => {
     try {
-        const response = await api.post('/orders', orderData);
-        return response.data;
+        const response = await api.get('/v1/categories');
+        return response.data.categories || response.data || sampleCategories;
     } catch (error) {
-        console.error('Error creating order:', error);
-        // For testing
-        return { success: true, orderId: `ORD-${Date.now()}` };
+        console.warn('Categories API error, using fallback');
+        return sampleCategories;
     }
 };
-export const fetchUserOrders = async () => {
+
+export const fetchCategoryById = async (id) => {
     try {
-        const response = await api.get('/orders/my-orders');
-        return response.data?.orders || [];
+        const response = await api.get(`/v1/categories/${id}`);
+        return response.data.category || response.data || null;
     } catch (error) {
-        console.error('Error fetching orders:', error);
+        console.error('Fetch category error:', error);
+        return null;
+    }
+};
+
+// Products API
+export const fetchFeaturedProducts = async () => {
+    try {
+        const response = await api.get('/v1/products');
+        const data = response.data.products || response.data || [];
+        // Return first 8 products as featured
+        return data.slice(0, 8);
+    } catch (error) {
+        console.warn('Products API error, using fallback');
+        return sampleProducts;
+    }
+};
+
+export const fetchAllProducts = async (params = {}) => {
+    try {
+        const response = await api.get('/v1/products', { params });
+        return response.data.products || response.data || sampleProducts;
+    } catch (error) {
+        console.error('Fetch products error:', error);
+        return sampleProducts;
+    }
+};
+
+export const fetchProductById = async (id) => {
+    try {
+        const response = await api.get(`/v1/products/${id}`);
+        return response.data.product || response.data || sampleProducts[0];
+    } catch (error) {
+        console.error('Fetch product by ID error:', error);
+        return sampleProducts[0];
+    }
+};
+
+export const fetchProductsByCategory = async (categoryId) => {
+    try {
+        const response = await api.get(`/v1/products/category/${categoryId}`);
+        return response.data.products || response.data || [];
+    } catch (error) {
+        console.error('Fetch products by category error:', error);
+        return sampleProducts;
+    }
+};
+
+export const searchProducts = async (query) => {
+    try {
+        const response = await api.get('/v1/search', { params: { q: query } });
+        return response.data.products || response.data || [];
+    } catch (error) {
+        console.error('Search products error:', error);
         return [];
     }
 };
 
-export default api;
+// Cart API (local storage)
+export const fetchCart = async () => {
+    try {
+        const cartJson = await AsyncStorage.getItem('cart');
+        return cartJson ? JSON.parse(cartJson) : [];
+    } catch (error) {
+        console.warn('Fetch cart error:', error.message);
+        return [];
+    }
+};
+
+export const addToCart = async (product, quantity = 1) => {
+    try {
+        const cartJson = await AsyncStorage.getItem('cart');
+        const cart = cartJson ? JSON.parse(cartJson) : [];
+
+        const existingIndex = cart.findIndex(item => item.id === product.id || item._id === product._id);
+
+        if (existingIndex > -1) {
+            cart[existingIndex].quantity += quantity;
+        } else {
+            cart.push({
+                id: product.id || product._id,
+                _id: product._id || product.id,
+                name: product.name,
+                brand: product.brand,
+                price: product.price,
+                image: product.image || product.images?.[0],
+                quantity: quantity,
+                inStock: product.inStock,
+                category: product.category
+            });
+        }
+
+        await AsyncStorage.setItem('cart', JSON.stringify(cart));
+        return { success: true, cart };
+    } catch (error) {
+        console.error('Add to cart error:', error);
+        throw error;
+    }
+};
+
+export const updateCartItem = async (productId, quantity) => {
+    try {
+        if (quantity < 1) {
+            return await removeFromCart(productId);
+        }
+
+        const cartJson = await AsyncStorage.getItem('cart');
+        const cart = cartJson ? JSON.parse(cartJson) : [];
+
+        const itemIndex = cart.findIndex(item => item.id === productId || item._id === productId);
+
+        if (itemIndex > -1) {
+            cart[itemIndex].quantity = quantity;
+            await AsyncStorage.setItem('cart', JSON.stringify(cart));
+            return { success: true, cart };
+        }
+
+        return { success: false, message: 'Item not found in cart' };
+    } catch (error) {
+        console.error('Update cart error:', error);
+        throw error;
+    }
+};
+
+export const removeFromCart = async (productId) => {
+    try {
+        const cartJson = await AsyncStorage.getItem('cart');
+        const cart = cartJson ? JSON.parse(cartJson) : [];
+
+        const updatedCart = cart.filter(item => item.id !== productId && item._id !== productId);
+        await AsyncStorage.setItem('cart', JSON.stringify(updatedCart));
+        return { success: true, cart: updatedCart };
+    } catch (error) {
+        console.error('Remove from cart error:', error);
+        throw error;
+    }
+};
+
+export const clearCart = async () => {
+    try {
+        await AsyncStorage.removeItem('cart');
+        return { success: true, cart: [] };
+    } catch (error) {
+        console.error('Clear cart error:', error);
+        throw error;
+    }
+};
+
+// Auth API
+export const login = async (email, password) => {
+    try {
+        const response = await api.post('/v1/auth/login', { email, password });
+
+        if (response.data.success && response.data.token) {
+            await AsyncStorage.setItem('token', response.data.token);
+            await AsyncStorage.setItem('userData', JSON.stringify(response.data.user || {}));
+        }
+
+        return response.data;
+    } catch (error) {
+        console.error('Login error:', error);
+        throw error;
+    }
+};
+
+export const logout = async () => {
+    try {
+        await AsyncStorage.removeItem('token');
+        await AsyncStorage.removeItem('userData');
+        await AsyncStorage.removeItem('cart');
+        return { success: true };
+    } catch (error) {
+        console.error('Logout error:', error);
+        throw error;
+    }
+};
+
+// For backward compatibility (to fix the import errors)
+export const categoriesAPI = { fetchAllCategories, fetchCategoryById };
+export const productsAPI = {
+    fetchFeaturedProducts,
+    fetchAllProducts,
+    fetchProductById,
+    fetchProductsByCategory,
+    searchProducts
+};
+export const cartAPI = {
+    fetchCart,
+    addToCart,
+    updateCartItem,
+    removeFromCart,
+    clearCart
+};
+export const authAPI = { login, logout };

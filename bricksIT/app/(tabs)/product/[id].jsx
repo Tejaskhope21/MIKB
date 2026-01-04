@@ -1,3 +1,4 @@
+// Create this file: app/product/[id].jsx
 import React, { useState, useEffect } from 'react';
 import {
     View,
@@ -12,13 +13,15 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { productsAPI, cartAPI } from '../../../services/api';
+import { fetchProductById, addToCart } from '../../../services/api';
+import { useCart } from '../../../context/CartContext';
 
 const { width } = Dimensions.get('window');
 
 export default function ProductDetailScreen() {
     const { id } = useLocalSearchParams();
     const router = useRouter();
+    const { addToCart: addToCartContext } = useCart();
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
     const [selectedImage, setSelectedImage] = useState(0);
@@ -31,7 +34,7 @@ export default function ProductDetailScreen() {
     const loadProduct = async () => {
         try {
             setLoading(true);
-            const data = await productsAPI.fetchProductById(id);
+            const data = await fetchProductById(id);
             setProduct(data);
         } catch (error) {
             console.error('Error loading product:', error);
@@ -43,7 +46,7 @@ export default function ProductDetailScreen() {
 
     const handleAddToCart = async () => {
         try {
-            await cartAPI.addToCart(product.id, quantity);
+            await addToCartContext(product, quantity);
             Alert.alert('Success', 'Product added to cart!');
         } catch (error) {
             console.error('Error adding to cart:', error);
@@ -53,7 +56,7 @@ export default function ProductDetailScreen() {
 
     const handleBuyNow = async () => {
         try {
-            await cartAPI.addToCart(product.id, quantity);
+            await addToCartContext(product, quantity);
             router.push('/cart');
         } catch (error) {
             console.error('Error:', error);
@@ -72,7 +75,14 @@ export default function ProductDetailScreen() {
     if (!product) {
         return (
             <View style={styles.errorContainer}>
-                <Text>Product not found</Text>
+                <Icon name="alert-circle-outline" size={64} color="#ccc" />
+                <Text style={styles.errorText}>Product not found</Text>
+                <TouchableOpacity
+                    style={styles.backButton}
+                    onPress={() => router.back()}
+                >
+                    <Text style={styles.backButtonText}>Go Back</Text>
+                </TouchableOpacity>
             </View>
         );
     }
@@ -82,104 +92,121 @@ export default function ProductDetailScreen() {
         : 0;
 
     return (
-        <ScrollView style={styles.container}>
-            {/* Product Images */}
-            <View style={styles.imageContainer}>
-                <Image
-                    source={{ uri: product.images?.[selectedImage] || 'https://via.placeholder.com/400' }}
-                    style={styles.mainImage}
-                />
-                {product.images?.length > 1 && (
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.thumbnailContainer}>
-                        {product.images.map((img, index) => (
-                            <TouchableOpacity key={index} onPress={() => setSelectedImage(index)}>
-                                <Image
-                                    source={{ uri: img }}
-                                    style={[
-                                        styles.thumbnail,
-                                        selectedImage === index && styles.selectedThumbnail
-                                    ]}
-                                />
-                            </TouchableOpacity>
-                        ))}
-                    </ScrollView>
-                )}
+        <>
+            <View style={styles.header}>
+                <TouchableOpacity onPress={() => router.back()}>
+                    <Icon name="arrow-back" size={24} color="#fff" />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>Product Details</Text>
+                <View style={styles.headerActions}>
+                    <TouchableOpacity style={styles.headerIcon}>
+                        <Icon name="share-outline" size={22} color="#fff" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.headerIcon}>
+                        <Icon name="heart-outline" size={22} color="#fff" />
+                    </TouchableOpacity>
+                </View>
             </View>
 
-            {/* Product Info */}
-            <View style={styles.infoContainer}>
-                <Text style={styles.brand}>{product.brand || 'Brand'}</Text>
-                <Text style={styles.name}>{product.name}</Text>
-
-                <View style={styles.priceContainer}>
-                    <Text style={styles.price}>₹{product.price?.toLocaleString() || '0'}</Text>
-                    {product.originalPrice > product.price && (
-                        <>
-                            <Text style={styles.originalPrice}>₹{product.originalPrice?.toLocaleString()}</Text>
-                            {discount > 0 && (
-                                <Text style={styles.discount}>{discount}% OFF</Text>
-                            )}
-                        </>
-                    )}
+            <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+                {/* Product Image */}
+                <View style={styles.imageContainer}>
+                    <Image
+                        source={{ uri: product.image || 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400' }}
+                        style={styles.mainImage}
+                    />
                 </View>
 
-                {/* Quantity Selector */}
-                <View style={styles.quantityContainer}>
-                    <Text style={styles.quantityLabel}>Quantity:</Text>
-                    <View style={styles.quantityButtons}>
-                        <TouchableOpacity
-                            style={styles.quantityButton}
-                            onPress={() => setQuantity(Math.max(1, quantity - 1))}
-                        >
-                            <Icon name="remove" size={20} color="#333" />
-                        </TouchableOpacity>
-                        <Text style={styles.quantity}>{quantity}</Text>
-                        <TouchableOpacity
-                            style={styles.quantityButton}
-                            onPress={() => setQuantity(quantity + 1)}
-                        >
-                            <Icon name="add" size={20} color="#333" />
-                        </TouchableOpacity>
+                {/* Product Info */}
+                <View style={styles.infoContainer}>
+                    <Text style={styles.brand}>{product.brand || 'Brand'}</Text>
+                    <Text style={styles.name}>{product.name}</Text>
+
+                    <View style={styles.priceContainer}>
+                        <Text style={styles.price}>₹{product.price?.toLocaleString() || '0'}</Text>
+                        {product.originalPrice > product.price && (
+                            <>
+                                <Text style={styles.originalPrice}>₹{product.originalPrice?.toLocaleString()}</Text>
+                                {discount > 0 && (
+                                    <Text style={styles.discount}>{discount}% OFF</Text>
+                                )}
+                            </>
+                        )}
+                    </View>
+
+                    {/* Rating */}
+                    {product.rating && (
+                        <View style={styles.ratingContainer}>
+                            <Icon name="star" size={16} color="#FFD700" />
+                            <Text style={styles.ratingText}>{product.rating.toFixed(1)}</Text>
+                            <Text style={styles.ratingCount}>({product.reviews || 0} reviews)</Text>
+                        </View>
+                    )}
+
+                    {/* Quantity Selector */}
+                    <View style={styles.quantityContainer}>
+                        <Text style={styles.quantityLabel}>Quantity:</Text>
+                        <View style={styles.quantityButtons}>
+                            <TouchableOpacity
+                                style={styles.quantityButton}
+                                onPress={() => setQuantity(Math.max(1, quantity - 1))}
+                            >
+                                <Icon name="remove" size={20} color="#333" />
+                            </TouchableOpacity>
+                            <Text style={styles.quantity}>{quantity}</Text>
+                            <TouchableOpacity
+                                style={styles.quantityButton}
+                                onPress={() => setQuantity(quantity + 1)}
+                            >
+                                <Icon name="add" size={20} color="#333" />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
+                    {/* Stock Status */}
+                    <View style={styles.stockContainer}>
+                        {product.inStock ? (
+                            <Text style={styles.inStock}>
+                                <Icon name="checkmark-circle" size={16} color="#28a745" /> In Stock
+                            </Text>
+                        ) : (
+                            <Text style={styles.outOfStock}>
+                                <Icon name="close-circle" size={16} color="#dc3545" /> Out of Stock
+                            </Text>
+                        )}
+                    </View>
+
+                    {/* Description */}
+                    <View style={styles.descriptionContainer}>
+                        <Text style={styles.descriptionTitle}>Description</Text>
+                        <Text style={styles.description}>
+                            {product.description || 'High-quality building material for construction projects.'}
+                        </Text>
                     </View>
                 </View>
+            </ScrollView>
 
-                {/* Stock Status */}
-                <View style={styles.stockContainer}>
-                    {product.inventory?.stock > 0 ? (
-                        <Text style={styles.inStock}>In Stock ({product.inventory.stock} available)</Text>
-                    ) : (
-                        <Text style={styles.outOfStock}>Out of Stock</Text>
-                    )}
-                </View>
+            {/* Action Buttons */}
+            <View style={styles.actionBar}>
+                <TouchableOpacity
+                    style={styles.addToCartButton}
+                    onPress={handleAddToCart}
+                    disabled={!product.inStock}
+                >
+                    <Icon name="cart-outline" size={22} color="#800000" />
+                    <Text style={styles.addToCartText}>Add to Cart</Text>
+                </TouchableOpacity>
 
-                {/* Description */}
-                <View style={styles.descriptionContainer}>
-                    <Text style={styles.descriptionTitle}>Description</Text>
-                    <Text style={styles.description}>{product.description || 'No description available'}</Text>
-                </View>
-
-                {/* Action Buttons */}
-                <View style={styles.actionButtons}>
-                    <TouchableOpacity
-                        style={styles.addToCartButton}
-                        onPress={handleAddToCart}
-                        disabled={!product.inventory?.stock}
-                    >
-                        <Icon name="cart-outline" size={20} color="#800000" />
-                        <Text style={styles.addToCartText}>Add to Cart</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={styles.buyNowButton}
-                        onPress={handleBuyNow}
-                        disabled={!product.inventory?.stock}
-                    >
-                        <Icon name="flash" size={20} color="#fff" />
-                        <Text style={styles.buyNowText}>Buy Now</Text>
-                    </TouchableOpacity>
-                </View>
+                <TouchableOpacity
+                    style={[styles.buyNowButton, !product.inStock && styles.disabledButton]}
+                    onPress={handleBuyNow}
+                    disabled={!product.inStock}
+                >
+                    <Icon name="flash" size={22} color="#fff" />
+                    <Text style={styles.buyNowText}>Buy Now</Text>
+                </TouchableOpacity>
             </View>
-        </ScrollView>
+        </>
     );
 }
 
@@ -192,11 +219,51 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        backgroundColor: '#f8f9fa',
     },
     errorContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        backgroundColor: '#f8f9fa',
+        padding: 20,
+    },
+    errorText: {
+        fontSize: 18,
+        color: '#666',
+        marginTop: 20,
+        marginBottom: 30,
+    },
+    backButton: {
+        backgroundColor: '#800000',
+        paddingHorizontal: 30,
+        paddingVertical: 12,
+        borderRadius: 8,
+    },
+    backButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: '#800000',
+        paddingHorizontal: 16,
+        paddingVertical: 16,
+        paddingTop: 50,
+    },
+    headerTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#fff',
+    },
+    headerActions: {
+        flexDirection: 'row',
+    },
+    headerIcon: {
+        marginLeft: 16,
     },
     imageContainer: {
         backgroundColor: '#fff',
@@ -205,21 +272,6 @@ const styles = StyleSheet.create({
         width: width,
         height: width,
         resizeMode: 'contain',
-    },
-    thumbnailContainer: {
-        padding: 10,
-    },
-    thumbnail: {
-        width: 60,
-        height: 60,
-        marginRight: 10,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#ddd',
-    },
-    selectedThumbnail: {
-        borderColor: '#800000',
-        borderWidth: 2,
     },
     infoContainer: {
         backgroundColor: '#fff',
@@ -240,7 +292,7 @@ const styles = StyleSheet.create({
     priceContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 16,
+        marginBottom: 12,
     },
     price: {
         fontSize: 24,
@@ -258,6 +310,21 @@ const styles = StyleSheet.create({
         color: '#ff4444',
         fontWeight: 'bold',
         marginLeft: 12,
+    },
+    ratingContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    ratingText: {
+        fontSize: 14,
+        color: '#333',
+        marginLeft: 6,
+        marginRight: 8,
+    },
+    ratingCount: {
+        fontSize: 12,
+        color: '#666',
     },
     quantityContainer: {
         flexDirection: 'row',
@@ -318,8 +385,12 @@ const styles = StyleSheet.create({
         color: '#666',
         lineHeight: 20,
     },
-    actionButtons: {
+    actionBar: {
         flexDirection: 'row',
+        backgroundColor: '#fff',
+        padding: 16,
+        borderTopWidth: 1,
+        borderTopColor: '#eee',
         gap: 12,
     },
     addToCartButton: {
@@ -347,6 +418,9 @@ const styles = StyleSheet.create({
         backgroundColor: '#800000',
         borderRadius: 8,
         gap: 8,
+    },
+    disabledButton: {
+        backgroundColor: '#ccc',
     },
     buyNowText: {
         fontSize: 16,
