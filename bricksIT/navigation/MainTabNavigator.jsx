@@ -16,7 +16,8 @@ import CategoryScreen from './src/screens/products/CategoryScreen';
 import CartScreen from './src/screens/cart/CartScreen';
 import CheckoutScreen from './src/screens/cart/CheckoutScreen';
 import ProfileScreen from './src/screens/profile/ProfileScreen';
-import OrdersScreen from './src/screens/orders/OrdersScreen';
+import OrdersScreen from '../app/OrdersScreen';
+import AddressesScreen from '../app/AddressesScreen';
 import SearchScreen from './src/screens/search/SearchScreen';
 
 // Seller Screens
@@ -27,7 +28,7 @@ import EditProductScreen from './src/screens/seller/EditProductScreen';
 import SellerOrders from './src/screens/seller/OrdersScreen';
 import InventoryScreen from './src/screens/seller/InventoryScreen';
 import SellerSettings from './src/screens/seller/SettingsScreen';
-
+import MyOrder from '../components/UserProfile/MyOreder';
 // Contractor Screens
 import ContractorDashboard from './src/screens/contractor/DashboardScreen';
 import ContractorProjects from './src/screens/contractor/ProjectsScreen';
@@ -39,6 +40,11 @@ import AdminDashboard from './src/screens/admin/DashboardScreen';
 
 // Tab Icons
 import Icon from 'react-native-vector-icons/Ionicons';
+import MyOrder from '../components/UserProfile/MyOreder';
+import SupportScreen from '../app/SupportScreen';
+import SettingsScreen from '../app/SettingsScreen';
+import Profile from '../app/(tabs)/profile';
+
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -78,7 +84,7 @@ function MainTabs() {
             <Tab.Screen name="Categories" component={CategoriesTabScreen} />
             <Tab.Screen name="Search" component={SearchScreen} />
             <Tab.Screen name="Cart" component={CartTabScreen} />
-            <Tab.Screen name="Profile" component={ProfileTabScreen} />
+           <Tab.Screen name="Profile" component={ProfileTabScreen} />
         </Tab.Navigator>
     );
 }
@@ -107,7 +113,13 @@ function ProfileTabScreen() {
         <Stack.Navigator>
             <Stack.Screen name="ProfileMain" component={ProfileScreen} options={{ title: 'My Profile' }} />
             <Stack.Screen name="MyOrders" component={OrdersScreen} options={{ title: 'My Orders' }} />
-            <Stack.Screen name="Addresses" component={AddressesScreen} />
+            <Stack.Screen name="Addresses" component={AddressesScreen} options={{title: 'My Addresses'}} />
+            <Stack.Screen name="Setting" component={SettingsScreen} options={{title: 'My Setting'}} />
+            <Stack.Screen 
+                name="Support" 
+                component={SupportScreen} 
+                options={{ title: 'Help & Support' }} 
+            />
         </Stack.Navigator>
     );
 }
@@ -199,7 +211,7 @@ export default function App() {
                     <Stack.Screen name="Cart" component={CartScreen} />
                     <Stack.Screen name="Checkout" component={CheckoutScreen} />
                     <Stack.Screen name="Profile" component={ProfileScreen} />
-                    <Stack.Screen name="Orders" component={OrdersScreen} />
+                    <Stack.Screen name="Orders" component={MyOrder} />
 
                     {/* Seller Routes */}
                     <Stack.Screen name="SellerDashboard" component={SellerDashboard} />

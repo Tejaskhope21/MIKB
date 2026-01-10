@@ -63,28 +63,24 @@ export default function ProfileScreen() {
         {
             icon: 'cart-outline',
             label: 'My Orders',
-            onPress: () => router.push('/orders'),
+            onPress: () => router.push('/OrdersScreen'),
             count: orders.length,
         },
         {
             icon: 'location-outline',
             label: 'My Addresses',
-            onPress: () => router.push('/addresses')
+            onPress: () => router.push('/AddressesScreen')
         },
-        {
-            icon: 'heart-outline',
-            label: 'Wishlist',
-            onPress: () => router.push('/wishlist')
-        },
+      
         {
             icon: 'chatbubble-outline',
             label: 'Help & Support',
-            onPress: () => router.push('/support')
+            onPress: () => router.push('/SupportScreen')
         },
         {
             icon: 'settings-outline',
             label: 'Settings',
-            onPress: () => router.push('/settings')
+            onPress: () => router.push('/SettingsScreen')
         },
     ];
 
