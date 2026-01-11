@@ -13,11 +13,17 @@ import {
   Platform,
   SafeAreaView,
   Modal,
-  CheckBox,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+
+/* =========================
+   API BASE URL
+========================= */
+const API_URL = Platform.OS === 'web' 
+  ? 'http://localhost:5000/api' 
+  : 'http://10.0.2.2:5000/api';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -156,6 +162,96 @@ export default function RegisterScreen() {
     return null;
   };
 
+  /* =========================
+     BACKEND REGISTRATION FUNCTIONS
+  ========================= */
+  const registerUser = async () => {
+    try {
+      const response = await axios.post(`${API_URL}/auth/user/register`, {
+        name: userForm.name,
+        email: userForm.email,
+        password: userForm.password,
+        phone: userForm.phone || '',
+      });
+
+      return {
+        success: true,
+        data: response.data,
+        message: 'User registered successfully!'
+      };
+    } catch (error) {
+      console.error('User registration error:', error.response?.data || error.message);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'User registration failed. Please try again.'
+      };
+    }
+  };
+
+  const registerSeller = async () => {
+    try {
+      const response = await axios.post(`${API_URL}/auth/seller/register`, {
+        name: sellerForm.name,
+        email: sellerForm.email,
+        password: sellerForm.password,
+        businessName: sellerForm.businessName,
+        businessType: sellerForm.businessType,
+        gstNumber: sellerForm.gstNumber,
+        contactNumber: sellerForm.contactNumber,
+        businessAddress: sellerForm.businessAddress,
+        bankDetails: {
+          accountNumber: sellerForm.bankAccountNumber,
+          accountName: sellerForm.bankAccountName,
+          ifscCode: sellerForm.bankIFSC,
+        },
+      });
+
+      return {
+        success: true,
+        data: response.data,
+        message: 'Seller registration submitted successfully!'
+      };
+    } catch (error) {
+      console.error('Seller registration error:', error.response?.data || error.message);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Seller registration failed. Please try again.'
+      };
+    }
+  };
+
+  const registerContractor = async () => {
+    try {
+      const response = await axios.post(`${API_URL}/contractor/auth/register`, {
+        name: contractorForm.name,
+        email: contractorForm.email,
+        password: contractorForm.password,
+        phone: contractorForm.phone,
+        companyName: contractorForm.companyName,
+        contractorType: contractorForm.contractorType,
+        experience: parseInt(contractorForm.experience),
+        licenseNumber: contractorForm.licenseNumber,
+        address: contractorForm.address,
+        specialties: contractorForm.specialties,
+        projectsCompleted: parseInt(contractorForm.projectsCompleted) || 0,
+        teamSize: contractorForm.teamSize,
+        website: contractorForm.website || '',
+      });
+
+      return {
+        success: true,
+        data: response.data,
+        message: 'Contractor registered successfully!'
+      };
+    } catch (error) {
+      console.error('Contractor registration error:', error.response?.data || error.message);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Contractor registration failed. Please try again.'
+      };
+    }
+  };
+
   const handleRegister = async () => {
     setLoading(true);
     setError('');
@@ -169,82 +265,82 @@ export default function RegisterScreen() {
     }
 
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Mock user data based on role
-      let mockUserData;
-      let mockToken = `mock_token_${Date.now()}_${activeTab}`;
-
-      if (activeTab === 'user') {
-        mockUserData = {
-          id: 1,
-          name: userForm.name,
-          email: userForm.email,
-          phone: userForm.phone || '9022967759',
-          role: 'user',
-          joinDate: new Date().toISOString().split('T')[0],
-        };
-      } else if (activeTab === 'seller') {
-        mockUserData = {
-          id: 2,
-          name: sellerForm.name,
-          email: sellerForm.email,
-          businessName: sellerForm.businessName,
-          businessType: sellerForm.businessType,
-          gstNumber: sellerForm.gstNumber,
-          phone: sellerForm.contactNumber,
-          address: sellerForm.businessAddress,
-          role: 'seller',
-          status: 'pending', // Seller needs approval
-          joinDate: new Date().toISOString().split('T')[0],
-        };
-      } else if (activeTab === 'contractor') {
-        mockUserData = {
-          id: 3,
-          name: contractorForm.name,
-          email: contractorForm.email,
-          phone: contractorForm.phone,
-          companyName: contractorForm.companyName,
-          contractorType: contractorForm.contractorType,
-          experience: contractorForm.experience,
-          licenseNumber: contractorForm.licenseNumber,
-          address: contractorForm.address,
-          specialties: contractorForm.specialties,
-          teamSize: contractorForm.teamSize,
-          projectsCompleted: contractorForm.projectsCompleted,
-          website: contractorForm.website,
-          role: 'contractor',
-          status: 'pending', // Contractor needs approval
-          joinDate: new Date().toISOString().split('T')[0],
-        };
+      let result;
+      
+      switch (activeTab) {
+        case 'user':
+          result = await registerUser();
+          break;
+        case 'seller':
+          result = await registerSeller();
+          break;
+        case 'contractor':
+          result = await registerContractor();
+          break;
+        default:
+          throw new Error('Invalid user type');
       }
 
-      // Save to AsyncStorage
-      await AsyncStorage.setItem('token', mockToken);
-      await AsyncStorage.setItem('userRole', activeTab);
-      await AsyncStorage.setItem('userData', JSON.stringify(mockUserData));
-      await AsyncStorage.setItem('isLoggedIn', 'true');
+      if (result.success) {
+        setSuccess(result.message);
+        
+        // Auto-login after successful registration
+        setTimeout(async () => {
+          try {
+            // Auto login after registration
+            let loginEndpoint;
+            let loginData;
+            
+            switch (activeTab) {
+              case 'user':
+                loginEndpoint = `${API_URL}/auth/user/login`;
+                loginData = {
+                  email: userForm.email,
+                  password: userForm.password,
+                };
+                break;
+              case 'seller':
+                loginEndpoint = `${API_URL}/auth/seller/login`;
+                loginData = {
+                  email: sellerForm.email,
+                  password: sellerForm.password,
+                };
+                break;
+              case 'contractor':
+                loginEndpoint = `${API_URL}/contractor/auth/login`;
+                loginData = {
+                  email: contractorForm.email,
+                  password: contractorForm.password,
+                };
+                break;
+            }
 
-      let successMessage;
-      if (activeTab === 'user') {
-        successMessage = 'Registration successful! Welcome to BricksIT.';
-        setTimeout(() => {
-          router.replace('/(tabs)');
+            const loginResponse = await axios.post(loginEndpoint, loginData);
+            
+            if (loginResponse.data.token) {
+              // Store token and user data (you'll need to implement AsyncStorage)
+              // For now, we'll just navigate
+              
+              // Redirect based on role
+              setTimeout(() => {
+                if (activeTab === 'seller') {
+                  router.replace('/(tabs)/seller-dashboard');
+                } else if (activeTab === 'contractor') {
+                  router.replace('/(tabs)/contractor-dashboard');
+                } else {
+                  router.replace('/(tabs)');
+                }
+              }, 1000);
+            }
+          } catch (loginError) {
+            console.error('Auto-login failed:', loginError);
+            // Even if auto-login fails, still redirect to login page
+            router.push('/(auth)/login');
+          }
         }, 2000);
-      } else if (activeTab === 'seller') {
-        successMessage = 'Seller registration submitted! Your application is under review. We will notify you via email once approved.';
-        setTimeout(() => {
-          router.replace('/(tabs)');
-        }, 3000);
-      } else if (activeTab === 'contractor') {
-        successMessage = 'Contractor registered successfully! 🎉\nYour profile is under review. We\'ll notify you via email once approved.';
-        setTimeout(() => {
-          router.replace('/(tabs)');
-        }, 3000);
+      } else {
+        setError(result.message);
       }
-
-      setSuccess(successMessage);
     } catch (err) {
       console.error('Registration error:', err);
       setError('An unexpected error occurred. Please try again.');
@@ -415,15 +511,13 @@ export default function RegisterScreen() {
       <View style={styles.inputRow}>
         <View style={styles.inputContainer}>
           <Text style={styles.inputLabel}>Business Type *</Text>
-          <View style={styles.selectContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Manufacturer/Distributor"
-              value={sellerForm.businessType}
-              onChangeText={(text) => handleSellerChange('businessType', text)}
-              editable={!loading}
-            />
-          </View>
+          <TextInput
+            style={styles.input}
+            placeholder="Manufacturer/Distributor"
+            value={sellerForm.businessType}
+            onChangeText={(text) => handleSellerChange('businessType', text)}
+            editable={!loading}
+          />
         </View>
         
         <View style={styles.inputContainer}>
@@ -585,15 +679,13 @@ export default function RegisterScreen() {
         
         <View style={styles.inputContainer}>
           <Text style={styles.inputLabel}>Contractor Type *</Text>
-          <View style={styles.selectContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="General/Specialty"
-              value={contractorForm.contractorType}
-              onChangeText={(text) => handleContractorChange('contractorType', text)}
-              editable={!loading}
-            />
-          </View>
+          <TextInput
+            style={styles.input}
+            placeholder="General/Specialty"
+            value={contractorForm.contractorType}
+            onChangeText={(text) => handleContractorChange('contractorType', text)}
+            editable={!loading}
+          />
         </View>
       </View>
 
@@ -627,15 +719,13 @@ export default function RegisterScreen() {
           <Text style={styles.inputLabel}>
             <Icon name="people" size={16} color="#666" /> Team Size *
           </Text>
-          <View style={styles.selectContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Select size"
-              value={contractorForm.teamSize}
-              onChangeText={(text) => handleContractorChange('teamSize', text)}
-              editable={!loading}
-            />
-          </View>
+          <TextInput
+            style={styles.input}
+            placeholder="Select size"
+            value={contractorForm.teamSize}
+            onChangeText={(text) => handleContractorChange('teamSize', text)}
+            editable={!loading}
+          />
         </View>
       </View>
 
@@ -702,31 +792,6 @@ export default function RegisterScreen() {
     </View>
   );
 
-  const getBenefits = () => {
-    if (activeTab === 'user') {
-      return [
-        'Fast & secure checkout',
-        'Personalized experience',
-        'Order tracking',
-        'Exclusive discounts'
-      ];
-    } else if (activeTab === 'seller') {
-      return [
-        'Reach millions of customers',
-        'Secure payments',
-        'Seller dashboard',
-        'Dedicated support'
-      ];
-    } else {
-      return [
-        'Bulk material access',
-        'Portfolio showcase',
-        'Connect with clients',
-        'Professional network'
-      ];
-    }
-  };
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
@@ -744,8 +809,8 @@ export default function RegisterScreen() {
               <Icon name="cube" size={48} color="#800000" />
               <Text style={styles.logoText}>BricksIT</Text>
             </View>
-            <Text style={styles.welcomeText}>Join BricksIT</Text>
-            <Text style={styles.subtitle}>Choose your account type to get started</Text>
+            <Text style={styles.welcomeText}>Create Account</Text>
+            <Text style={styles.subtitle}>Join BricksIT today</Text>
           </View>
 
           {/* Tabs */}
@@ -761,14 +826,6 @@ export default function RegisterScreen() {
                   onPress={() => handleTabChange(role)}
                   disabled={loading}
                 >
-                  <Icon
-                    name={
-                      role === 'user' ? 'person' : 
-                      role === 'seller' ? 'storefront' : 'construct'
-                    }
-                    size={18}
-                    color={activeTab === role ? '#fff' : '#800000'}
-                  />
                   <Text
                     style={[
                       styles.tabText,
@@ -802,79 +859,56 @@ export default function RegisterScreen() {
             </View>
           ) : null}
 
-          {/* Main Content */}
-          <View style={styles.mainCard}>
-            {/* Benefits Panel */}
-            <View style={styles.benefitsPanel}>
-              <Text style={styles.benefitsTitle}>
-                {activeTab === 'user' ? 'Customer Benefits' : 
-                 activeTab === 'seller' ? 'Seller Benefits' : 'Contractor Benefits'}
-              </Text>
-              <View style={styles.benefitsList}>
-                {getBenefits().map((benefit, index) => (
-                  <View key={index} style={styles.benefitItem}>
-                    <Icon name="checkmark-circle" size={20} color="#fff" />
-                    <Text style={styles.benefitText}>{benefit}</Text>
-                  </View>
-                ))}
-              </View>
+          {/* Form Container */}
+          <View style={styles.formContainer}>
+            {activeTab === 'user' ? renderUserForm() :
+             activeTab === 'seller' ? renderSellerForm() :
+             renderContractorForm()}
+
+            {/* Terms & Conditions */}
+            <View style={styles.termsContainer}>
+              <TouchableOpacity
+                style={styles.checkboxContainer}
+                onPress={() => setTermsAccepted(!termsAccepted)}
+                disabled={loading}
+              >
+                <View style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}>
+                  {termsAccepted && <Icon name="checkmark" size={14} color="#fff" />}
+                </View>
+                <Text style={styles.termsText}>
+                  I agree to the{' '}
+                  <Text style={styles.termsLink} onPress={() => Alert.alert('Terms & Conditions', 'Demo terms and conditions.')}>
+                    Terms & Conditions
+                  </Text>{' '}
+                  and{' '}
+                  <Text style={styles.termsLink} onPress={() => Alert.alert('Privacy Policy', 'Demo privacy policy.')}>
+                    Privacy Policy
+                  </Text>
+                </Text>
+              </TouchableOpacity>
             </View>
 
-            {/* Form Panel */}
-            <View style={styles.formPanel}>
-              {activeTab === 'user' ? renderUserForm() :
-               activeTab === 'seller' ? renderSellerForm() :
-               renderContractorForm()}
+            {/* Register Button */}
+            <TouchableOpacity
+              style={[styles.registerButton, loading && styles.disabledButton]}
+              onPress={handleRegister}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.registerButtonText}>
+                  Create Account
+                </Text>
+              )}
+            </TouchableOpacity>
 
-              {/* Terms & Conditions */}
-              <View style={styles.termsContainer}>
-                <TouchableOpacity
-                  style={styles.checkboxContainer}
-                  onPress={() => setTermsAccepted(!termsAccepted)}
-                  disabled={loading}
-                >
-                  <View style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}>
-                    {termsAccepted && <Icon name="checkmark" size={14} color="#fff" />}
-                  </View>
-                  <Text style={styles.termsText}>
-                    I agree to the{' '}
-                    <Text style={styles.termsLink} onPress={() => Alert.alert('Terms & Conditions', 'Demo terms and conditions.')}>
-                      Terms & Conditions
-                    </Text>{' '}
-                    and{' '}
-                    <Text style={styles.termsLink} onPress={() => Alert.alert('Privacy Policy', 'Demo privacy policy.')}>
-                      Privacy Policy
-                    </Text>
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Register Button */}
-              <TouchableOpacity
-                style={[styles.registerButton, loading && styles.disabledButton]}
-                onPress={handleRegister}
-                disabled={loading}
-                activeOpacity={0.9}
-              >
-                {loading ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <View style={styles.registerButtonContent}>
-                    <Icon name="person-add" size={20} color="#fff" />
-                    <Text style={styles.registerButtonText}>
-                      Create {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Account
-                    </Text>
-                  </View>
-                )}
+            {/* Login Link */}
+            <View style={styles.loginContainer}>
+              <Text style={styles.loginText}>Already have an account? </Text>
+              <TouchableOpacity onPress={() => router.push('/(auth)/login')} disabled={loading}>
+                <Text style={styles.loginLink}>Sign in here</Text>
               </TouchableOpacity>
-
-              {/* Login Link */}
-              <View style={styles.loginContainer}>
-                <Text style={styles.loginText}>Already have an account? </Text>
-                <TouchableOpacity onPress={() => router.push('/(auth)/login')} disabled={loading}>
-                  <Text style={styles.loginLink}>Sign in here</Text>
-                </TouchableOpacity>
-              </View>
             </View>
           </View>
 
@@ -954,12 +988,12 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
-    paddingBottom: 40,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
   },
   header: {
     alignItems: 'center',
-    paddingVertical: 30,
-    paddingHorizontal: 20,
+    marginBottom: 30,
   },
   logoContainer: {
     flexDirection: 'row',
@@ -981,47 +1015,34 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: '#6b7280',
-    textAlign: 'center',
   },
   tabsContainer: {
-    marginHorizontal: 20,
     marginBottom: 24,
   },
   tabsInner: {
     backgroundColor: '#fff',
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 4,
     flexDirection: 'row',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   tab: {
     flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    backgroundColor: 'transparent',
+    paddingVertical: 12,
+    borderRadius: 8,
   },
   activeTab: {
     backgroundColor: '#800000',
-    shadowColor: '#800000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
   },
   tabText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
-    color: '#800000',
-    marginLeft: 8,
-    textTransform: 'capitalize',
+    color: '#6b7280',
   },
   activeTabText: {
     color: '#fff',
@@ -1031,7 +1052,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#fecaca',
     borderRadius: 12,
-    marginHorizontal: 20,
     marginBottom: 20,
     padding: 16,
   },
@@ -1051,7 +1071,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#a7f3d0',
     borderRadius: 12,
-    marginHorizontal: 20,
     marginBottom: 20,
     padding: 16,
   },
@@ -1066,48 +1085,16 @@ const styles = StyleSheet.create({
     flex: 1,
     lineHeight: 20,
   },
-  mainCard: {
-    flexDirection: 'row',
-    marginHorizontal: 20,
-    borderRadius: 20,
-    overflow: 'hidden',
+  formContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
-    elevation: 8,
-    minHeight: 600,
-  },
-  benefitsPanel: {
-    flex: 2,
-    backgroundColor: '#800000',
-    padding: 24,
-    justifyContent: 'center',
-  },
-  benefitsTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 20,
-  },
-  benefitsList: {
-    gap: 16,
-  },
-  benefitItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-  },
-  benefitText: {
-    fontSize: 14,
-    color: '#fff',
-    flex: 1,
-    lineHeight: 20,
-  },
-  formPanel: {
-    flex: 3,
-    backgroundColor: '#fff',
-    padding: 24,
+    elevation: 5,
   },
   formSection: {
     gap: 20,
@@ -1164,9 +1151,6 @@ const styles = StyleSheet.create({
   uppercaseInput: {
     textTransform: 'uppercase',
   },
-  selectContainer: {
-    position: 'relative',
-  },
   helperText: {
     fontSize: 12,
     color: '#6b7280',
@@ -1222,34 +1206,23 @@ const styles = StyleSheet.create({
   },
   registerButton: {
     backgroundColor: '#800000',
-    borderRadius: 12,
-    paddingVertical: 18,
+    borderRadius: 10,
+    paddingVertical: 16,
+    alignItems: 'center',
     marginBottom: 20,
-    shadowColor: '#800000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
   },
   disabledButton: {
     opacity: 0.7,
   },
-  registerButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-  },
   registerButtonText: {
     color: '#fff',
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '600',
   },
   loginContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 8,
   },
   loginText: {
     fontSize: 15,
@@ -1263,8 +1236,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     alignItems: 'center',
-    marginTop: 32,
-    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
   footerText: {
     fontSize: 12,

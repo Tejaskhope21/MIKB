@@ -14,242 +14,186 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { addressesAPI } from '../services/userApi';
 
 const AddressScreen = () => {
   const router = useRouter();
-  
-  // Storage key for addresses
-  const ADDRESSES_STORAGE_KEY = 'user_addresses';
-  
-  // Sample initial data
-  const initialAddresses = [
-    {
-      id: 1,
-      name: "Yadnesh Umredkar",
-      phone: "9022965759",
-      addressLine1: "juni manglwari gujari chowk",
-      addressLine2: "",
-      city: "nagpur",
-      state: "Maharashtra",
-      zipCode: "440008",
-      country: "India",
-      isDefault: true,
-      line1Checked: false,
-      line2Checked: true
-    },
-    {
-      id: 2,
-      name: "Yadnesh Umredkar",
-      phone: "9022965759",
-      addressLine1: "juni manglwari gujari chowk",
-      addressLine2: "",
-      city: "nagpur",
-      state: "Maharashtra",
-      zipCode: "440008",
-      country: "India",
-      isDefault: false,
-      line1Checked: false,
-      line2Checked: true
-    }
-  ];
 
   const [addresses, setAddresses] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
-  const [editingAddress, setEditingAddress] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
   const [formData, setFormData] = useState({
-    name: '',
+    fullName: '',
     phone: '',
-    addressLine1: '',
-    addressLine2: '',
+    addressLine: '',
     city: '',
     state: '',
-    zipCode: '',
-    country: '',
+    pincode: '',
+    country: 'India',
     isDefault: false,
+    // addressType will be set to 'home' by default in payload
   });
-  const [loading, setLoading] = useState(true);
 
-  // Load addresses from storage on component mount
   useEffect(() => {
-    loadAddresses();
+    fetchAddresses();
   }, []);
 
-  // Load addresses from AsyncStorage
-  const loadAddresses = async () => {
+  const fetchAddresses = async () => {
     try {
       setLoading(true);
-      const savedAddresses = await AsyncStorage.getItem(ADDRESSES_STORAGE_KEY);
-      
-      if (savedAddresses) {
-        setAddresses(JSON.parse(savedAddresses));
-      } else {
-        // If no saved addresses, use initial data
-        setAddresses(initialAddresses);
-        await AsyncStorage.setItem(ADDRESSES_STORAGE_KEY, JSON.stringify(initialAddresses));
-      }
+      const data = await addressesAPI.fetchUserAddresses();
+      setAddresses(data || []);
     } catch (error) {
-      console.error('Error loading addresses:', error);
-      // Fallback to initial data if storage fails
-      setAddresses(initialAddresses);
+      console.error('Fetch addresses failed:', error);
+      Alert.alert('Error', 'Failed to load addresses');
     } finally {
       setLoading(false);
     }
   };
 
-  // Save addresses to AsyncStorage
-  const saveAddresses = async (updatedAddresses) => {
-    try {
-      await AsyncStorage.setItem(ADDRESSES_STORAGE_KEY, JSON.stringify(updatedAddresses));
-    } catch (error) {
-      console.error('Error saving addresses:', error);
-    }
-  };
-
-  // Initialize form when editing
-  useEffect(() => {
-    if (editingAddress) {
-      setFormData(editingAddress);
-    } else {
-      setFormData({
-        name: '',
-        phone: '',
-        addressLine1: '',
-        addressLine2: '',
-        city: '',
-        state: '',
-        zipCode: '',
-        country: '',
-        isDefault: false,
-      });
-    }
-  }, [editingAddress]);
-
-  const handleInputChange = (field, value) => {
+  const resetForm = () => {
     setFormData({
-      ...formData,
-      [field]: value,
+      fullName: '',
+      phone: '',
+      addressLine: '',
+      city: '',
+      state: '',
+      pincode: '',
+      country: 'India',
+      isDefault: false,
     });
   };
 
+  const handleInputChange = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  // =============================================
+  //  Critical: Exact mapping to backend schema
+  // =============================================
+  const preparePayload = () => ({
+    fullName: formData.fullName.trim(),
+    phone: formData.phone.trim(),
+    addressLine: formData.addressLine.trim(),
+    city: formData.city.trim(),
+    state: formData.state.trim(),
+    pincode: formData.pincode.trim(),
+    country: formData.country.trim(),
+    addressType: 'home',           // ← required field, using default
+    isDefault: formData.isDefault,
+  });
+
   const handleSubmit = async () => {
-    // Basic validation
-    if (!formData.name || !formData.phone || !formData.addressLine1 || !formData.city || !formData.state || !formData.zipCode || !formData.country) {
+    if (submitting) return;
+
+    // Validation
+    if (
+      !formData.fullName.trim() ||
+      !formData.phone.trim() ||
+      !formData.addressLine.trim() ||
+      !formData.city.trim() ||
+      !formData.state.trim() ||
+      !formData.pincode.trim()
+    ) {
       Alert.alert('Error', 'Please fill all required fields');
       return;
     }
 
-    // Phone number validation
-    const phoneRegex = /^[0-9]{10}$/;
-    if (!phoneRegex.test(formData.phone)) {
-      Alert.alert('Error', 'Please enter a valid 10-digit phone number');
+    if (!/^[0-9]{10}$/.test(formData.phone)) {
+      Alert.alert('Error', 'Phone number must be exactly 10 digits');
       return;
     }
 
-    // ZIP code validation
-    const zipRegex = /^[0-9]{6}$/;
-    if (!zipRegex.test(formData.zipCode)) {
-      Alert.alert('Error', 'Please enter a valid 6-digit ZIP code');
+    if (!/^[0-9]{6}$/.test(formData.pincode)) {
+      Alert.alert('Error', 'Pincode must be exactly 6 digits');
       return;
     }
 
-    let updatedAddresses;
+    try {
+      setSubmitting(true);
 
-    if (editingAddress) {
-      // Update existing address
-      updatedAddresses = addresses.map(addr => 
-        addr.id === editingAddress.id ? { ...formData, id: editingAddress.id } : addr
-      );
-      
-      // If set as default, update other addresses
-      if (formData.isDefault) {
-        updatedAddresses = updatedAddresses.map(addr => ({
-          ...addr,
-          isDefault: addr.id === editingAddress.id
-        }));
-      }
-    } else {
-      // Add new address
-      const newAddress = {
-        ...formData,
-        id: Date.now(), // Use timestamp for unique ID
-        line1Checked: false,
-        line2Checked: true
-      };
-      
-      // If set as default, update other addresses
-      if (formData.isDefault) {
-        updatedAddresses = addresses.map(addr => ({
-          ...addr,
-          isDefault: false
-        }));
-        updatedAddresses.push(newAddress);
-      } else {
-        updatedAddresses = [...addresses, newAddress];
-      }
+      await addressesAPI.addAddress(preparePayload());
+
+      Alert.alert('Success', 'Address added successfully!');
+      resetForm();
+      setModalVisible(false);
+      await fetchAddresses(); // Refresh list immediately
+    } catch (error) {
+      console.error('ADD ADDRESS ERROR:', error?.response?.data || error);
+
+      const msg =
+        error?.response?.data?.message ||
+        'Failed to add address. Please check your input or try again.';
+
+      Alert.alert('Error', msg);
+    } finally {
+      setSubmitting(false);
     }
-
-    // Save to state and storage
-    setAddresses(updatedAddresses);
-    await saveAddresses(updatedAddresses);
-
-    setModalVisible(false);
-    setEditingAddress(null);
-    
-    // Show success message
-    Alert.alert(
-      'Success', 
-      editingAddress ? 'Address updated successfully!' : 'Address added successfully!',
-      [{ text: 'OK' }]
-    );
   };
 
   const handleSetDefault = async (id) => {
-    const updatedAddresses = addresses.map(addr => ({
-      ...addr,
-      isDefault: addr.id === id
-    }));
-    
-    setAddresses(updatedAddresses);
-    await saveAddresses(updatedAddresses);
+    try {
+      await addressesAPI.setDefaultAddress(id);
+      await fetchAddresses();
+      Alert.alert('Success', 'Default address updated!');
+    } catch (err) {
+      Alert.alert('Error', err?.response?.data?.message || 'Failed to set default');
+    }
   };
 
-  const handleDelete = async (id) => {
-    Alert.alert(
-      'Confirm Deletion',
-      'Are you sure you want to delete this address?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          style: 'destructive',
-          onPress: async () => {
-            const updatedAddresses = addresses.filter(addr => addr.id !== id);
-            
-            // If we deleted the default address and there are other addresses,
-            // set the first address as default
-            const deletedAddress = addresses.find(addr => addr.id === id);
-            if (deletedAddress?.isDefault && updatedAddresses.length > 0) {
-              updatedAddresses[0].isDefault = true;
-            }
-            
-            setAddresses(updatedAddresses);
-            await saveAddresses(updatedAddresses);
-            
-            Alert.alert('Success', 'Address deleted successfully!');
-          }
-        }
-      ]
+const handleDelete = async (id) => {
+
+  if (!id) {
+    alert('Invalid address ID');
+    return;
+  }
+
+  const addr = addresses.find((a) => a._id === id);
+  if (!addr) {
+    alert('Address not found');
+    return;
+  }
+
+  if (addr.isDefault && addresses.length > 1) {
+    alert('Set another address as default before deleting this one.');
+    return;
+  }
+
+  // ✅ WEB CONFIRMATION
+  const confirmed = window.confirm(
+    'Are you sure you want to delete this address?'
+  );
+
+  if (!confirmed) return;
+
+  try {
+   
+
+    const res = await addressesAPI.deleteAddress(id);
+
+   
+
+    // 🔥 Update UI instantly
+    setAddresses((prev) => prev.filter((a) => a._id !== id));
+
+    alert('Address deleted successfully!');
+  } catch (err) {
+    console.error(
+      'DELETE ERROR:',
+      err?.response?.status,
+      err?.response?.data || err.message
     );
-  };
 
-  const handleEdit = (address) => {
-    setEditingAddress(address);
-    setModalVisible(true);
-  };
+    alert(err?.response?.data?.message || 'Failed to delete address');
+  }
+};
+
+
 
   const renderAddressCard = (address) => (
-    <View key={address.id} style={styles.addressCard}>
+    <View key={address._id} style={styles.addressCard}>
       {address.isDefault && (
         <View style={styles.defaultBadge}>
           <Icon name="checkmark-circle" size={12} color="#2e7d32" />
@@ -257,67 +201,39 @@ const AddressScreen = () => {
         </View>
       )}
 
-      <Text style={styles.addressName}>{address.name}</Text>
-      
+      <Text style={styles.addressName}>{address.fullName}</Text>
+
       <View style={styles.phoneContainer}>
         <Icon name="call" size={16} color="#800000" />
         <Text style={styles.phoneText}>{address.phone}</Text>
       </View>
 
       <View style={styles.addressDetails}>
-        <View style={styles.addressLine}>
-          <View style={[styles.checkbox, address.line1Checked ? styles.checked : styles.unchecked]}>
-            {address.line1Checked && <Icon name="checkmark" size={14} color="white" />}
-          </View>
-          <Text style={styles.addressText}>{address.addressLine1}</Text>
-        </View>
-        
-        <View style={styles.addressLine}>
-          <View style={[styles.checkbox, address.line2Checked ? styles.checked : styles.unchecked]}>
-            {address.line2Checked && <Icon name="checkmark" size={14} color="white" />}
-          </View>
-          <Text style={styles.addressText}>
-            {address.city}, {address.state} - {address.zipCode} {address.country}
-          </Text>
-        </View>
+        <Text style={styles.addressText}>{address.addressLine}</Text>
+        <Text style={styles.addressText}>
+          {address.city}, {address.state} - {address.pincode}, {address.country}
+        </Text>
       </View>
 
       <View style={styles.addressActions}>
-        {!address.isDefault ? (
-          <>
-            <TouchableOpacity 
-              style={styles.setDefaultBtn}
-              onPress={() => handleSetDefault(address.id)}
-            >
-              <Icon name="star" size={16} color="#800000" />
-              <Text style={styles.setDefaultText}>Set Default</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.deleteBtn}
-              onPress={() => handleDelete(address.id)}
-            >
-              <Icon name="trash" size={16} color="#ff4444" />
-              <Text style={styles.deleteText}>Delete</Text>
-            </TouchableOpacity>
-          </>
-        ) : (
-          <TouchableOpacity 
-            style={[styles.deleteBtn, styles.deleteOnlyBtn]}
-            onPress={() => handleDelete(address.id)}
+        {!address.isDefault && (
+          <TouchableOpacity
+            style={styles.setDefaultBtn}
+            onPress={() => handleSetDefault(address._id)}
           >
-            <Icon name="trash" size={16} color="#ff4444" />
-            <Text style={styles.deleteText}>Delete</Text>
+            <Icon name="star" size={16} color="#800000" />
+            <Text style={styles.setDefaultText}>Set Default</Text>
           </TouchableOpacity>
         )}
-        
-        <TouchableOpacity 
-          style={styles.editBtn}
-          onPress={() => handleEdit(address)}
-        >
-          <Icon name="create" size={16} color="#3498db" />
-          <Text style={styles.editText}>Edit</Text>
-        </TouchableOpacity>
+
+        <button
+  className="deleteBtn"
+  onClick={() => handleDelete(address._id)}
+>
+  🗑 Delete
+</button>
+
+
       </View>
     </View>
   );
@@ -334,10 +250,7 @@ const AddressScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back('/profile')}>
           <Icon name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Addresses</Text>
@@ -345,10 +258,10 @@ const AddressScreen = () => {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.addAddressBtn}
           onPress={() => {
-            setEditingAddress(null);
+            resetForm();
             setModalVisible(true);
           }}
         >
@@ -357,45 +270,36 @@ const AddressScreen = () => {
         </TouchableOpacity>
 
         <View style={styles.addressList}>
-          {addresses.length > 0 ? (
-            addresses.map(renderAddressCard)
-          ) : (
+          {addresses.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Icon name="location-outline" size={60} color="#ccc" />
               <Text style={styles.emptyText}>No addresses found</Text>
               <Text style={styles.emptySubtext}>Add your first address to get started</Text>
             </View>
+          ) : (
+            addresses.map(renderAddressCard)
           )}
-        </View>
-        
-        <View style={styles.infoContainer}>
-          <Icon name="information-circle" size={18} color="#666" />
-          <Text style={styles.infoText}>
-            Your addresses are saved locally on your device
-          </Text>
         </View>
       </ScrollView>
 
-      {/* Add/Edit Address Modal */}
+      {/* Add Address Modal */}
       <Modal
         animationType="slide"
         transparent={true}
         visible={modalVisible}
         onRequestClose={() => {
           setModalVisible(false);
-          setEditingAddress(null);
+          resetForm();
         }}
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {editingAddress ? 'Edit Address' : 'Add New Address'}
-              </Text>
+              <Text style={styles.modalTitle}>Add New Address</Text>
               <TouchableOpacity
                 onPress={() => {
                   setModalVisible(false);
-                  setEditingAddress(null);
+                  resetForm();
                 }}
               >
                 <Icon name="close" size={24} color="#fff" />
@@ -407,8 +311,8 @@ const AddressScreen = () => {
                 <Text style={styles.label}>Full Name *</Text>
                 <TextInput
                   style={styles.input}
-                  value={formData.name}
-                  onChangeText={(text) => handleInputChange('name', text)}
+                  value={formData.fullName}
+                  onChangeText={(v) => handleInputChange('fullName', v)}
                   placeholder="Enter full name"
                   placeholderTextColor="#999"
                 />
@@ -419,32 +323,21 @@ const AddressScreen = () => {
                 <TextInput
                   style={styles.input}
                   value={formData.phone}
-                  onChangeText={(text) => handleInputChange('phone', text)}
-                  placeholder="Enter 10-digit phone number"
-                  placeholderTextColor="#999"
+                  onChangeText={(v) => handleInputChange('phone', v)}
+                  placeholder="Enter 10-digit number"
                   keyboardType="phone-pad"
                   maxLength={10}
-                />
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Address Line 1 *</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formData.addressLine1}
-                  onChangeText={(text) => handleInputChange('addressLine1', text)}
-                  placeholder="Enter street address, building, etc."
                   placeholderTextColor="#999"
                 />
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Address Line 2 (Optional)</Text>
+                <Text style={styles.label}>Address Line *</Text>
                 <TextInput
                   style={styles.input}
-                  value={formData.addressLine2}
-                  onChangeText={(text) => handleInputChange('addressLine2', text)}
-                  placeholder="Apartment, suite, floor, etc."
+                  value={formData.addressLine}
+                  onChangeText={(v) => handleInputChange('addressLine', v)}
+                  placeholder="House no, street, area"
                   placeholderTextColor="#999"
                 />
               </View>
@@ -454,7 +347,7 @@ const AddressScreen = () => {
                 <TextInput
                   style={styles.input}
                   value={formData.city}
-                  onChangeText={(text) => handleInputChange('city', text)}
+                  onChangeText={(v) => handleInputChange('city', v)}
                   placeholder="Enter city"
                   placeholderTextColor="#999"
                 />
@@ -465,33 +358,32 @@ const AddressScreen = () => {
                 <TextInput
                   style={styles.input}
                   value={formData.state}
-                  onChangeText={(text) => handleInputChange('state', text)}
+                  onChangeText={(v) => handleInputChange('state', v)}
                   placeholder="Enter state"
                   placeholderTextColor="#999"
                 />
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>ZIP Code *</Text>
+                <Text style={styles.label}>Pincode *</Text>
                 <TextInput
                   style={styles.input}
-                  value={formData.zipCode}
-                  onChangeText={(text) => handleInputChange('zipCode', text)}
-                  placeholder="Enter 6-digit ZIP code"
-                  placeholderTextColor="#999"
+                  value={formData.pincode}
+                  onChangeText={(v) => handleInputChange('pincode', v)}
+                  placeholder="6-digit pincode"
                   keyboardType="numeric"
                   maxLength={6}
+                  placeholderTextColor="#999"
                 />
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Country *</Text>
+                <Text style={styles.label}>Country</Text>
                 <TextInput
                   style={styles.input}
                   value={formData.country}
-                  onChangeText={(text) => handleInputChange('country', text)}
-                  placeholder="Enter country"
-                  placeholderTextColor="#999"
+                  editable={false}
+                  placeholderTextColor="#666"
                 />
               </View>
 
@@ -500,7 +392,12 @@ const AddressScreen = () => {
                   style={styles.checkboxRow}
                   onPress={() => handleInputChange('isDefault', !formData.isDefault)}
                 >
-                  <View style={[styles.checkboxInput, formData.isDefault && styles.checkboxInputChecked]}>
+                  <View
+                    style={[
+                      styles.checkboxInput,
+                      formData.isDefault && styles.checkboxInputChecked,
+                    ]}
+                  >
                     {formData.isDefault && <Icon name="checkmark" size={14} color="white" />}
                   </View>
                   <Text style={styles.checkboxLabel}>Set as default address</Text>
@@ -508,23 +405,27 @@ const AddressScreen = () => {
               </View>
 
               <View style={styles.modalActions}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.cancelBtn}
                   onPress={() => {
                     setModalVisible(false);
-                    setEditingAddress(null);
+                    resetForm();
                   }}
+                  disabled={submitting}
                 >
                   <Text style={styles.cancelBtnText}>Cancel</Text>
                 </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={styles.saveBtn}
+
+                <TouchableOpacity
+                  style={[styles.saveBtn, submitting && styles.saveBtnDisabled]}
                   onPress={handleSubmit}
+                  disabled={submitting}
                 >
-                  <Text style={styles.saveBtnText}>
-                    {editingAddress ? 'Update Address' : 'Save Address'}
-                  </Text>
+                  {submitting ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <Text style={styles.saveBtnText}>Save Address</Text>
+                  )}
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -534,6 +435,7 @@ const AddressScreen = () => {
     </SafeAreaView>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {
@@ -645,40 +547,13 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   addressDetails: {
-    marginLeft: 5,
-    paddingLeft: 10,
-    borderLeftWidth: 2,
-    borderLeftColor: '#eaeaea',
     marginBottom: 16,
-  },
-  addressLine: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    marginRight: 12,
-    marginTop: 2,
-    borderWidth: 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checked: {
-    backgroundColor: '#800000',
-    borderColor: '#800000',
-  },
-  unchecked: {
-    backgroundColor: '#f9f9f9',
-    borderColor: '#ddd',
   },
   addressText: {
     color: '#555',
     fontSize: 15,
-    flex: 1,
     lineHeight: 20,
+    marginBottom: 4,
   },
   addressActions: {
     flexDirection: 'row',
@@ -686,6 +561,17 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: '#eee',
+  },
+  defaultAddressActions: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  defaultText: {
+    color: '#2e7d32',
+    fontWeight: '600',
+    fontSize: 14,
   },
   setDefaultBtn: {
     flexDirection: 'row',
@@ -712,7 +598,6 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   deleteOnlyBtn: {
-    flex: 1,
     justifyContent: 'center',
   },
   deleteText: {
@@ -761,23 +646,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 20,
   },
-  infoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  infoText: {
-    fontSize: 13,
-    color: '#666',
-    marginLeft: 8,
-    flex: 1,
-  },
-  // Modal styles
   modalContainer: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -878,6 +746,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginLeft: 10,
     alignItems: 'center',
+  },
+  saveBtnDisabled: {
+    backgroundColor: '#a05252',
+    opacity: 0.7,
   },
   saveBtnText: {
     color: 'white',

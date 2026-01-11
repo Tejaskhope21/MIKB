@@ -10,16 +10,20 @@ import {
   ActivityIndicator,
   TextInput,
   Modal,
+  SafeAreaView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { authAPI } from '../services/userApi';
 
 export default function SettingsScreen() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [saving, setSaving] = useState(false);
+
   const [editFormData, setEditFormData] = useState({
     name: '',
     email: '',
@@ -27,45 +31,27 @@ export default function SettingsScreen() {
   });
 
   useEffect(() => {
-    loadUserData();
+    loadProfile();
   }, []);
 
-  const loadUserData = async () => {
+  const loadProfile = async () => {
     try {
-      const userData = await AsyncStorage.getItem('userData');
-      if (userData) {
-        const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
-        setEditFormData({
-          name: parsedUser.name || '',
-          email: parsedUser.email || '',
-          phone: parsedUser.phone || '',
-        });
-      } else {
-        const defaultUser = {
-          id: 1,
-          name: 'Yadnesh Umredkar',
-          email: 'yadneshumredkar75@gmail.com',
-          phone: '9022965759',
-          joinDate: '2023-12-01',
-        };
-        setUser(defaultUser);
-        setEditFormData({
-          name: defaultUser.name,
-          email: defaultUser.email,
-          phone: defaultUser.phone,
-        });
-        await AsyncStorage.setItem('userData', JSON.stringify(defaultUser));
-      }
-    } catch (error) {
-      console.error('Error loading user data:', error);
+      const res = await authAPI.getProfile();
+      setUser(res.data.user);
+
+      setEditFormData({
+        name: res.data.user.name || '',
+        email: res.data.user.email || '',
+        phone: res.data.user.phone || '',
+      });
+
+      await AsyncStorage.setItem('userData', JSON.stringify(res.data.user));
+    } catch (err) {
+      console.error('PROFILE LOAD ERROR', err);
+      Alert.alert('Error', 'Failed to load profile');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleEditProfile = () => {
-    setEditModalVisible(true);
   };
 
   const handleSaveProfile = async () => {
@@ -74,139 +60,176 @@ export default function SettingsScreen() {
       return;
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(editFormData.email)) {
-      Alert.alert('Error', 'Please enter a valid email address');
-      return;
-    }
-
-    if (editFormData.phone && !/^[0-9]{10}$/.test(editFormData.phone)) {
-      Alert.alert('Error', 'Please enter a valid 10-digit phone number');
-      return;
-    }
+    setSaving(true);
 
     try {
-      const updatedUser = {
-        ...user,
-        name: editFormData.name,
-        email: editFormData.email,
-        phone: editFormData.phone,
-      };
+      const res = await authAPI.updateProfile(editFormData);
 
-      setUser(updatedUser);
-      await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
-      
+      setUser(res.data.user);
+      await AsyncStorage.setItem('userData', JSON.stringify(res.data.user));
+
       setEditModalVisible(false);
       Alert.alert('Success', 'Profile updated successfully!');
-    } catch (error) {
-      console.error('Error saving profile:', error);
-      Alert.alert('Error', 'Failed to update profile');
+    } catch (err) {
+      console.error('PROFILE UPDATE ERROR', err?.response?.data || err);
+      Alert.alert(
+        'Error',
+        err?.response?.data?.message || 'Failed to update profile'
+      );
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleCancelEdit = () => {
-    if (user) {
-      setEditFormData({
-        name: user.name || '',
-        email: user.email || '',
-        phone: user.phone || '',
-      });
-    }
-    setEditModalVisible(false);
+  const handleLogout = async () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await AsyncStorage.multiRemove(['token', 'userData']);
+              router.replace('/');
+            } catch (err) {
+              console.error('LOGOUT ERROR:', err);
+              Alert.alert('Error', 'Logout failed');
+            }
+          },
+        },
+      ]
+    );
   };
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#800000" />
+        <Text style={styles.loadingText}>Loading profile...</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Profile Header */}
-      <View style={styles.header}>
-        <View style={styles.profileImageContainer}>
-          <View style={styles.profileInitials}>
-            <Text style={styles.profileInitialsText}>
-              {user?.name?.charAt(0).toUpperCase() || 'U'}
-            </Text>
+    <SafeAreaView style={styles.container}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Profile Header */}
+        <View style={styles.profileHeader}>
+          <View style={styles.avatarContainer}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>
+                {user?.name?.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.editIcon}
+              onPress={() => setEditModalVisible(true)}
+            >
+              <Icon name="pencil" size={16} color="#800000" />
+            </TouchableOpacity>
+          </View>
+          
+          <Text style={styles.userName}>{user?.name}</Text>
+          <Text style={styles.userEmail}>{user?.email}</Text>
+          
+          <View style={styles.userInfoRow}>
+            <Icon name="call-outline" size={16} color="#666" />
+            <Text style={styles.userPhone}>{user?.phone || 'Not set'}</Text>
           </View>
         </View>
-        
-        <View style={styles.userInfo}>
-          <Text style={styles.userName}>{user?.name || 'User'}</Text>
-          <Text style={styles.userEmail}>{user?.email}</Text>
-          <Text style={styles.userPhone}>
-            <Icon name="call" size={14} color="rgba(255,255,255,0.8)" /> {user?.phone || 'No phone number'}
-          </Text>
-        </View>
-      </View>
 
-      {/* Personal Information Card */}
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>Personal Information</Text>
-          <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
-            <Icon name="pencil" size={18} color="#800000" />
+        {/* Profile Details Card */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Icon name="person-outline" size={20} color="#800000" />
+            <Text style={styles.cardTitle}>Profile Information</Text>
+          </View>
+          
+          <View style={styles.infoRow}>
+            <View style={styles.infoLabelContainer}>
+              <Icon name="person-circle-outline" size={18} color="#666" />
+              <Text style={styles.infoLabel}>Name</Text>
+            </View>
+            <Text style={styles.infoValue}>{user?.name}</Text>
+          </View>
+          
+          <View style={styles.separator} />
+          
+          <View style={styles.infoRow}>
+            <View style={styles.infoLabelContainer}>
+              <Icon name="mail-outline" size={18} color="#666" />
+              <Text style={styles.infoLabel}>Email</Text>
+            </View>
+            <Text style={styles.infoValue}>{user?.email}</Text>
+          </View>
+          
+          <View style={styles.separator} />
+          
+          <View style={styles.infoRow}>
+            <View style={styles.infoLabelContainer}>
+              <Icon name="call-outline" size={18} color="#666" />
+              <Text style={styles.infoLabel}>Phone</Text>
+            </View>
+            <Text style={styles.infoValue}>{user?.phone || 'Not set'}</Text>
+          </View>
+          
+          <TouchableOpacity 
+            style={styles.editProfileBtn}
+            onPress={() => setEditModalVisible(true)}
+          >
+            <Icon name="create-outline" size={18} color="#800000" />
             <Text style={styles.editProfileText}>Edit Profile</Text>
           </TouchableOpacity>
         </View>
-        
-        <View style={styles.infoItem}>
-          <View style={styles.infoLabelContainer}>
-            <Icon name="person" size={20} color="#666" />
-            <Text style={styles.infoLabel}>Full Name</Text>
-          </View>
-          <Text style={styles.infoValue}>{user?.name}</Text>
+
+       
+
+        {/* Logout Button */}
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+          <Icon name="log-out-outline" size={22} color="#ff4444" />
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
+
+        <View style={styles.versionContainer}>
+          <Text style={styles.versionText}>Version 1.0.0</Text>
         </View>
-        
-        <View style={styles.infoItem}>
-          <View style={styles.infoLabelContainer}>
-            <Icon name="mail" size={20} color="#666" />
-            <Text style={styles.infoLabel}>Email Address</Text>
-          </View>
-          <Text style={styles.infoValue}>{user?.email}</Text>
-        </View>
-        
-        <View style={styles.infoItem}>
-          <View style={styles.infoLabelContainer}>
-            <Icon name="call" size={20} color="#666" />
-            <Text style={styles.infoLabel}>Phone Number</Text>
-          </View>
-          <Text style={styles.infoValue}>{user?.phone || 'Not provided'}</Text>
-        </View>
-      </View>
+      </ScrollView>
 
       {/* Edit Profile Modal */}
       <Modal
         visible={editModalVisible}
-        animationType="slide"
         transparent={true}
-        onRequestClose={handleCancelEdit}
+        animationType="slide"
+        onRequestClose={() => setEditModalVisible(false)}
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Edit Profile</Text>
-              <TouchableOpacity onPress={handleCancelEdit}>
-                <Icon name="close" size={24} color="white" />
+              <TouchableOpacity 
+                onPress={() => setEditModalVisible(false)}
+                disabled={saving}
+              >
+                <Icon name="close" size={24} color="#fff" />
               </TouchableOpacity>
             </View>
-            
-            <View style={styles.modalBody}>
+
+            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Full Name *</Text>
                 <TextInput
                   style={styles.input}
                   value={editFormData.name}
                   onChangeText={(text) => setEditFormData({...editFormData, name: text})}
-                  placeholder="Enter your name"
+                  placeholder="Enter your full name"
                   placeholderTextColor="#999"
+                  editable={!saving}
                 />
               </View>
-              
+
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Email Address *</Text>
                 <TextInput
@@ -217,9 +240,10 @@ export default function SettingsScreen() {
                   placeholderTextColor="#999"
                   keyboardType="email-address"
                   autoCapitalize="none"
+                  editable={!saving}
                 />
               </View>
-              
+
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Phone Number</Text>
                 <TextInput
@@ -229,145 +253,234 @@ export default function SettingsScreen() {
                   placeholder="Enter your phone number"
                   placeholderTextColor="#999"
                   keyboardType="phone-pad"
-                  maxLength={10}
+                  editable={!saving}
                 />
               </View>
-              
+
               <View style={styles.modalActions}>
-                <TouchableOpacity style={styles.cancelBtn} onPress={handleCancelEdit}>
+                <TouchableOpacity
+                  style={styles.cancelBtn}
+                  onPress={() => setEditModalVisible(false)}
+                  disabled={saving}
+                >
                   <Text style={styles.cancelBtnText}>Cancel</Text>
                 </TouchableOpacity>
-                
-                <TouchableOpacity style={styles.saveBtn} onPress={handleSaveProfile}>
-                  <Text style={styles.saveBtnText}>Save Changes</Text>
+
+                <TouchableOpacity
+                  style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
+                  onPress={handleSaveProfile}
+                  disabled={saving}
+                >
+                  {saving ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <Text style={styles.saveBtnText}>Save Changes</Text>
+                  )}
                 </TouchableOpacity>
               </View>
-            </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>
-    </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f5f5f5',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f5f5f5',
   },
-  header: {
-    backgroundColor: '#800000',
-    padding: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#666',
   },
-  profileImageContainer: {
-    position: 'relative',
-    marginRight: 16,
-  },
-  profileInitials: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+  profileHeader: {
     backgroundColor: '#fff',
+    alignItems: 'center',
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  avatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#800000',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
     borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
   },
-  profileInitialsText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#800000',
-  },
-  userInfo: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 22,
+  avatarText: {
+    fontSize: 40,
     fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 6,
   },
-  userEmail: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.9)',
-    marginBottom: 4,
-  },
-  userPhone: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  card: {
+  editIcon: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
     backgroundColor: '#fff',
-    marginTop: 20,
-    marginHorizontal: 16,
-    borderRadius: 12,
-    padding: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#800000',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
+  userName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 6,
+  },
+  userEmail: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 12,
+  },
+  userInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  userPhone: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 8,
+  },
+  card: {
+    backgroundColor: '#fff',
+    marginHorizontal: 16,
+    marginTop: 20,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+  },
   cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    marginLeft: 12,
+  },
+  infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  editButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f0f4ff',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  editProfileText: {
-    color: '#800000',
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 6,
-  },
-  infoItem: {
-    marginBottom: 24,
+    paddingVertical: 12,
   },
   infoLabelContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
   },
   infoLabel: {
     fontSize: 16,
     color: '#666',
-    marginLeft: 12,
-    fontWeight: '500',
+    marginLeft: 10,
   },
   infoValue: {
-    fontSize: 18,
+    fontSize: 16,
     color: '#333',
     fontWeight: '500',
-    marginLeft: 32,
-    paddingVertical: 4,
   },
-  // Modal styles
+  separator: {
+    height: 1,
+    backgroundColor: '#f0f0f0',
+    marginVertical: 4,
+  },
+  editProfileBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f8f9fa',
+    padding: 14,
+    borderRadius: 12,
+    marginTop: 16,
+  },
+  editProfileText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#800000',
+    marginLeft: 10,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+  },
+  menuItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  menuItemText: {
+    fontSize: 16,
+    color: '#333',
+    marginLeft: 14,
+  },
+  logoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    marginHorizontal: 16,
+    marginTop: 24,
+    padding: 18,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#ff4444',
+  },
+  logoutText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ff4444',
+    marginLeft: 10,
+  },
+  versionContainer: {
+    alignItems: 'center',
+    paddingVertical: 30,
+  },
+  versionText: {
+    fontSize: 14,
+    color: '#999',
+  },
+  // Modal Styles
   modalContainer: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -375,26 +488,26 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '80%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '85%',
   },
   modalHeader: {
     backgroundColor: '#800000',
     padding: 20,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
     color: 'white',
   },
   modalBody: {
-    padding: 20,
+    padding: 24,
   },
   formGroup: {
     marginBottom: 20,
@@ -408,8 +521,8 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 14,
+    borderRadius: 12,
+    padding: 16,
     fontSize: 16,
     backgroundColor: '#fff',
     color: '#333',
@@ -417,7 +530,7 @@ const styles = StyleSheet.create({
   modalActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 10,
+    marginTop: 20,
     paddingTop: 20,
     borderTopWidth: 1,
     borderTopColor: '#eee',
@@ -426,8 +539,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
     padding: 16,
-    borderRadius: 8,
-    marginRight: 10,
+    borderRadius: 12,
+    marginRight: 12,
     alignItems: 'center',
   },
   cancelBtnText: {
@@ -439,9 +552,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#800000',
     padding: 16,
-    borderRadius: 8,
-    marginLeft: 10,
+    borderRadius: 12,
+    marginLeft: 12,
     alignItems: 'center',
+  },
+  saveBtnDisabled: {
+    backgroundColor: '#a05252',
+    opacity: 0.7,
   },
   saveBtnText: {
     color: 'white',
