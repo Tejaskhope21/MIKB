@@ -23,9 +23,9 @@ export default function Navbar() {
 
                 {/* Icons */}
                 <View style={styles.icons}>
-                    <TouchableOpacity onPress={() => router.push('/search')}>
+                    {/* <TouchableOpacity onPress={() => router.push('/search')}>
                         <Ionicons name="search" size={22} color="#fff" />
-                    </TouchableOpacity>
+                    </TouchableOpacity> */}
 
                     <TouchableOpacity
                         style={{ marginLeft: 20 }}

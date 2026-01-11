@@ -13,8 +13,8 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { fetchProductById, addToCart } from '../../../services/api';
-import { useCart } from '../../../context/CartContext';
+import { fetchProductById, addToCart } from '../../services/api';
+import { useCart } from '../../context/CartContext';
 
 const { width } = Dimensions.get('window');
 

@@ -10,9 +10,9 @@ import {
   ActivityIndicator,
   StyleSheet,
   SafeAreaView,
-  Image,
   Dimensions,
   Platform,
+  StatusBar,
 } from 'react-native';
 import axios from 'axios';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -34,11 +34,10 @@ const ContractorsListScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
 
-  // Filters state
+  // Filters state (removed locationFilter)
   const [search, setSearch] = useState('');
   const [ratingFilter, setRatingFilter] = useState('');
   const [experienceFilter, setExperienceFilter] = useState('');
-  const [locationFilter, setLocationFilter] = useState('');
   const [specialtyFilter, setSpecialtyFilter] = useState('');
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [withPortfolio, setWithPortfolio] = useState(false);
@@ -48,11 +47,9 @@ const ContractorsListScreen = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
-  // Filter options
+  // Filter options (removed cities and states)
   const [filterOptions, setFilterOptions] = useState({
     specialties: [],
-    cities: [],
-    states: [],
   });
 
   // Filter panel visibility
@@ -65,7 +62,7 @@ const ContractorsListScreen = () => {
   const fetchFilterOptions = async () => {
     try {
       const res = await axios.get(`${API_BASE}/contractor/filter/options`);
-      setFilterOptions(res.data.options || {});
+      setFilterOptions(res.data.options || { specialties: [] });
     } catch (err) {
       console.error('Failed to load filter options:', err);
     }
@@ -86,7 +83,6 @@ const ContractorsListScreen = () => {
       if (search) url += `&search=${encodeURIComponent(search)}`;
       if (ratingFilter) url += `&minRating=${ratingFilter}`;
       if (experienceFilter) url += `&minExperience=${experienceFilter}`;
-      if (locationFilter) url += `&location=${encodeURIComponent(locationFilter)}`;
       if (specialtyFilter) url += `&specialty=${encodeURIComponent(specialtyFilter)}`;
       if (verifiedOnly) url += `&verified=true`;
       if (withPortfolio) url += `&withPortfolio=true`;
@@ -147,7 +143,7 @@ const ContractorsListScreen = () => {
     }, 500);
   };
 
-  // Render stars
+  // Render stars (removed review text)
   const renderStars = (rating) => {
     const num = parseFloat(rating) || 0;
     const stars = [];
@@ -177,7 +173,6 @@ const ContractorsListScreen = () => {
     setSearch('');
     setRatingFilter('');
     setExperienceFilter('');
-    setLocationFilter('');
     setSpecialtyFilter('');
     setVerifiedOnly(false);
     setWithPortfolio(false);
@@ -193,11 +188,16 @@ const ContractorsListScreen = () => {
     setShowFilters(false);
   };
 
-  // Render contractor item
+  // Handle contractor card press - Navigate to contractor profile
+  const handleContractorPress = (contractorId) => {
+    navigation.navigate('ContractorProfile', { id: contractorId });
+  };
+
+  // Render contractor item (removed location row)
   const renderContractorItem = ({ item }) => (
     <TouchableOpacity
       style={styles.contractorCard}
-      onPress={() => navigation.navigate('ContractorDetail', { id: item._id })}
+      onPress={() => handleContractorPress(item._id)}
       activeOpacity={0.7}
     >
       <View style={styles.cardHeader}>
@@ -227,15 +227,6 @@ const ContractorsListScreen = () => {
 
       <View style={styles.cardDetails}>
         <View style={styles.detailRow}>
-          <Icon name="location-on" size={14} color="#666" />
-          <Text style={styles.detailText} numberOfLines={1}>
-            {item.address?.city && item.address?.state
-              ? `${item.address.city}, ${item.address.state}`
-              : 'Location not listed'}
-          </Text>
-        </View>
-
-        <View style={styles.detailRow}>
           <Icon name="work" size={14} color="#666" />
           <Text style={styles.detailText}>
             {item.experience || 0} years experience
@@ -244,9 +235,6 @@ const ContractorsListScreen = () => {
 
         <View style={styles.detailRow}>
           {renderStars(item.rating || 0)}
-          <Text style={styles.reviewText}>
-            • {item.reviews?.length || 0} reviews
-          </Text>
         </View>
 
         {item.portfolio && item.portfolio.length > 0 && (
@@ -261,181 +249,175 @@ const ContractorsListScreen = () => {
     </TouchableOpacity>
   );
 
-  // Render filter modal
+  // Render filter modal (removed location filter section)
   const renderFilters = () => (
     <View style={styles.filterContainer}>
-      <ScrollView style={styles.filterPanel} showsVerticalScrollIndicator={false}>
-        <View style={styles.filterHeader}>
-          <Text style={styles.filterTitle}>Filters</Text>
-          <TouchableOpacity 
-            onPress={() => setShowFilters(false)}
-            style={styles.closeButton}
-          >
-            <Icon name="close" size={22} color="#333" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.filterSection}>
-          <Text style={styles.filterLabel}>Search</Text>
-          <View style={styles.inputContainer}>
-            <Icon name="search" size={18} color="#666" />
-            <TextInput
-              style={styles.input}
-              value={search}
-              onChangeText={handleSearch}
-              placeholder="Company name, description..."
-              placeholderTextColor="#999"
-            />
-          </View>
-        </View>
-
-        <View style={styles.filterSection}>
-          <Text style={styles.filterLabel}>Minimum Rating</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollOptions}>
-            {['', '4', '4.5', '4.8'].map((rating) => (
-              <TouchableOpacity
-                key={rating || 'any'}
-                style={[
-                  styles.filterOption,
-                  ratingFilter === rating && styles.filterOptionSelected
-                ]}
-                onPress={() => setRatingFilter(rating)}
-              >
-                <Text style={[
-                  styles.filterOptionText,
-                  ratingFilter === rating && styles.filterOptionTextSelected
-                ]}>
-                  {rating ? `${rating}+` : 'Any'}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
-        <View style={styles.filterSection}>
-          <Text style={styles.filterLabel}>Experience</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollOptions}>
-            {['', '5', '10', '15'].map((exp) => (
-              <TouchableOpacity
-                key={exp || 'any'}
-                style={[
-                  styles.filterOption,
-                  experienceFilter === exp && styles.filterOptionSelected
-                ]}
-                onPress={() => setExperienceFilter(exp)}
-              >
-                <Text style={[
-                  styles.filterOptionText,
-                  experienceFilter === exp && styles.filterOptionTextSelected
-                ]}>
-                  {exp ? `${exp}+ yrs` : 'Any'}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
-        <View style={styles.filterSection}>
-          <Text style={styles.filterLabel}>Location</Text>
-          <View style={styles.inputContainer}>
-            <Icon name="place" size={18} color="#666" />
-            <TextInput
-              style={styles.input}
-              value={locationFilter}
-              onChangeText={setLocationFilter}
-              placeholder="City or State"
-              placeholderTextColor="#999"
-            />
-          </View>
-        </View>
-
-        <View style={styles.filterSection}>
-          <Text style={styles.filterLabel}>Specialty</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollOptions}>
-            <TouchableOpacity
-              style={[
-                styles.filterOption,
-                !specialtyFilter && styles.filterOptionSelected
-              ]}
-              onPress={() => setSpecialtyFilter('')}
+      <View style={styles.filterPanel}>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <View style={styles.filterHeader}>
+            <Text style={styles.filterTitle}>Filters</Text>
+            <TouchableOpacity 
+              onPress={() => setShowFilters(false)}
+              style={styles.closeButton}
             >
-              <Text style={[
-                styles.filterOptionText,
-                !specialtyFilter && styles.filterOptionTextSelected
-              ]}>
-                All
-              </Text>
+              <Icon name="close" size={22} color="#333" />
             </TouchableOpacity>
-            {filterOptions.specialties?.slice(0, 10).map((spec) => (
+          </View>
+
+          <View style={styles.filterSection}>
+            <Text style={styles.filterLabel}>Search</Text>
+            <View style={styles.inputContainer}>
+              <Icon name="search" size={18} color="#666" />
+              <TextInput
+                style={styles.input}
+                value={search}
+                onChangeText={handleSearch}
+                placeholder="Company name, description..."
+                placeholderTextColor="#999"
+              />
+            </View>
+          </View>
+
+          <View style={styles.filterSection}>
+            <Text style={styles.filterLabel}>Rating</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollOptions}>
+              {['', '4', '4.5', '4.8'].map((rating) => (
+                <TouchableOpacity
+                  key={rating || 'any'}
+                  style={[
+                    styles.filterOption,
+                    ratingFilter === rating && styles.filterOptionSelected
+                  ]}
+                  onPress={() => setRatingFilter(rating)}
+                >
+                  <Text style={[
+                    styles.filterOptionText,
+                    ratingFilter === rating && styles.filterOptionTextSelected
+                  ]}>
+                    {rating ? `${rating}+` : 'Any'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
+          <View style={styles.filterSection}>
+            <Text style={styles.filterLabel}>Experience</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollOptions}>
+              {['', '5', '10', '15'].map((exp) => (
+                <TouchableOpacity
+                  key={exp || 'any'}
+                  style={[
+                    styles.filterOption,
+                    experienceFilter === exp && styles.filterOptionSelected
+                  ]}
+                  onPress={() => setExperienceFilter(exp)}
+                >
+                  <Text style={[
+                    styles.filterOptionText,
+                    experienceFilter === exp && styles.filterOptionTextSelected
+                  ]}>
+                    {exp ? `${exp}+ yrs` : 'Any'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
+          <View style={styles.filterSection}>
+            <Text style={styles.filterLabel}>Specialty</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollOptions}>
               <TouchableOpacity
-                key={spec._id}
                 style={[
                   styles.filterOption,
-                  specialtyFilter === spec._id && styles.filterOptionSelected
+                  !specialtyFilter && styles.filterOptionSelected
                 ]}
-                onPress={() => setSpecialtyFilter(spec._id)}
+                onPress={() => setSpecialtyFilter('')}
               >
                 <Text style={[
                   styles.filterOptionText,
-                  specialtyFilter === spec._id && styles.filterOptionTextSelected
-                ]} numberOfLines={1}>
-                  {spec._id}
+                  !specialtyFilter && styles.filterOptionTextSelected
+                ]}>
+                  All
                 </Text>
               </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
+              {filterOptions.specialties?.slice(0, 10).map((spec) => (
+                <TouchableOpacity
+                  key={spec._id}
+                  style={[
+                    styles.filterOption,
+                    specialtyFilter === spec._id && styles.filterOptionSelected
+                  ]}
+                  onPress={() => setSpecialtyFilter(spec._id)}
+                >
+                  <Text style={[
+                    styles.filterOptionText,
+                    specialtyFilter === spec._id && styles.filterOptionTextSelected
+                  ]} numberOfLines={1}>
+                    {spec._id}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
 
-        <View style={styles.checkboxSection}>
-          <TouchableOpacity
-            style={styles.checkboxRow}
-            onPress={() => setVerifiedOnly(!verifiedOnly)}
-          >
-            <View style={[
-              styles.checkbox,
-              verifiedOnly && styles.checkboxChecked
-            ]}>
-              {verifiedOnly && <Icon name="check" size={14} color="#FFF" />}
-            </View>
-            <Text style={styles.checkboxLabel}>Verified Only</Text>
-          </TouchableOpacity>
+          <View style={styles.checkboxSection}>
+            <TouchableOpacity
+              style={styles.checkboxRow}
+              onPress={() => setVerifiedOnly(!verifiedOnly)}
+            >
+              <View style={[
+                styles.checkbox,
+                verifiedOnly && styles.checkboxChecked
+              ]}>
+                {verifiedOnly && <Icon name="check" size={14} color="#FFF" />}
+              </View>
+              <Text style={styles.checkboxLabel}>Verified Only</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.checkboxRow}
-            onPress={() => setWithPortfolio(!withPortfolio)}
-          >
-            <View style={[
-              styles.checkbox,
-              withPortfolio && styles.checkboxChecked
-            ]}>
-              {withPortfolio && <Icon name="check" size={14} color="#FFF" />}
-            </View>
-            <Text style={styles.checkboxLabel}>Has Portfolio</Text>
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity
+              style={styles.checkboxRow}
+              onPress={() => setWithPortfolio(!withPortfolio)}
+            >
+              <View style={[
+                styles.checkbox,
+                withPortfolio && styles.checkboxChecked
+              ]}>
+                {withPortfolio && <Icon name="check" size={14} color="#FFF" />}
+              </View>
+              <Text style={styles.checkboxLabel}>Has Portfolio</Text>
+            </TouchableOpacity>
+          </View>
 
-        <View style={styles.filterButtons}>
-          <TouchableOpacity
-            style={styles.resetButton}
-            onPress={handleResetFilters}
-          >
-            <Text style={styles.resetButtonText}>Reset</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.applyButton}
-            onPress={handleApplyFilters}
-          >
-            <Text style={styles.applyButtonText}>Apply</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+          <View style={styles.filterButtons}>
+            <TouchableOpacity
+              style={styles.resetButton}
+              onPress={handleResetFilters}
+            >
+              <Text style={styles.resetButtonText}>Reset</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.applyButton}
+              onPress={handleApplyFilters}
+            >
+              <Text style={styles.applyButtonText}>Apply</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </View>
     </View>
   );
 
-  // Render header
+  // Render header with back button
   const renderHeader = () => (
     <View style={styles.header}>
-      <View>
+      <TouchableOpacity 
+        style={styles.backButton}
+        onPress={() => navigation.goBack()}
+      >
+        <Icon name="arrow-back" size={24} color="#FFF" />
+      </TouchableOpacity>
+      <View style={styles.headerContent}>
         <Text style={styles.headerTitle}>Find Trusted Contractors</Text>
         <Text style={styles.headerSubtitle}>
           Browse verified professionals for your next project
@@ -445,7 +427,7 @@ const ContractorsListScreen = () => {
         style={styles.filterButton}
         onPress={() => setShowFilters(!showFilters)}
       >
-        <Icon name="tune" size={22} color="#800000" />
+        <Icon name="tune" size={22} color="#FFF" />
       </TouchableOpacity>
     </View>
   );
@@ -484,6 +466,7 @@ const ContractorsListScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar backgroundColor="#800000" barStyle="light-content" />
       {renderHeader()}
       
       <View style={styles.searchContainer}>
@@ -560,36 +543,53 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8F9FA',
   },
+  // Header with back button
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingHorizontal: 20,
-    paddingTop: 15,
-    paddingBottom: 10,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EAEAEA',
+    alignItems: 'center',
+    backgroundColor: '#800000',
+    paddingHorizontal: 15,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 10,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  headerContent: {
+    flex: 1,
   },
   headerTitle: {
     fontSize: 22,
-    fontWeight: '700',
-    color: '#222',
+    fontWeight: 'bold',
+    color: '#FFF',
     marginBottom: 4,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#666',
+    color: 'rgba(255,255,255,0.9)',
   },
   filterButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F8F0F0',
+    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 5,
   },
+  // Search
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -601,11 +601,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E0E0E0',
-    elevation: 2,
+    elevation: 3,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowRadius: 4,
   },
   searchIcon: {
     marginRight: 10,
@@ -616,20 +616,21 @@ const styles = StyleSheet.create({
     color: '#333',
     height: '100%',
   },
+  // Filter Modal
   filterContainer: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     zIndex: 1000,
     justifyContent: 'flex-end',
   },
   filterPanel: {
     backgroundColor: '#FFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
     maxHeight: '80%',
     paddingHorizontal: 20,
     paddingBottom: 30,
@@ -668,9 +669,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F8F9FA',
-    borderRadius: 10,
+    borderRadius: 12,
     paddingHorizontal: 15,
-    height: 48,
+    height: 50,
     borderWidth: 1,
     borderColor: '#E0E0E0',
   },
@@ -738,7 +739,7 @@ const styles = StyleSheet.create({
   },
   resetButton: {
     flex: 1,
-    paddingVertical: 14,
+    paddingVertical: 16,
     borderRadius: 12,
     backgroundColor: '#F8F9FA',
     alignItems: 'center',
@@ -752,7 +753,7 @@ const styles = StyleSheet.create({
   },
   applyButton: {
     flex: 1,
-    paddingVertical: 14,
+    paddingVertical: 16,
     borderRadius: 12,
     backgroundColor: '#800000',
     alignItems: 'center',
@@ -762,6 +763,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFF',
   },
+  // Contractor List
   listContent: {
     paddingHorizontal: 20,
     paddingBottom: 30,
@@ -775,7 +777,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
-    shadowRadius: 6,
+    shadowRadius: 8,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -792,7 +794,7 @@ const styles = StyleSheet.create({
   },
   logoText: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: 'bold',
     color: '#FFF',
   },
   companyInfo: {
@@ -805,7 +807,7 @@ const styles = StyleSheet.create({
   },
   companyName: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: 'bold',
     color: '#222',
     flex: 1,
   },
@@ -822,9 +824,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F0F0',
     marginVertical: 12,
   },
-  cardDetails: {
-    // Details container
-  },
+  cardDetails: {},
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -846,12 +846,6 @@ const styles = StyleSheet.create({
     color: '#222',
     marginLeft: 8,
   },
-  reviewText: {
-    fontSize: 13,
-    color: '#800000',
-    marginLeft: 12,
-    fontWeight: '500',
-  },
   portfolioRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -866,6 +860,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontWeight: '500',
   },
+  // Loading States
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -907,7 +902,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: 'bold',
     color: '#444',
     marginTop: 20,
     marginBottom: 8,
