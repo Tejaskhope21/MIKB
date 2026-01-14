@@ -24,6 +24,8 @@ import materialRequirementRoutes from './routes/materialRequirement.routes.js';
 // NEW CONTRACTOR ROUTES
 import contractorAuthRoutes from './routes/contractor.auth.routes.js';
 import contractorRoutes from './routes/contractor.routes.js';
+import contractorSearch from './routes/contractorSearch.routes.js'
+
 
 // Load environment variables
 dotenv.config();
@@ -104,9 +106,10 @@ app.use('/api/v1/users', userRoutes);
 // CONTRACTOR ROUTES
 app.use('/api/contractor/auth', contractorAuthRoutes);
 app.use('/api/contractor', contractorRoutes);
+app.use('/api/contractor-search',contractorSearch);
 app.use('/api/v1/contractor/auth', contractorAuthRoutes);
 app.use('/api/v1/contractor', contractorRoutes);
-
+app.use('/api/v1/contractor-search',contractorSearch);
 // AUTH ROUTES
 app.use('/api/auth', authRoutes);
 app.use('/api/v1/auth', authRoutes);

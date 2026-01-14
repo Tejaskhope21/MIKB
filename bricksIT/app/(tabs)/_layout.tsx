@@ -1,4 +1,4 @@
-// app/(tabs)/_layout.tsx (updated)
+// app/(tabs)/_layout.tsx
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useCart } from '../../context/CartContext';
@@ -21,6 +21,7 @@ export default function TabLayout() {
         headerShown: false,
       }}
     >
+      {/* Home */}
       <Tabs.Screen
         name="index"
         options={{
@@ -30,6 +31,8 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      {/* Search */}
       <Tabs.Screen
         name="search"
         options={{
@@ -39,6 +42,19 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      {/* Contractors */}
+      <Tabs.Screen
+        name="contractorsListScreen"
+        options={{
+          title: 'Contractors',
+          tabBarIcon: ({ size, color }) => (
+            <Ionicons name="people" size={size} color={color} />
+          ),
+        }}
+      />
+
+      {/* Cart */}
       <Tabs.Screen
         name="cart"
         options={{
@@ -55,6 +71,8 @@ export default function TabLayout() {
           },
         }}
       />
+
+      {/* Profile */}
       <Tabs.Screen
         name="profile"
         options={{

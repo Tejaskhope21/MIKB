@@ -9,10 +9,18 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <CartProvider>
         <StatusBar style="dark" />
+
         <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="product/[id]" options={{ headerShown: false }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+          {/* Bottom Tabs */}
+          <Stack.Screen name="(tabs)" />
+
+          {/* Stack Screens (NOT Tabs) */}
+          <Stack.Screen name="product/[id]" />
+          <Stack.Screen name="contractorsListScreen" /> {/* ✅ moved here */}
+          <Stack.Screen
+            name="modal"
+            options={{ presentation: 'modal' }}
+          />
         </Stack>
       </CartProvider>
     </SafeAreaProvider>

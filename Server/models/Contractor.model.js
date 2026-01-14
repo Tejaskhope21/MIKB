@@ -243,7 +243,16 @@ contractorSchema.methods.getResetPasswordToken = function () {
 
     return resetToken;
 };
-
+// 🔥 TEXT SEARCH INDEX (REQUIRED)
+contractorSchema.index({
+  name: 'text',
+  companyName: 'text',
+  contractorType: 'text',
+  specialties: 'text',
+  'address.city': 'text',
+  'address.state': 'text'
+});
 const Contractor = mongoose.model('Contractor', contractorSchema);
 
 export default Contractor;
+
