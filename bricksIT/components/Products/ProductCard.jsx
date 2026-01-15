@@ -1,171 +1,157 @@
 import React from 'react';
 import {
-    View,
-    Text,
-    Image,
-    StyleSheet,
-    TouchableOpacity,
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  Dimensions,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
-const ProductCard = ({ product, style }) => {
-    const navigation = useNavigation();
+const { width } = Dimensions.get('window');
 
-    const handlePress = () => {
-        navigation.navigate('ProductDetail', { productId: product.id });
-    };
+export default function ProductCard({ product, onPress, viewMode = 'grid' }) {
+  if (!product) return null;
 
-    const discount = product.originalPrice > product.price
-        ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
-        : 0;
+  // ✅ SAFE IMAGE HANDLING
+  const mainImage =
+    product?.image ||
+    product?.mainImage ||
+    (Array.isArray(product?.images) && product.images.length > 0
+      ? product.images[0]
+      : 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400');
 
-    return (
-        <TouchableOpacity
-            style={[styles.container, style]}
-            onPress={handlePress}
-            activeOpacity={0.7}
-        >
-            <View style={styles.imageContainer}>
-                <Image
-                    source={{ uri: product.image }}
-                    style={styles.image}
-                    defaultSource={require('../../assets/placeholder.jpg')}
-                />
-                {discount > 0 && (
-                    <View style={styles.discountBadge}>
-                        <Text style={styles.discountText}>{discount}% OFF</Text>
-                    </View>
-                )}
-                {!product.inStock && (
-                    <View style={styles.outOfStockOverlay}>
-                        <Text style={styles.outOfStockText}>Out of Stock</Text>
-                    </View>
-                )}
-            </View>
+  return (
+    <TouchableOpacity
+      style={[
+        styles.card,
+        viewMode === 'list' && styles.listCard,
+      ]}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      {/* IMAGE */}
+      <Image
+        source={{ uri: mainImage }}
+        style={[
+          styles.image,
+          viewMode === 'list' && styles.listImage,
+        ]}
+      />
 
-            <View style={styles.infoContainer}>
-                <Text style={styles.brand} numberOfLines={1}>
-                    {product.brand}
-                </Text>
-                <Text style={styles.name} numberOfLines={2}>
-                    {product.name}
-                </Text>
+      {/* INFO */}
+      <View style={styles.info}>
+        <Text style={styles.name} numberOfLines={2}>
+          {product.name}
+        </Text>
 
-                <View style={styles.priceContainer}>
-                    <Text style={styles.price}>₹{product.price.toLocaleString()}</Text>
-                    {product.originalPrice > product.price && (
-                        <Text style={styles.originalPrice}>
-                            ₹{product.originalPrice.toLocaleString()}
-                        </Text>
-                    )}
-                </View>
+        {product.category?.name && (
+          <Text style={styles.category}>
+            {product.category.name}
+          </Text>
+        )}
 
-                <View style={styles.stockContainer}>
-                    {product.inStock ? (
-                        <Text style={styles.inStockText}>
-                            In Stock: {product.stock || 'Available'}
-                        </Text>
-                    ) : (
-                        <Text style={styles.outOfStockTextSmall}>Out of Stock</Text>
-                    )}
-                </View>
-            </View>
-        </TouchableOpacity>
-    );
-};
+        {/* PRICE */}
+        <View style={styles.priceRow}>
+          <Text style={styles.price}>
+            ₹{product.price}
+          </Text>
+
+          {product.originalPrice && product.originalPrice > product.price && (
+            <Text style={styles.originalPrice}>
+              ₹{product.originalPrice}
+            </Text>
+          )}
+        </View>
+
+        {/* RATING */}
+        {product.rating && (
+          <View style={styles.ratingRow}>
+            <Ionicons name="star" size={14} color="#FFD700" />
+            <Text style={styles.rating}>
+              {product.rating.toFixed(1)}
+            </Text>
+          </View>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+/* ================= STYLES ================= */
 
 const styles = StyleSheet.create({
-    container: {
-        backgroundColor: '#fff',
-        borderRadius: 8,
-        overflow: 'hidden',
-        marginBottom: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
-    },
-    imageContainer: {
-        position: 'relative',
-    },
-    image: {
-        width: '100%',
-        height: 150,
-        resizeMode: 'cover',
-    },
-    discountBadge: {
-        position: 'absolute',
-        top: 8,
-        left: 8,
-        backgroundColor: '#ff4444',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 4,
-    },
-    discountText: {
-        color: '#fff',
-        fontSize: 10,
-        fontWeight: 'bold',
-    },
-    outOfStockOverlay: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    outOfStockText: {
-        color: '#fff',
-        fontWeight: 'bold',
-        fontSize: 14,
-    },
-    infoContainer: {
-        padding: 12,
-    },
-    brand: {
-        fontSize: 11,
-        color: '#666',
-        marginBottom: 4,
-    },
-    name: {
-        fontSize: 14,
-        fontWeight: '500',
-        color: '#333',
-        marginBottom: 8,
-        lineHeight: 18,
-    },
-    priceContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 8,
-    },
-    price: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#333',
-    },
-    originalPrice: {
-        fontSize: 12,
-        color: '#999',
-        textDecorationLine: 'line-through',
-        marginLeft: 6,
-    },
-    stockContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    inStockText: {
-        fontSize: 11,
-        color: '#28a745',
-    },
-    outOfStockTextSmall: {
-        fontSize: 11,
-        color: '#dc3545',
-    },
-});
+  card: {
+    width: (width - 32) / 2,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    margin: 6,
+    overflow: 'hidden',
+    elevation: 2,
+  },
 
-export default ProductCard;
+  listCard: {
+    flexDirection: 'row',
+    width: '100%',
+    marginHorizontal: 8,
+  },
+
+  image: {
+    width: '100%',
+    height: 140,
+  },
+
+  listImage: {
+    width: 120,
+    height: 120,
+  },
+
+  info: {
+    padding: 10,
+    flex: 1,
+  },
+
+  name: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#222',
+    marginBottom: 4,
+  },
+
+  category: {
+    fontSize: 12,
+    color: '#777',
+    marginBottom: 6,
+  },
+
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+
+  price: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#800000',
+  },
+
+  originalPrice: {
+    fontSize: 12,
+    color: '#999',
+    textDecorationLine: 'line-through',
+  },
+
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    gap: 4,
+  },
+
+  rating: {
+    fontSize: 12,
+    color: '#333',
+  },
+});

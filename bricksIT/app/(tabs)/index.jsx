@@ -66,24 +66,18 @@ const HomeScreen = () => {
         image: cat.image || `https://via.placeholder.com/80/cccccc/ffffff?text=${(cat.name || '?').charAt(0)}`,
       })));
 
-      // Handle products
-      const transformedProducts = (productsData || [])
-        .filter(product => product && (product._id || product.name))
-        .map((product, index) => {
-          const safeId = product._id || `product-${index}`;
-          return {
-            id: safeId,
-            _id: safeId,
-            name: product.name || 'Building Material',
-            brand: product.brand || 'Premium Brand',
-            price: Number(product.price) || 0,
-            originalPrice: Number(product.originalPrice || product.price) || 0,
-            image: product.image || getProductImage(product.images),
-            inStock: product.inStock !== false,
-            category: product.category || 'Construction',
-            rating: Number(product.rating) || 4.0,
-          };
-        });
+      // Handle products using the logic from the first code
+      const transformedProducts = (productsData || []).map(product => ({
+        id: product._id,
+        _id: product._id,
+        name: product.name,
+        brand: product.brand || 'Brand',
+        price: Number(product.price) || 0,
+        originalPrice: Number(product.originalPrice || product.price),
+        image: product.image || getProductImage(product.images),
+        inStock: product.inStock !== false,
+        rating: Number(product.rating) || 4.0,
+      }));
 
       // Fallback if no products
       if (transformedProducts.length === 0) {
@@ -171,8 +165,12 @@ const HomeScreen = () => {
     loadData();
   }, []);
 
+  // ✅ FIXED ROUTE HERE - Using productDetails instead of just product
   const handleProductPress = (product) => {
-    router.push(`/product/${product.id}`);
+    router.push({
+      pathname: '/productDetails/[id]',
+      params: { id: product.id },
+    });
   };
 
   const handleCategoryPress = (category) => {
@@ -198,46 +196,45 @@ const HomeScreen = () => {
     </TouchableOpacity>
   );
 
+  // ✅ USING THE UPDATED RENDER PRODUCT ITEM LOGIC FROM FIRST CODE
   const renderProductItem = ({ item }) => {
-    const discountPercent = item.originalPrice > item.price
-      ? Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)
-      : 0;
+    const discount =
+      item.originalPrice > item.price
+        ? Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)
+        : 0;
 
     return (
       <TouchableOpacity
         style={styles.productCard}
         onPress={() => handleProductPress(item)}
-        activeOpacity={0.7}
+        activeOpacity={0.8}
       >
-        <View style={styles.productImageContainer}>
-          <Image
-            source={{ uri: item.image }}
-            style={styles.productImage}
-            resizeMode="cover"
-          />
-          {discountPercent > 0 && (
-            <View style={styles.discountBadge}>
-              <Text style={styles.discountText}>{discountPercent}% OFF</Text>
-            </View>
-          )}
-          {!item.inStock && (
-            <View style={styles.outOfStockOverlay}>
-              <Text style={styles.outOfStockOverlayText}>Out of Stock</Text>
-            </View>
-          )}
-        </View>
+        <Image 
+          source={{ uri: item.image }} 
+          style={styles.productImage} 
+          resizeMode="cover"
+        />
+
+        {discount > 0 && (
+          <View style={styles.discountBadge}>
+            <Text style={styles.discountText}>{discount}% OFF</Text>
+          </View>
+        )}
 
         <View style={styles.productInfo}>
-          <Text style={styles.productBrand} numberOfLines={1}>{item.brand}</Text>
-          <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
+          <Text numberOfLines={1} style={styles.productBrand}>{item.brand}</Text>
+          <Text numberOfLines={2} style={styles.productName}>{item.name}</Text>
 
           <View style={styles.priceContainer}>
             <Text style={styles.productPrice}>{formatPrice(item.price)}</Text>
             {item.originalPrice > item.price && (
-              <Text style={styles.originalPrice}>{formatPrice(item.originalPrice)}</Text>
+              <Text style={styles.originalPrice}>
+                {formatPrice(item.originalPrice)}
+              </Text>
             )}
           </View>
 
+          {/* Added stock and rating info from second code */}
           <View style={styles.stockRatingContainer}>
             {item.inStock ? (
               <View style={styles.stockBadge}>
@@ -333,27 +330,54 @@ const HomeScreen = () => {
               <Ionicons name="chevron-forward" size={16} color="#800000" />
             </TouchableOpacity>
           </View>
-
+          
           <FlatList
             data={categories}
-            renderItem={renderCategoryItem}
-            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => {
+              // Truncate name to 10 letters and add ellipsis if longer
+              const displayName = item.name.length > 10 
+                ? item.name.substring(0, 10) + '...' 
+                : item.name;
+              
+              return (
+                <TouchableOpacity
+                  key={item._id}
+                  onPress={() => router.push({
+                    pathname: '/categories/[id]',
+                    params: { 
+                      id: item._id,
+                      name: item.name 
+                    }
+                  })}
+                  style={styles.categoryItem}
+                >
+                  <View style={styles.categoryImageContainer}>
+                    <Image
+                      source={{ uri: item.image }}
+                      style={styles.categoryImage}
+                      resizeMode="cover"
+                    />
+                  </View>
+                  <Text style={styles.categoryName} numberOfLines={1}>
+                    {displayName}
+                  </Text>
+                </TouchableOpacity>
+              );
+            }}
+            keyExtractor={(item) => item._id}
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.categoriesList}
+            ItemSeparatorComponent={() => <View style={{ width: 16 }} />}
           />
         </View>
 
-        {/* Featured Products */}
+        {/* Featured Products Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Featured Products</Text>
-            <TouchableOpacity
-              onPress={() => router.push('/products')}
-              style={styles.seeAllButton}
-            >
+            <TouchableOpacity onPress={() => router.push('/products')}>
               <Text style={styles.seeAllText}>See All</Text>
-              <Ionicons name="chevron-forward" size={16} color="#800000" />
             </TouchableOpacity>
           </View>
 
@@ -504,6 +528,11 @@ const styles = StyleSheet.create({
   },
   categoriesList: {
     paddingHorizontal: 16
+  },
+  categoryItem: {
+    width: 100,
+    alignItems: 'center',
+    marginRight: 16
   },
   categoryCard: {
     width: 100,
