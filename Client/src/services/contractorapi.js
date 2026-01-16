@@ -9,7 +9,7 @@ const getAPIBaseURL = () => {
                   window.location.hostname === '127.0.0.1';
 
   return isLocal 
-    ? 'http://localhost:5000/api/contractor'
+    ? 'https://bricks-backend-qyea.onrender.com/api/contractor'
     : 'https://bricks-backend-qyea.onrender.com/api/contractor';
 };
 

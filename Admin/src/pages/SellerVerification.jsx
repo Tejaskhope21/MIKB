@@ -33,7 +33,7 @@ const SellerVerification = () => {
   const [actionLoading, setActionLoading] = useState(false);
 
   // API configuration - use the same as your backend
-  const API_BASE = 'http://localhost:5000/api';
+  const API_BASE = 'https://bricks-backend-qyea.onrender.com/api';
 
   // Get authentication headers
   const getAuthHeaders = () => {

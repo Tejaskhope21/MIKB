@@ -23,9 +23,9 @@ const PRIMARY_COLOR = 'rgb(128, 0, 0)';
 const SECONDARY_COLOR = '#F8F0F0';
 
 const API_BASE = Platform.select({
-  ios: 'http://localhost:5000/api',
+  ios: 'https://bricks-backend-qyea.onrender.com/api',
   android: 'http://10.0.2.2:5000/api',
-  default: 'http://localhost:5000/api',
+  default: 'https://bricks-backend-qyea.onrender.com/api',
 });
 
 const ContractorsListScreen = () => {

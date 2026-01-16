@@ -22,7 +22,7 @@ import axios from 'axios';
    API BASE URL
 ========================= */
 const API_URL = Platform.OS === 'web' 
-  ? 'http://localhost:5000/api' 
+  ? 'https://bricks-backend-qyea.onrender.com/api' 
   : 'http://10.0.2.2:5000/api';
 
 export default function RegisterScreen() {

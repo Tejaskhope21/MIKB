@@ -23,7 +23,7 @@ const Sellers = () => {
     try {
       setLoading(true);
       // Replace with your actual API endpoint
-      const response = await fetch('http://localhost:5000/api/admin/sellers', {
+      const response = await fetch('https://bricks-backend-qyea.onrender.com/api/admin/sellers', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
         }
@@ -47,7 +47,7 @@ const Sellers = () => {
 
   const handleVerify = async (sellerId) => {
     try {
-      await fetch(`http://localhost:5000/api/admin/sellers/${sellerId}/verify`, {
+      await fetch(`https://bricks-backend-qyea.onrender.com/api/admin/sellers/${sellerId}/verify`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -67,7 +67,7 @@ const Sellers = () => {
 
   const handleSuspend = async (sellerId) => {
     try {
-      await fetch(`http://localhost:5000/api/admin/sellers/${sellerId}/suspend`, {
+      await fetch(`https://bricks-backend-qyea.onrender.com/api/admin/sellers/${sellerId}/suspend`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -87,7 +87,7 @@ const Sellers = () => {
 
   const handleActivate = async (sellerId) => {
     try {
-      await fetch(`http://localhost:5000/api/admin/sellers/${sellerId}/activate`, {
+      await fetch(`https://bricks-backend-qyea.onrender.com/api/admin/sellers/${sellerId}/activate`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

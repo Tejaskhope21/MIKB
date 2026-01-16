@@ -31,7 +31,7 @@ const SellerVerificationDashboard = () => {
   const [verificationNotes, setVerificationNotes] = useState('');
 
   // Use direct URL instead of process.env
-  const API_BASE = 'http://localhost:5000/api';
+  const API_BASE = 'https://bricks-backend-qyea.onrender.com/api';
 
   // Fetch all sellers
   const fetchSellers = async () => {

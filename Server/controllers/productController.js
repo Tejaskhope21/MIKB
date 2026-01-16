@@ -197,6 +197,114 @@ export const getProducts = async (req, res) => {
     }
 };
 
+/* =====================================
+   GET FILTERED PRODUCTS
+   GET /api/products
+===================================== */
+
+
+export const getFilteredProducts = async (req, res) => {
+  try {
+    const {
+      q,
+      category,
+      subcategory,
+      brand,
+      materialType,
+      minPrice,
+      maxPrice,
+      status,
+      sort,
+      page = 1,
+      limit = 20,
+      showAll
+    } = req.query;
+
+    const filter = {};
+
+    /* ---------- STATUS ---------- */
+    if (!showAll) {
+      filter.status = "published";
+    } else if (status) {
+      filter.status = status;
+    }
+
+    /* ---------- SEARCH ---------- */
+    if (q?.trim()) {
+      filter.$or = [
+        { name: { $regex: q, $options: "i" } },
+        { brand: { $regex: q, $options: "i" } },
+        { description: { $regex: q, $options: "i" } }
+      ];
+    }
+
+    /* ---------- CATEGORY ---------- */
+    if (category && mongoose.Types.ObjectId.isValid(category)) {
+      filter.categoryId = category;
+    }
+
+    if (subcategory && mongoose.Types.ObjectId.isValid(subcategory)) {
+      filter.subcategoryId = subcategory;
+    }
+
+    /* ---------- BRAND ---------- */
+    if (brand) {
+      filter.brand = { $regex: brand, $options: "i" };
+    }
+
+    /* ---------- MATERIAL ---------- */
+    if (materialType) {
+      filter.materialType = materialType;
+    }
+
+    /* ---------- PRICE ---------- */
+    if (minPrice || maxPrice) {
+      filter.price = {};
+      if (minPrice) filter.price.$gte = Number(minPrice);
+      if (maxPrice) filter.price.$lte = Number(maxPrice);
+    }
+
+    /* ---------- SORT ---------- */
+    let sortQuery = { createdAt: -1 };
+
+    if (sort === "price-low") sortQuery = { price: 1 };
+    if (sort === "price-high") sortQuery = { price: -1 };
+    if (sort === "discount") sortQuery = { discount: -1 };
+    if (sort === "newest") sortQuery = { createdAt: -1 };
+
+    /* ---------- PAGINATION ---------- */
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [products, total] = await Promise.all([
+      Product.find(filter)
+        .sort(sortQuery)
+        .skip(skip)
+        .limit(Number(limit))
+        .populate("categoryId", "name")
+        .populate("subcategoryId", "name")
+        .lean(),
+
+      Product.countDocuments(filter)
+    ]);
+
+    res.status(200).json({
+      success: true,
+      products,
+      pagination: {
+        total,
+        page: Number(page),
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    console.error("Filter Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch products"
+    });
+  }
+};
+
 /* =========================
    GET SINGLE PRODUCT
 ========================= */

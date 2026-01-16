@@ -14,7 +14,8 @@ import {
     getProductsBySubcategory,
     getCategoryWithSubcategories,
     getCategoryProducts,
-    getSubcategoryProducts
+    getSubcategoryProducts,
+    getFilteredProducts
 
 } from '../controllers/productController.js';
 
@@ -24,6 +25,7 @@ const router = express.Router();
 
 // Public routes
 router.get('/', getProducts);
+router.get("/products", getFilteredProducts);
 router.get('/search', searchProducts);
 router.get('/:id', getProduct);
 router.get('/by-numeric-id/:numericId', getProductByNumericId);
