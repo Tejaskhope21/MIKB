@@ -276,38 +276,24 @@ export default function CheckoutScreen() {
     };
 
     const createOrderPayload = () => {
-        // Prepare shipping address object
+        // Use the correct structure
         const shippingAddress = {
-            fullName: selectedAddress.fullName,
-            addressLine: selectedAddress.addressLine || selectedAddress.address || '',
+            address: selectedAddress.addressLine || selectedAddress.address || '',
             city: selectedAddress.city || '',
             state: selectedAddress.state || '',
-            pincode: selectedAddress.pincode || '',
-            phone: selectedAddress.phone || '',
-            isDefault: selectedAddress.isDefault || false
+            pincode: selectedAddress.pincode || ''
         };
 
-        // Prepare items array - handle both productId and product._id formats
         const items = cartItems.map(item => ({
             productId: item.id || item._id,
-            quantity: item.quantity,
-            price: item.price,
-            name: item.name,
-            unit: item.unit || 'piece',
-            brand: item.brand
+            quantity: item.quantity
         }));
 
-        // Prepare order payload
         const payload = {
             items,
             shippingAddress,
             paymentMethod: paymentMethod === 'cod' ? 'COD' : 'BANK_TRANSFER',
-            notes: notes.trim(),
-            subtotal: subtotal,
-            tax: tax,
-            shipping: shipping,
-            totalAmount: total,
-            currency: 'INR'
+            notes: notes.trim()
         };
 
         // Add payment proof for bank transfer
@@ -339,51 +325,37 @@ export default function CheckoutScreen() {
 
             console.log('Order Payload:', JSON.stringify(orderPayload, null, 2));
 
-            // Try multiple order endpoints
-            const endpoints = [
-                `${API_BASE_URL}/orders`,
-                `${API_BASE_URL}/v1/orders`,
-                `${API_BASE_URL}/order/create`
-            ];
+            // Call the order API
+            const response = await fetch(`${API_BASE_URL}/orders`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(orderPayload)
+            });
 
-            let response = null;
-            let data = null;
-            let orderError = null;
-
-            for (const endpoint of endpoints) {
-                try {
-                    response = await fetch(endpoint, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(orderPayload)
-                    });
-
-                    if (response.ok) {
-                        data = await response.json();
-                        break;
-                    }
-                } catch (endpointError) {
-                    console.log(`Endpoint ${endpoint} failed:`, endpointError.message);
-                    orderError = endpointError;
-                }
+            // Check if response is ok
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('Server error response:', errorData);
+                throw new Error(errorData.message || `Server error ${response.status}`);
             }
 
-            if (!response || !response.ok) {
-                throw new Error(orderError?.message || 'Failed to place order on all endpoints');
-            }
+            const data = await response.json();
+            console.log('Order response:', data);
 
-            // Handle different response formats
+            // Extract order ID from response
             let orderId = null;
 
-            if (data.success) {
-                orderId = data.order?._id || data.orderId || data._id || data.id;
-            } else if (data._id) {
+            if (data._id) {
                 orderId = data._id;
             } else if (data.id) {
                 orderId = data.id;
+            } else if (data.order?._id) {
+                orderId = data.order._id;
+            } else if (data.orderId) {
+                orderId = data.orderId;
             }
 
             if (!orderId) {
@@ -396,26 +368,9 @@ export default function CheckoutScreen() {
 
             setLoading(false);
 
-            Alert.alert(
-                'Order Placed Successfully!',
-                `Your order #${orderId} has been placed successfully.`,
-                [
-                    {
-                        text: 'View Orders',
-                        onPress: () => router.push('/orders')
-                    },
-                    {
-                        text: 'Continue Shopping',
-                        onPress: () => router.push('/')
-                    }
-                ]
-            );
-
-            // Navigate to order success screen
-            router.push({
-                pathname: '/order-success',
-                params: { id: orderId }
-            });
+            // FIX: Navigate using dynamic route format
+            // This is the key fix - use template literal for dynamic route
+            router.push(`/order-success/${orderId}`);
 
         } catch (error) {
             console.error('Order failed:', error);
@@ -431,6 +386,8 @@ export default function CheckoutScreen() {
                 errorMessage = 'Some items are out of stock. Please update your cart.';
             } else if (error.message.includes('price')) {
                 errorMessage = 'Price validation failed. Please refresh the cart.';
+            } else if (error.message.includes('500')) {
+                errorMessage = 'Server error. Please try again later or contact support.';
             }
 
             Alert.alert('Order Failed', errorMessage);
@@ -440,7 +397,6 @@ export default function CheckoutScreen() {
 
     const handleUploadScreenshot = async () => {
         // For React Native, you would use ImagePicker here
-        // This is a placeholder for actual implementation
         Alert.alert(
             'Upload Payment Proof',
             'This feature requires additional setup with react-native-image-picker library.',
@@ -831,6 +787,7 @@ export default function CheckoutScreen() {
     );
 }
 
+// Styles remain the same
 const styles = StyleSheet.create({
     container: {
         flex: 1,
