@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
     View,
     Text,
@@ -10,91 +10,21 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import Icon from 'react-native-vector-icons/Ionicons';
-import { cartAPI, ordersAPI } from '../../services/api';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useCart } from '../../context/CartContext';
 
 export default function CartScreen() {
     const router = useRouter();
-    const [cartItems, setCartItems] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
+    const {
+        cartItems,
+        removeFromCart,
+        updateQuantity,
+        clearCart,
+        getCartTotal,
+        getCartCount
+    } = useCart();
 
-    useEffect(() => {
-        loadCart();
-    }, []);
-
-    const loadCart = async () => {
-        try {
-            setLoading(true);
-            const items = await cartAPI.fetchCart();
-            setCartItems(items);
-        } catch (error) {
-            console.error('Error loading cart:', error);
-            Alert.alert('Error', 'Failed to load cart items');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const updateQuantity = async (productId, newQuantity) => {
-        if (newQuantity < 1) {
-            await removeItem(productId);
-            return;
-        }
-
-        try {
-            await cartAPI.updateCartItem(productId, newQuantity);
-            setCartItems(items =>
-                items.map(item =>
-                    item.productId === productId
-                        ? { ...item, quantity: newQuantity }
-                        : item
-                )
-            );
-        } catch (error) {
-            console.error('Error updating quantity:', error);
-            Alert.alert('Error', 'Failed to update quantity');
-        }
-    };
-
-    const removeItem = async (productId) => {
-        try {
-            await cartAPI.removeFromCart(productId);
-            setCartItems(items => items.filter(item => item.productId !== productId));
-        } catch (error) {
-            console.error('Error removing item:', error);
-            Alert.alert('Error', 'Failed to remove item from cart');
-        }
-    };
-
-    const clearCart = async () => {
-        Alert.alert(
-            'Clear Cart',
-            'Are you sure you want to clear your cart?',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Clear',
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            await cartAPI.clearCart();
-                            setCartItems([]);
-                        } catch (error) {
-                            console.error('Error clearing cart:', error);
-                            Alert.alert('Error', 'Failed to clear cart');
-                        }
-                    },
-                },
-            ]
-        );
-    };
-
-    const calculateTotal = () => {
-        return cartItems.reduce((total, item) => {
-            return total + (item.price * item.quantity);
-        }, 0);
-    };
+    const [loading, setLoading] = useState(false);
 
     const calculateItemTotal = (item) => {
         return item.price * item.quantity;
@@ -106,43 +36,71 @@ export default function CartScreen() {
             return;
         }
 
-        try {
-            const orderData = {
-                items: cartItems.map(item => ({
-                    productId: item.productId,
-                    quantity: item.quantity,
-                    price: item.price,
-                })),
-                totalAmount: calculateTotal(),
-                shippingAddress: {}, // You'll need to get this from user
-            };
+        // Check if user is logged in
+        // You can implement your auth check here
+        const isLoggedIn = true; // Replace with actual auth check
 
-            const result = await ordersAPI.createOrder(orderData);
-            Alert.alert('Success', 'Order placed successfully!');
-            await cartAPI.clearCart();
-            setCartItems([]);
-            router.push('/orders');
-        } catch (error) {
-            console.error('Checkout error:', error);
-            Alert.alert('Error', 'Failed to place order. Please try again.');
+        if (isLoggedIn) {
+            router.push('/checkout');
+        } else {
+            Alert.alert(
+                'Login Required',
+                'Please login to proceed to checkout',
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Login', onPress: () => router.push('/login') }
+                ]
+            );
         }
     };
 
-    if (loading) {
-        return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#800000" />
-                <Text>Loading cart...</Text>
-            </View>
+    const handleRemoveItem = (item) => {
+        Alert.alert(
+            'Remove Item',
+            `Remove ${item.name} from cart?`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Remove',
+                    style: 'destructive',
+                    onPress: () => removeFromCart(item.id)
+                }
+            ]
         );
-    }
+    };
+
+    const calculateOrderSummary = () => {
+        const subtotal = getCartTotal();
+        const tax = Math.round(subtotal * 0.18);
+        const shipping = subtotal > 5000 ? 0 : 150;
+        const total = subtotal + tax + shipping;
+
+        return { subtotal, tax, shipping, total };
+    };
+
+    const { subtotal, tax, shipping, total } = calculateOrderSummary();
 
     return (
         <View style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>My Cart</Text>
                 {cartItems.length > 0 && (
-                    <TouchableOpacity onPress={clearCart}>
+                    <TouchableOpacity
+                        onPress={() => {
+                            Alert.alert(
+                                'Clear Cart',
+                                'Are you sure you want to clear your cart?',
+                                [
+                                    { text: 'Cancel', style: 'cancel' },
+                                    {
+                                        text: 'Clear',
+                                        style: 'destructive',
+                                        onPress: clearCart
+                                    },
+                                ]
+                            );
+                        }}
+                    >
                         <Text style={styles.clearButton}>Clear All</Text>
                     </TouchableOpacity>
                 )}
@@ -150,7 +108,7 @@ export default function CartScreen() {
 
             {cartItems.length === 0 ? (
                 <View style={styles.emptyContainer}>
-                    <Icon name="cart-outline" size={80} color="#ccc" />
+                    <Ionicons name="cart-outline" size={80} color="#ccc" />
                     <Text style={styles.emptyTitle}>Your cart is empty</Text>
                     <Text style={styles.emptySubtitle}>Add some products to get started</Text>
                     <TouchableOpacity
@@ -162,33 +120,43 @@ export default function CartScreen() {
                 </View>
             ) : (
                 <>
-                    <ScrollView style={styles.cartList}>
+                    <ScrollView
+                        style={styles.cartList}
+                        showsVerticalScrollIndicator={false}
+                        contentContainerStyle={styles.cartListContent}
+                    >
                         {cartItems.map((item) => (
-                            <View key={item.productId} style={styles.cartItem}>
+                            <View key={item.id} style={styles.cartItem}>
                                 <Image
                                     source={{ uri: item.image || 'https://via.placeholder.com/100' }}
                                     style={styles.itemImage}
+                                    resizeMode="cover"
                                 />
                                 <View style={styles.itemDetails}>
                                     <Text style={styles.itemName} numberOfLines={2}>
                                         {item.name}
                                     </Text>
-                                    <Text style={styles.itemBrand}>{item.brand}</Text>
+                                    <Text style={styles.itemUnit}>Unit: {item.unit}</Text>
                                     <Text style={styles.itemPrice}>₹{item.price?.toLocaleString()}</Text>
 
                                     <View style={styles.quantityContainer}>
                                         <TouchableOpacity
-                                            onPress={() => updateQuantity(item.productId, item.quantity - 1)}
-                                            style={styles.quantityButton}
+                                            onPress={() => updateQuantity(item.id, item.quantity - 1)}
+                                            style={[styles.quantityButton, item.quantity <= 1 && styles.quantityButtonDisabled]}
+                                            disabled={item.quantity <= 1}
                                         >
-                                            <Icon name="remove" size={18} color="#333" />
+                                            <Ionicons
+                                                name="remove"
+                                                size={18}
+                                                color={item.quantity <= 1 ? "#ccc" : "#333"}
+                                            />
                                         </TouchableOpacity>
                                         <Text style={styles.quantity}>{item.quantity}</Text>
                                         <TouchableOpacity
-                                            onPress={() => updateQuantity(item.productId, item.quantity + 1)}
+                                            onPress={() => updateQuantity(item.id, item.quantity + 1)}
                                             style={styles.quantityButton}
                                         >
-                                            <Icon name="add" size={18} color="#333" />
+                                            <Ionicons name="add" size={18} color="#333" />
                                         </TouchableOpacity>
                                     </View>
                                 </View>
@@ -197,10 +165,10 @@ export default function CartScreen() {
                                         ₹{calculateItemTotal(item).toLocaleString()}
                                     </Text>
                                     <TouchableOpacity
-                                        onPress={() => removeItem(item.productId)}
+                                        onPress={() => handleRemoveItem(item)}
                                         style={styles.removeButton}
                                     >
-                                        <Icon name="trash" size={20} color="#ff4444" />
+                                        <Ionicons name="trash-outline" size={20} color="#ff4444" />
                                     </TouchableOpacity>
                                 </View>
                             </View>
@@ -210,16 +178,22 @@ export default function CartScreen() {
                     <View style={styles.footer}>
                         <View style={styles.summary}>
                             <View style={styles.summaryRow}>
-                                <Text style={styles.summaryLabel}>Subtotal</Text>
-                                <Text style={styles.summaryValue}>₹{calculateTotal().toLocaleString()}</Text>
+                                <Text style={styles.summaryLabel}>Subtotal ({getCartCount()} items)</Text>
+                                <Text style={styles.summaryValue}>₹{subtotal.toLocaleString()}</Text>
                             </View>
                             <View style={styles.summaryRow}>
                                 <Text style={styles.summaryLabel}>Shipping</Text>
-                                <Text style={styles.summaryValue}>₹0</Text>
+                                <Text style={styles.summaryValue}>
+                                    {shipping === 0 ? 'Free' : `₹${shipping}`}
+                                </Text>
+                            </View>
+                            <View style={styles.summaryRow}>
+                                <Text style={styles.summaryLabel}>Tax (18%)</Text>
+                                <Text style={styles.summaryValue}>₹{tax.toLocaleString()}</Text>
                             </View>
                             <View style={[styles.summaryRow, styles.totalRow]}>
                                 <Text style={styles.totalLabel}>Total</Text>
-                                <Text style={styles.totalValue}>₹{calculateTotal().toLocaleString()}</Text>
+                                <Text style={styles.totalValue}>₹{total.toLocaleString()}</Text>
                             </View>
                         </View>
 
@@ -263,6 +237,11 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         borderBottomWidth: 1,
         borderBottomColor: '#eee',
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
     },
     headerTitle: {
         fontSize: 20,
@@ -272,6 +251,7 @@ const styles = StyleSheet.create({
     clearButton: {
         color: '#ff4444',
         fontSize: 14,
+        fontWeight: '500',
     },
     emptyContainer: {
         flex: 1,
@@ -306,11 +286,13 @@ const styles = StyleSheet.create({
     cartList: {
         flex: 1,
     },
+    cartListContent: {
+        padding: 16,
+    },
     cartItem: {
         flexDirection: 'row',
         backgroundColor: '#fff',
-        marginHorizontal: 16,
-        marginTop: 12,
+        marginBottom: 12,
         padding: 12,
         borderRadius: 8,
         shadowColor: '#000',
@@ -333,10 +315,12 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '500',
         color: '#333',
+        lineHeight: 18,
     },
-    itemBrand: {
+    itemUnit: {
         fontSize: 12,
         color: '#666',
+        marginBottom: 4,
     },
     itemPrice: {
         fontSize: 16,
@@ -356,10 +340,15 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
+    quantityButtonDisabled: {
+        backgroundColor: '#f5f5f5',
+    },
     quantity: {
         marginHorizontal: 12,
         fontSize: 16,
         fontWeight: '500',
+        minWidth: 20,
+        textAlign: 'center',
     },
     itemActions: {
         justifyContent: 'space-between',
@@ -378,6 +367,11 @@ const styles = StyleSheet.create({
         padding: 16,
         borderTopWidth: 1,
         borderTopColor: '#eee',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 5,
     },
     summary: {
         marginBottom: 16,

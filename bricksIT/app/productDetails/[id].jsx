@@ -1,4 +1,3 @@
-// app/product/[id].jsx
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -18,6 +17,7 @@ import {
   Share,
   Alert,
   Linking,
+  Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -26,6 +26,7 @@ import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Feather from 'react-native-vector-icons/Feather';
 import ProductCard from '../../components/Products/ProductCard';
+import { useCart } from '../../context/CartContext';
 
 const { width } = Dimensions.get('window');
 const API_BASE_URL = 'https://bricks-backend-qyea.onrender.com';
@@ -33,6 +34,7 @@ const API_BASE_URL = 'https://bricks-backend-qyea.onrender.com';
 export default function ProductDetailsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
+  const { addToCart, openCart } = useCart();
 
   // State management
   const [product, setProduct] = useState(null);
@@ -157,16 +159,52 @@ export default function ProductDetailsScreen() {
   const handleAddToCart = () => {
     if (!product) return;
 
-    // Implement your cart logic here
-    Alert.alert('Added to Cart', `${product.name} added to cart`);
+    const cartProduct = {
+      id: product._id,
+      numericId: product.numericId,
+      name: product.name,
+      price: product.price,
+      originalPrice: product.originalPrice || product.price,
+      discount: product.discount || 0,
+      image: product.images?.[0] || '',
+      unit: product.unitType || 'piece',
+      minOrder: product.inventory?.moq || 1,
+      sellerId: product.sellerId,
+      inStock: product.status === 'published' && (product.inventory?.stock || 0) > 0
+    };
+
+    addToCart(cartProduct, quantity);
+    openCart();
+
+    Alert.alert(
+      'Added to Cart',
+      `${product.name} (${quantity} ${product.unitType || 'piece'}) added to cart`,
+      [
+        { text: 'Continue Shopping', style: 'cancel' },
+        { text: 'View Cart', onPress: () => router.push('/cart') }
+      ]
+    );
   };
 
   const handleBuyNow = () => {
     if (!product) return;
-    
-    // Navigate to checkout
-    Alert.alert('Buy Now', 'Proceeding to checkout');
-    // router.push('/checkout');
+
+    const cartProduct = {
+      id: product._id,
+      numericId: product.numericId,
+      name: product.name,
+      price: product.price,
+      originalPrice: product.originalPrice || product.price,
+      discount: product.discount || 0,
+      image: product.images?.[0] || '',
+      unit: product.unitType || 'piece',
+      minOrder: product.inventory?.moq || 1,
+      sellerId: product.sellerId,
+      inStock: product.status === 'published' && (product.inventory?.stock || 0) > 0
+    };
+
+    addToCart(cartProduct, quantity);
+    router.push('/checkout');
   };
 
   const handleShare = async () => {
@@ -262,11 +300,11 @@ export default function ProductDetailsScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        
+
         <Text style={styles.headerTitle} numberOfLines={1}>
           Product Details
         </Text>
-        
+
         <View style={styles.headerActions}>
           <TouchableOpacity onPress={() => setIsWishlisted(!isWishlisted)} style={styles.headerIcon}>
             <Ionicons
@@ -299,16 +337,16 @@ export default function ProductDetailsScreen() {
                 <Text style={styles.breadcrumbItem}>Home</Text>
               </TouchableOpacity>
               <Text style={styles.breadcrumbSeparator}>›</Text>
-              
+
               <TouchableOpacity onPress={() => router.push('/products')}>
                 <Text style={styles.breadcrumbItem}>Products</Text>
               </TouchableOpacity>
-              
+
               {category && (
                 <>
                   <Text style={styles.breadcrumbSeparator}>›</Text>
-                  <TouchableOpacity 
-                    onPress={() => 
+                  <TouchableOpacity
+                    onPress={() =>
                       router.push(`/categories/${category._id}?name=${category.name}`)
                     }
                   >
@@ -316,7 +354,7 @@ export default function ProductDetailsScreen() {
                   </TouchableOpacity>
                 </>
               )}
-              
+
               <Text style={styles.breadcrumbSeparator}>›</Text>
               <Text style={[styles.breadcrumbItem, styles.breadcrumbCurrent]}>
                 {product.name}
@@ -341,7 +379,7 @@ export default function ProductDetailsScreen() {
                 // Fallback image
               }}
             />
-            
+
             {/* Badges */}
             <View style={styles.imageBadges}>
               {hasDiscount && (
@@ -473,11 +511,11 @@ export default function ProductDetailsScreen() {
                 >
                   <Text style={styles.quantityButtonText}>−</Text>
                 </TouchableOpacity>
-                
+
                 <View style={styles.quantityDisplay}>
                   <Text style={styles.quantityValue}>{quantity}</Text>
                 </View>
-                
+
                 <TouchableOpacity
                   onPress={() => setQuantity(Math.min(stockQuantity, quantity + 1))}
                   disabled={!isInStock || quantity >= stockQuantity}
@@ -486,7 +524,7 @@ export default function ProductDetailsScreen() {
                   <Text style={styles.quantityButtonText}>+</Text>
                 </TouchableOpacity>
               </View>
-              
+
               <Text style={styles.quantityTotal}>
                 Total: <Text style={styles.quantityTotalBold}>₹{totalPrice}</Text>
               </Text>
@@ -503,7 +541,7 @@ export default function ProductDetailsScreen() {
               <Ionicons name="cart-outline" size={24} color="#fff" />
               <Text style={styles.addToCartText}>Add to Cart</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               onPress={handleBuyNow}
               disabled={!isInStock}
@@ -523,7 +561,7 @@ export default function ProductDetailsScreen() {
                 <Text style={styles.trustBadgeSubtitle}>SSL Encrypted</Text>
               </View>
             </View>
-            
+
             <View style={styles.trustBadge}>
               <Feather name="truck" size={24} color="#10b981" />
               <View style={styles.trustBadgeContent}>
@@ -576,7 +614,7 @@ export default function ProductDetailsScreen() {
                 <Text style={styles.description}>
                   {product.description || 'No description available.'}
                 </Text>
-                
+
                 <View style={styles.overviewFeatures}>
                   {product.warranty && (
                     <View style={styles.featureCard}>
@@ -587,7 +625,7 @@ export default function ProductDetailsScreen() {
                       <Text style={styles.featureText}>{product.warranty}</Text>
                     </View>
                   )}
-                  
+
                   <View style={styles.featureCard}>
                     <View style={[styles.featureIcon, { backgroundColor: '#d1fae5' }]}>
                       <Feather name="clock" size={24} color="#10b981" />
@@ -668,7 +706,7 @@ export default function ProductDetailsScreen() {
                 <Text style={styles.relatedTitle}>Similar Products</Text>
                 <Text style={styles.relatedSubtitle}>Products you might be interested in</Text>
               </View>
-              
+
               {category && (
                 <TouchableOpacity
                   onPress={() =>
@@ -698,7 +736,7 @@ export default function ProductDetailsScreen() {
                     style={styles.relatedCard}
                     onPress={() =>
                       router.push({
-                        pathname: '/productDetails/[id]',
+                        pathname: '/product/[id]',
                         params: { id: relatedProduct._id },
                       })
                     }
@@ -720,14 +758,14 @@ export default function ProductDetailsScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Share Product</Text>
-            
+
             <TouchableOpacity
               onPress={handleShare}
               style={styles.shareOption}
             >
               <Text style={styles.shareOptionText}>Share via...</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               onPress={() => {
                 // Implement copy link functionality
@@ -738,7 +776,7 @@ export default function ProductDetailsScreen() {
             >
               <Text style={styles.shareOptionText}>Copy Link</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               onPress={() => setShowShareModal(false)}
               style={styles.cancelButton}
@@ -757,7 +795,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8fafc',
   },
-  
+
   // Header
   header: {
     backgroundColor: '#800000',
@@ -793,7 +831,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
-  
+
   // Breadcrumb
   breadcrumb: {
     backgroundColor: '#fff',
@@ -820,7 +858,7 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
     marginHorizontal: 4,
   },
-  
+
   // Image Section
   imageSection: {
     backgroundColor: '#fff',
@@ -889,7 +927,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  
+
   // Product Info
   productInfo: {
     backgroundColor: '#fff',
@@ -1137,7 +1175,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748b',
   },
-  
+
   // Tabs
   tabsContainer: {
     backgroundColor: '#fff',
@@ -1297,7 +1335,7 @@ const styles = StyleSheet.create({
     color: '#0c4a6e',
     lineHeight: 20,
   },
-  
+
   // Related Products
   relatedProducts: {
     marginTop: 24,
@@ -1337,7 +1375,7 @@ const styles = StyleSheet.create({
   relatedCard: {
     width: width * 0.65,
   },
-  
+
   // Modal
   modalOverlay: {
     flex: 1,
@@ -1380,7 +1418,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '500',
   },
-  
+
   // Skeleton Loader
   skeletonContainer: {
     flex: 1,
@@ -1424,7 +1462,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#e2e8f0',
     borderRadius: 12,
   },
-  
+
   // Error State
   errorContainer: {
     flex: 1,
