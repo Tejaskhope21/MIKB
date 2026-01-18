@@ -155,7 +155,42 @@ const productSchema = new mongoose.Schema(
             title: String,
             description: String,
             keywords: [String]
-        }
+        },
+        hotDeal: {
+    isRequested: {
+        type: Boolean,
+        default: false
+    },
+    isApproved: {
+        type: Boolean,
+        default: false
+    },
+    isRejected: {
+        type: Boolean,
+        default: false
+    },
+    isPaid: {
+        type: Boolean,
+        default: false
+    },
+    priority: {
+        type: Number,
+        default: 0
+    },
+    approvedAt: Date,
+    expiresAt: Date,
+
+    // Analytics
+    views: {
+        type: Number,
+        default: 0
+    },
+    clicks: {
+        type: Number,
+        default: 0
+    }
+},
+
     },
     {
         timestamps: true
@@ -192,6 +227,11 @@ productSchema.pre('save', async function () {
         // Propagate the error so Mongoose rejects the save
         throw error;
     }
+});
+productSchema.index({
+    'hotDeal.isApproved': 1,
+    'hotDeal.expiresAt': 1,
+    'hotDeal.priority': -1
 });
 
 /* ===============================
