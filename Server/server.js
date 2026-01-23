@@ -21,6 +21,7 @@ import uploadRoutes from './routes/uploadRoutes.js';
 import searchRoutes from './routes/search.routes.js';
 import materialRequirementRoutes from './routes/materialRequirement.routes.js';
 import hotDealRoutes from './routes/hotDeal.routes.js';
+import trendingRoutes from './routes/trending.routes.js';
 // NEW CONTRACTOR ROUTES
 import contractorAuthRoutes from './routes/contractor.auth.routes.js';
 import contractorRoutes from './routes/contractor.routes.js';
@@ -123,6 +124,7 @@ app.use('/api/v1/orders', orderRoutes);
 app.use('/api/v1/search', searchRoutes);
 app.use('/api/v1/requirements', materialRequirementRoutes);
 app.use('/api/v1/deals', hotDealRoutes);
+app.use('/api/v1/trending', trendingRoutes);
 // Legacy routes (backward compatibility)
 app.use('/api/admin', adminRoutes);
 app.use('/api/seller', sellerRoutes);
@@ -132,6 +134,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/requirements', materialRequirementRoutes);
 app.use('/api/deals', hotDealRoutes);
+app.use('/api/trending', trendingRoutes);
 
 // Root Endpoint
 app.get('/', (req, res) => {

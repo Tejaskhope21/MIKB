@@ -190,8 +190,33 @@ const productSchema = new mongoose.Schema(
         default: 0
     }
 },
-
+trending: {
+    isRequested: {
+        type: Boolean,
+        default: false
     },
+    isApproved: {
+        type: Boolean,
+        default: false
+    },
+    isRejected: {
+        type: Boolean,
+        default: false
+    },
+    requestedAt: Date,
+    approvedAt: Date,
+    rejectedAt: Date,
+
+    /* ===== ANALYTICS ===== */
+    views: {
+        type: Number,
+        default: 0
+    },
+    clicks: {
+        type: Number,
+        default: 0
+    }
+     }    },
     {
         timestamps: true
     }
@@ -231,7 +256,9 @@ productSchema.pre('save', async function () {
 productSchema.index({
     'hotDeal.isApproved': 1,
     'hotDeal.expiresAt': 1,
-    'hotDeal.priority': -1
+    'hotDeal.priority': -1,
+    'trending.isApproved': 1,
+    createdAt: -1
 });
 
 /* ===============================
