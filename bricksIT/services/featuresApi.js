@@ -173,3 +173,87 @@ export const trackTrendingClick = async (productId) => {
     console.error('Error tracking trending click:', error);
   }
 };
+
+
+
+/* ===============================
+   SAFE FETCH (RN compatible)
+================================ */
+const safeFetch = async (url) => {
+  const res = await fetch(url);
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data?.error || 'Request failed');
+  }
+  return data;
+};
+
+/* ===============================
+   SEARCH AUTOCOMPLETE
+================================ */
+export const searchAutocomplete = async (query, limit = 8) => {
+  try {
+    if (!query || query.trim().length < 1) {
+      return {
+        success: true,
+        products: [],
+        categories: [],
+        subcategories: [],
+        query: '',
+        totalResults: 0,
+      };
+    }
+
+    const url = `${API_BASE_URL}/search/autocomplete?q=${encodeURIComponent(
+      query
+    )}&limit=${limit}`;
+
+    const data = await safeFetch(url);
+
+    if (data.success === false) {
+      console.warn('Search autocomplete failed:', data.error);
+      return {
+        success: false,
+        products: [],
+        categories: [],
+        subcategories: [],
+        query,
+        totalResults: 0,
+        error: data.error || 'Search failed',
+      };
+    }
+
+    return {
+      success: true,
+      products: data.products || [],
+      categories: data.categories || [],
+      subcategories: data.subcategories || [],
+      query: data.query || query,
+      totalResults: data.totalResults || 0,
+    };
+  } catch (err) {
+    console.error('searchAutocomplete error:', err);
+    return {
+      success: false,
+      products: [],
+      categories: [],
+      subcategories: [],
+      query,
+      totalResults: 0,
+      error: err.message || 'Network error',
+    };
+  }
+};
+
+/* ===============================
+   CHECK RESULTS
+================================ */
+export const hasSearchResults = (searchData) => {
+  return (
+    searchData.success &&
+    (searchData.products?.length > 0 ||
+      searchData.categories?.length > 0 ||
+      searchData.subcategories?.length > 0)
+  );
+};

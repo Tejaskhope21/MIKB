@@ -1,435 +1,333 @@
 // app/(tabs)/search.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    View,
-    Text,
-    StyleSheet,
-    ScrollView,
-    TextInput,
-    TouchableOpacity,
-    FlatList,
-    Image,
-    Dimensions,
-    ActivityIndicator,
-    Alert,
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  FlatList,
+  Image,
+  Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { productsAPI } from '../../services/api';
+import { searchAutocomplete, hasSearchResults } from '../../services/featuresApi';
 
 const { width } = Dimensions.get('window');
 
 export default function SearchScreen() {
-    const router = useRouter();
-    const [searchQuery, setSearchQuery] = useState('');
-    const [searchResults, setSearchResults] = useState([]);
-    const [recentSearches, setRecentSearches] = useState([]);
-    const [trendingProducts, setTrendingProducts] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [showResults, setShowResults] = useState(false);
+  const router = useRouter();
 
-    useEffect(() => {
-        loadTrendingProducts();
-        loadRecentSearches();
-    }, []);
+  const [query, setQuery] = useState('');
+  const [autocompleteData, setAutocompleteData] = useState({
+    products: [],
+    categories: [],
+    subcategories: [],
+    totalResults: 0,
+    query: '',
+  });
+  const [loading, setLoading] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
-    const loadTrendingProducts = async () => {
-        try {
-            const products = await productsAPI.fetchFeaturedProducts();
-            setTrendingProducts(products.slice(0, 6));
-        } catch (error) {
-            console.error('Error loading trending products:', error);
+  // ─── Debounce ────────────────────────────────────────────────
+  const debounce = (func, delay) => {
+    let timeoutId;
+    return (...args) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => func(...args), delay);
+    };
+  };
+
+  const fetchSuggestions = useCallback(
+    debounce(async (text) => {
+      if (!text?.trim() || text.trim().length < 2) {
+        setAutocompleteData({
+          products: [],
+          categories: [],
+          subcategories: [],
+          totalResults: 0,
+          query: '',
+        });
+        setShowSuggestions(false);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const result = await searchAutocomplete(text.trim(), 10);
+        if (result?.success) {
+          setAutocompleteData(result);
+          setShowSuggestions(hasSearchResults(result));
         }
-    };
+      } catch (err) {
+        console.error('Autocomplete error:', err);
+      } finally {
+        setLoading(false);
+      }
+    }, 380),
+    []
+  );
 
-    const loadRecentSearches = async () => {
-        // Load from AsyncStorage
-        try {
-            // This would be implemented with AsyncStorage
-            setRecentSearches(['Cement', 'Steel', 'Bricks', 'Tiles']);
-        } catch (error) {
-            console.error('Error loading recent searches:', error);
-        }
-    };
+  useEffect(() => {
+    fetchSuggestions(query);
+  }, [query, fetchSuggestions]);
 
-    const handleSearch = async () => {
-        if (!searchQuery.trim()) {
-            Alert.alert('Search', 'Please enter a search term');
-            return;
-        }
+  const clearSearch = () => {
+    setQuery('');
+    setShowSuggestions(false);
+  };
 
-        try {
-            setLoading(true);
-            const results = await productsAPI.searchProducts(searchQuery);
-            setSearchResults(results);
-            setShowResults(true);
+  // ─── Navigation Handlers ─────────────────────────────────────
+  const handleProductPress = (product) => {
+    const id = product?._id || product?.id;
+    if (id) {
+      // Same route you already use in HomeScreen
+      router.push({
+        pathname: '/productDetails/[id]',
+        params: { id },
+      });
+    } else {
+      console.warn('Product is missing _id / id', product);
+    }
+    clearSearch();
+  };
 
-            // Save to recent searches
-            if (!recentSearches.includes(searchQuery)) {
-                const updated = [searchQuery, ...recentSearches.slice(0, 4)];
-                setRecentSearches(updated);
-                // Save to AsyncStorage
-            }
-        } catch (error) {
-            console.error('Search error:', error);
-            Alert.alert('Error', 'Failed to search products');
-        } finally {
-            setLoading(false);
-        }
-    };
+  const handleCategoryOrSubcategoryPress = (item) => {
+    const id = item?._id || item?.id;
 
-    const handleProductPress = (product) => {
-        router.push(`/product/${product._id || product.id}`);
-        setShowResults(false);
-        setSearchQuery('');
-    };
+    if (id) {
+      // Same route pattern you already use in HomeScreen → categories/[id]
+      router.push({
+        pathname: '/categories/[id]',
+        params: {
+          id,
+          // optional – can help with title / back button
+          name: item.name || 'Category',
+        },
+      });
+    } else {
+      console.warn('Category/Subcategory missing _id / id', item);
+      // fallback: full text search if you have such screen
+      // router.push({ pathname: '/search-results', params: { q: query } });
+    }
 
-    const handleClearSearch = () => {
-        setSearchQuery('');
-        setShowResults(false);
-    };
+    clearSearch();
+  };
 
-    const renderProductItem = ({ item }) => {
-        const discount = item.originalPrice > item.price
-            ? Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)
-            : 0;
+  const renderSuggestion = ({ item }) => {
+    const type = item.type;
 
-        return (
-            <TouchableOpacity
-                style={styles.productCard}
-                onPress={() => handleProductPress(item)}
-            >
-                <Image
-                    source={{ uri: item.images?.[0] || item.image }}
-                    style={styles.productImage}
-                />
-                <View style={styles.productInfo}>
-                    <Text style={styles.productBrand} numberOfLines={1}>
-                        {item.brand}
-                    </Text>
-                    <Text style={styles.productName} numberOfLines={2}>
-                        {item.name}
-                    </Text>
-                    <View style={styles.priceContainer}>
-                        <Text style={styles.productPrice}>₹{item.price?.toLocaleString()}</Text>
-                        {discount > 0 && (
-                            <Text style={styles.discountText}>{discount}% OFF</Text>
-                        )}
-                    </View>
-                </View>
-            </TouchableOpacity>
-        );
-    };
-
-    const renderSearchSuggestion = ({ item }) => (
+    if (type === 'product') {
+      return (
         <TouchableOpacity
-            style={styles.suggestionItem}
-            onPress={() => {
-                setSearchQuery(item);
-                handleSearch();
-            }}
+          style={styles.suggestionRow}
+          onPress={() => handleProductPress(item)}
         >
-            <Icon name="time-outline" size={18} color="#666" />
-            <Text style={styles.suggestionText}>{item}</Text>
-        </TouchableOpacity>
-    );
-
-    return (
-        <View style={styles.container}>
-            {/* Search Header */}
-            <View style={styles.searchHeader}>
-                <View style={styles.searchContainer}>
-                    <Icon name="search" size={20} color="#666" style={styles.searchIcon} />
-                    <TextInput
-                        style={styles.searchInput}
-                        placeholder="Search building materials..."
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                        onSubmitEditing={handleSearch}
-                        returnKeyType="search"
-                        autoCapitalize="none"
-                    />
-                    {searchQuery.length > 0 && (
-                        <TouchableOpacity onPress={handleClearSearch}>
-                            <Icon name="close-circle" size={20} color="#999" />
-                        </TouchableOpacity>
-                    )}
-                </View>
-                <TouchableOpacity onPress={handleSearch} style={styles.searchButton}>
-                    <Text style={styles.searchButtonText}>Search</Text>
-                </TouchableOpacity>
-            </View>
-
-            {loading ? (
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#800000" />
-                    <Text style={styles.loadingText}>Searching...</Text>
-                </View>
-            ) : showResults ? (
-                <FlatList
-                    data={searchResults}
-                    renderItem={renderProductItem}
-                    keyExtractor={(item) => item._id || item.id || String(Math.random())}
-                    numColumns={2}
-                    columnWrapperStyle={styles.productsGrid}
-                    contentContainerStyle={styles.resultsContainer}
-                    ListEmptyComponent={
-                        <View style={styles.emptyContainer}>
-                            <Icon name="search-outline" size={64} color="#ccc" />
-                            <Text style={styles.emptyText}>No results found</Text>
-                            <Text style={styles.emptySubtext}>Try different keywords</Text>
-                        </View>
-                    }
-                />
-            ) : (
-                <ScrollView style={styles.suggestionsContainer}>
-                    {/* Recent Searches */}
-                    {recentSearches.length > 0 && (
-                        <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>Recent Searches</Text>
-                            <FlatList
-                                data={recentSearches}
-                                renderItem={renderSearchSuggestion}
-                                keyExtractor={(item, index) => `recent-${index}`}
-                                scrollEnabled={false}
-                            />
-                            <TouchableOpacity
-                                style={styles.clearButton}
-                                onPress={() => setRecentSearches([])}
-                            >
-                                <Text style={styles.clearButtonText}>Clear History</Text>
-                            </TouchableOpacity>
-                        </View>
-                    )}
-
-                    {/* Trending Products */}
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Trending Products</Text>
-                        <FlatList
-                            data={trendingProducts}
-                            renderItem={renderProductItem}
-                            keyExtractor={(item) => item._id || item.id || String(Math.random())}
-                            numColumns={2}
-                            columnWrapperStyle={styles.productsGrid}
-                            scrollEnabled={false}
-                        />
-                    </View>
-
-                    {/* Popular Categories */}
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Popular Categories</Text>
-                        <View style={styles.categoriesGrid}>
-                            {[
-                                { name: 'Cement', icon: 'cube-outline' },
-                                { name: 'Steel', icon: 'construct-outline' },
-                                { name: 'Bricks', icon: 'cube' },
-                                { name: 'Tiles', icon: 'square-outline' },
-                                { name: 'Paint', icon: 'color-palette-outline' },
-                                { name: 'Pipes', icon: 'water-outline' },
-                            ].map((category) => (
-                                <TouchableOpacity
-                                    key={category.name}
-                                    style={styles.categoryItem}
-                                    onPress={() => {
-                                        setSearchQuery(category.name);
-                                        handleSearch();
-                                    }}
-                                >
-                                    <View style={styles.categoryIcon}>
-                                        <Icon name={category.icon} size={24} color="#800000" />
-                                    </View>
-                                    <Text style={styles.categoryName}>{category.name}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    </View>
-                </ScrollView>
+          <Image
+            source={{
+              uri: item.images?.[0] || item.image || 'https://via.placeholder.com/64',
+            }}
+            style={styles.thumb}
+            resizeMode="cover"
+          />
+          <View style={styles.info}>
+            <Text style={styles.name} numberOfLines={1}>
+              {item.name || 'Product'}
+            </Text>
+            <Text style={styles.meta}>
+              {item.brand || '—'} • ₹{(item.price || 0).toLocaleString()}
+            </Text>
+            {item.categoryName && (
+              <Text style={styles.categoryHint}>in {item.categoryName}</Text>
             )}
+          </View>
+        </TouchableOpacity>
+      );
+    }
+
+    // category + subcategory → same handler & route
+    if (type === 'category' || type === 'subcategory') {
+      return (
+        <TouchableOpacity
+          style={styles.categoryRow}
+          onPress={() => handleCategoryOrSubcategoryPress(item)}
+        >
+          <Icon
+            name={type === 'category' ? 'folder-outline' : 'layers-outline'}
+            size={22}
+            color={type === 'category' ? '#1976d2' : '#388e3c'}
+          />
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Text style={styles.categoryName}>{item.name}</Text>
+            {type === 'subcategory' && item.categoryName && (
+              <Text style={styles.subHint}>in {item.categoryName}</Text>
+            )}
+          </View>
+        </TouchableOpacity>
+      );
+    }
+
+    return null;
+  };
+
+  return (
+    <View style={styles.container}>
+      {/* Search Header */}
+      <View style={styles.header}>
+        <View style={styles.searchContainer}>
+          <Icon name="search" size={22} color="#616161" style={{ marginRight: 10 }} />
+          <TextInput
+            style={styles.input}
+            placeholder="Search cement, steel, tiles, paint..."
+            value={query}
+            onChangeText={setQuery}
+            autoCapitalize="none"
+            returnKeyType="search"
+            placeholderTextColor="#9e9e9e"
+          />
+          {query.length > 0 && (
+            <TouchableOpacity onPress={clearSearch}>
+              <Icon name="close-circle" size={24} color="#800000" />
+            </TouchableOpacity>
+          )}
         </View>
-    );
+      </View>
+
+      {loading ? (
+        <View style={styles.center}>
+          <ActivityIndicator size="small" color="#c62828" />
+          <Text style={styles.loadingText}>Searching...</Text>
+        </View>
+      ) : showSuggestions ? (
+        <FlatList
+          data={[
+            ...autocompleteData.products.map((p) => ({ ...p, type: 'product' })),
+            ...autocompleteData.categories.map((c) => ({ ...c, type: 'category' })),
+            // ...autocompleteData.subcategories.map((s) => ({ ...s, type: 'subcategory' })),
+          ]}
+          renderItem={renderSuggestion}
+          keyExtractor={(item, i) => `${item.type}-${item._id || item.id || i}`}
+          keyboardShouldPersistTaps="handled"
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Icon name="search-outline" size={56} color="#bdbdbd" />
+              <Text style={styles.emptyText}>No results found</Text>
+            </View>
+          }
+        />
+      ) : (
+        <View style={styles.placeholderContainer}>
+          <Icon name="search-circle-outline" size={90} color="#e0e0e0" />
+          <Text style={styles.placeholderText}>
+            Type product or category name to begin
+          </Text>
+        </View>
+      )}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#f8f9fa',
-    },
-    searchHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#800000',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        paddingTop: 50,
-    },
-    searchContainer: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#fff',
-        borderRadius: 8,
-        paddingHorizontal: 12,
-        marginRight: 10,
-    },
-    searchIcon: {
-        marginRight: 8,
-    },
-    searchInput: {
-        flex: 1,
-        fontSize: 16,
-        color: '#333',
-        paddingVertical: 10,
-    },
-    searchButton: {
-        backgroundColor: '#fff',
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        borderRadius: 8,
-    },
-    searchButtonText: {
-        color: '#800000',
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    loadingText: {
-        marginTop: 12,
-        color: '#666',
-        fontSize: 14,
-    },
-    resultsContainer: {
-        padding: 16,
-    },
-    suggestionsContainer: {
-        flex: 1,
-        padding: 16,
-    },
-    section: {
-        marginBottom: 24,
-    },
-    sectionTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#333',
-        marginBottom: 16,
-    },
-    suggestionItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#fff',
-        padding: 12,
-        borderRadius: 8,
-        marginBottom: 8,
-    },
-    suggestionText: {
-        marginLeft: 12,
-        fontSize: 16,
-        color: '#333',
-    },
-    clearButton: {
-        alignSelf: 'flex-start',
-        marginTop: 8,
-    },
-    clearButtonText: {
-        color: '#800000',
-        fontSize: 14,
-    },
-    productsGrid: {
-        justifyContent: 'space-between',
-        marginBottom: 12,
-    },
-    productCard: {
-        width: (width - 40) / 2,
-        backgroundColor: '#fff',
-        borderRadius: 8,
-        marginBottom: 12,
-        overflow: 'hidden',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
-    },
-    productImage: {
-        width: '100%',
-        height: 120,
-        resizeMode: 'cover',
-    },
-    productInfo: {
-        padding: 12,
-    },
-    productBrand: {
-        fontSize: 12,
-        color: '#666',
-        marginBottom: 4,
-    },
-    productName: {
-        fontSize: 14,
-        fontWeight: '500',
-        color: '#333',
-        marginBottom: 8,
-    },
-    priceContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    productPrice: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#800000',
-    },
-    discountText: {
-        fontSize: 12,
-        color: '#ff4444',
-        fontWeight: '600',
-    },
-    categoriesGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-    },
-    categoryItem: {
-        width: (width - 48) / 3,
-        alignItems: 'center',
-        backgroundColor: '#fff',
-        padding: 16,
-        borderRadius: 8,
-        marginBottom: 12,
-    },
-    categoryIcon: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        backgroundColor: '#f8f9fa',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 8,
-    },
-    categoryName: {
-        fontSize: 12,
-        color: '#333',
-        fontWeight: '500',
-        textAlign: 'center',
-    },
-    emptyContainer: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 40,
-    },
-    emptyText: {
-        fontSize: 18,
-        color: '#666',
-        marginTop: 16,
-        fontWeight: '500',
-    },
-    emptySubtext: {
-        fontSize: 14,
-        color: '#999',
-        marginTop: 8,
-    },
+  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  header: {
+    paddingTop: 48,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    backgroundColor: '#800000',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    height: 48,
+  },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    color: '#212121',
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: { marginTop: 12, color: '#616161', fontSize: 15 },
+  placeholderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  placeholderText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#800000',
+    textAlign: 'center',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 60,
+  },
+  emptyText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#800000',
+  },
+  suggestionRow: {
+    flexDirection: 'row',
+    padding: 12,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  thumb: {
+    width: 64,
+    height: 64,
+    borderRadius: 6,
+    backgroundColor: '#f0f0f0',
+  },
+  info: {
+    flex: 1,
+    marginLeft: 14,
+    justifyContent: 'center',
+  },
+  name: {
+    fontSize: 15,
+    color: '#212121',
+    fontWeight: '500',
+  },
+  meta: {
+    fontSize: 13,
+    color: '#616161',
+    marginTop: 3,
+  },
+  categoryHint: {
+    fontSize: 12,
+    color: '#1976d2',
+    marginTop: 4,
+  },
+  categoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  categoryName: {
+    fontSize: 16,
+    color: '#1e88e5',
+  },
+  subHint: {
+    fontSize: 13,
+    color: '#800000',
+    marginTop: 2,
+  },
 });
