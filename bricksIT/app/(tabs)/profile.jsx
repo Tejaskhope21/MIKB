@@ -188,12 +188,7 @@ export default function ProfileScreen() {
           <Text style={styles.userPhone}>{user.phone || 'No phone number'}</Text>
         </View>
 
-        <TouchableOpacity
-          style={styles.editButton}
-          onPress={() => router.push('/edit-profile')}
-        >
-          <Icon name="pencil" size={20} color="#800000" />
-        </TouchableOpacity>
+        
       </View>
 
       {/* MENU ITEMS */}
