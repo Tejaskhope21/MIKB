@@ -585,7 +585,7 @@ const HomeScreen = () => {
           <View style={styles.actionButtonsContainer}>
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={() => router.push('/post-requirement')}
+              onPress={() => router.push('notfound')}
               activeOpacity={0.7}
             >
               <View style={styles.actionIconContainer}>
