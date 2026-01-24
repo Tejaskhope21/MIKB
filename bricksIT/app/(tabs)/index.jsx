@@ -195,16 +195,7 @@ const TrendingProductCard = memo(({ item, onPress, index }) => {
           {item.name || 'Product Name'}
         </Text>
 
-        {/* Rating */}
-        <View style={styles.trendingRatingContainer}>
-          <Ionicons name="star" size={14} color="#FFD700" />
-          <Text style={styles.trendingRating}>
-            {item.rating?.toFixed(1) || '4.0'}
-          </Text>
-          <Text style={styles.trendingReviewCount}>
-            ({item.reviewCount || 0} reviews)
-          </Text>
-        </View>
+        
 
         <View style={styles.trendingPriceRow}>
           <Text style={styles.trendingPrice}>
@@ -260,13 +251,13 @@ const HomeScreen = () => {
   const heroImages = [
     { 
       id: 1, 
-      image: require('../../assets/images/b2.jpg'), 
+      image: require('../../assets/images/b3.jpg'), 
       title: 'Premium Building Materials',
       subtitle: 'Best quality for your construction needs'
     },
     { 
       id: 2, 
-      image: require('../../assets/images/b3.jpg'), 
+      image: require('../../assets/images/b2.jpg'), 
       title: 'Trusted Brands',
       subtitle: 'Partnered with leading manufacturers'
     },
@@ -330,7 +321,7 @@ const HomeScreen = () => {
           image: product.image || getProductImage(product.images),
           images: product.images || [],
           inStock: product.inStock !== false,
-          rating: Number(product.rating) || 4.0,
+          // rating: Number(product.rating) || 4.0,
           description: product.description || '',
           reviewCount: product.reviewCount || 0,
           trendScore: product.trendScore || 0,
@@ -485,8 +476,8 @@ const HomeScreen = () => {
                 onPress={() => router.push('/categories')}
                 style={styles.seeAllButton}
               >
-                <Text style={styles.seeAllText}>See All</Text>
-                <Ionicons name="chevron-forward" size={16} color="#800000" />
+                {/* <Text style={styles.seeAllText}>See All</Text>
+                <Ionicons name="chevron-forward" size={16} color="#800000" /> */}
               </TouchableOpacity>
             </View>
             
@@ -532,8 +523,8 @@ const HomeScreen = () => {
                 onPress={() => router.push('/hot-deals')}
                 style={styles.seeAllButton}
               >
-                <Text style={styles.seeAllText}>View All</Text>
-                <Ionicons name="chevron-forward" size={16} color="#800000" />
+                {/* <Text style={styles.seeAllText}>View All</Text>
+                <Ionicons name="chevron-forward" size={16} color="#800000" /> */}
               </TouchableOpacity>
             </View>
             
@@ -569,8 +560,8 @@ const HomeScreen = () => {
                 onPress={() => router.push('/trending')}
                 style={styles.seeAllButton}
               >
-                <Text style={styles.seeAllText}>View All</Text>
-                <Ionicons name="chevron-forward" size={16} color="#800000" />
+                {/* <Text style={styles.seeAllText}>View All</Text>
+                <Ionicons name="chevron-forward" size={16} color="#800000" /> */}
               </TouchableOpacity>
             </View>
             
@@ -606,7 +597,7 @@ const HomeScreen = () => {
             
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={() => router.push('/contractors')}
+              onPress={() => router.push('contractorsListScreen')}
               activeOpacity={0.7}
             >
               <View style={styles.actionIconContainer}>
@@ -619,7 +610,7 @@ const HomeScreen = () => {
         </View>
 
         {/* Why Choose Us Section */}
-        <View style={styles.section}>
+        {/* <View style={styles.section}>
           <Text style={styles.sectionTitle}>Why Choose BricksIT?</Text>
           <View style={styles.featuresGrid}>
             <View style={styles.featureItem}>
@@ -628,17 +619,17 @@ const HomeScreen = () => {
               </View>
               <Text style={styles.featureTitle}>Quality Assured</Text>
               <Text style={styles.featureDescription}>All products are tested and certified</Text>
-            </View>
+            </View> */}
             
-            <View style={styles.featureItem}>
+            {/* <View style={styles.featureItem}>
               <View style={styles.featureIconContainer}>
                 <Ionicons name="car-outline" size={24} color="#800000" />
               </View>
               <Text style={styles.featureTitle}>Fast Delivery</Text>
               <Text style={styles.featureDescription}>On-time delivery across the city</Text>
-            </View>
+            </View> */}
             
-            <View style={styles.featureItem}>
+            {/* <View style={styles.featureItem}>
               <View style={styles.featureIconContainer}>
                 <Ionicons name="headset-outline" size={24} color="#800000" />
               </View>
@@ -646,7 +637,7 @@ const HomeScreen = () => {
               <Text style={styles.featureDescription}>Expert assistance available</Text>
             </View>
           </View>
-        </View>
+        </View> */}
 
         {/* Footer Space */}
         <View style={styles.footerSpace} />

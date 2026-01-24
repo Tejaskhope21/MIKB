@@ -16,9 +16,9 @@ import { Ionicons } from '@expo/vector-icons';
 const { width } = Dimensions.get('window');
 
 // ✅ Expo-compatible assets
-const b1 = require('../../assets/images/offer4.gif');
-const b2 = require('../../assets/images/offer5.gif');
-const b3 = require('../../assets/images/offer6.gif');
+const b1 = require('../../assets/images/offer5.gif');
+const b2 = require('../../assets/images/offer6.gif');
+const b3 = require('../../assets/images/offer4.gif');
 
 export default function Banner() {
 //   const router = useRouter();

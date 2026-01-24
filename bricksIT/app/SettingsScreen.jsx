@@ -81,28 +81,28 @@ export default function SettingsScreen() {
     }
   };
 
-  const handleLogout = async () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await AsyncStorage.multiRemove(['token', 'userData']);
-              router.replace('/');
-            } catch (err) {
-              console.error('LOGOUT ERROR:', err);
-              Alert.alert('Error', 'Logout failed');
-            }
-          },
-        },
-      ]
-    );
-  };
+  // const handleLogout = async () => {
+  //   Alert.alert(
+  //     'Logout',
+  //     'Are you sure you want to logout?',
+  //     [
+  //       { text: 'Cancel', style: 'cancel' },
+  //       {
+  //         text: 'Logout',
+  //         style: 'destructive',
+  //         onPress: async () => {
+  //           try {
+  //             await AsyncStorage.multiRemove(['token', 'userData']);
+  //             router.replace('/');
+  //           } catch (err) {
+  //             console.error('LOGOUT ERROR:', err);
+  //             Alert.alert('Error', 'Logout failed');
+  //           }
+  //         },
+  //       },
+  //     ]
+  //   );
+  // };
 
   if (loading) {
     return (
@@ -188,10 +188,10 @@ export default function SettingsScreen() {
        
 
         {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+        {/* <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <Icon name="log-out-outline" size={22} color="#ff4444" />
           <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         <View style={styles.versionContainer}>
           <Text style={styles.versionText}>Version 1.0.0</Text>
