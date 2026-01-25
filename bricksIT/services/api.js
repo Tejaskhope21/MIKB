@@ -1,8 +1,26 @@
-// services/api.js - FIXED VERSION
+// services/api.js - UPDATED VERSION
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
-const API_BASE_URL = 'https://bricks-backend-qyea.onrender.com/api';
+/* =========================
+   DYNAMIC API BASE URL
+========================= */
+const getApiBaseUrl = () => {
+  if (Platform.OS === 'web') {
+    return 'https://bricks-backend-qyea.onrender.com/api';
+  }
+  
+  // For Android/iOS apps
+  if (__DEV__) {
+    return 'https://bricks-backend-qyea.onrender.com/api';
+  }
+  
+  // For production builds
+  return 'https://bricks-backend-qyea.onrender.com/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 const api = axios.create({
     baseURL: API_BASE_URL,
@@ -25,6 +43,18 @@ api.interceptors.request.use(async (config) => {
     }
     return config;
 });
+
+// Response interceptor for handling errors
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid
+      await AsyncStorage.multiRemove(['token', 'userData']);
+    }
+    return Promise.reject(error);
+  }
+);
 
 // Sample data
 const sampleCategories = [
@@ -102,7 +132,7 @@ export const fetchAllCategories = async () => {
         const response = await api.get('/v1/categories');
         return response.data.categories || response.data || sampleCategories;
     } catch (error) {
-        console.warn('Categories API error, using fallback');
+        console.warn('Categories API error, using fallback:', error.message);
         return sampleCategories;
     }
 };
@@ -125,7 +155,7 @@ export const fetchFeaturedProducts = async () => {
         // Return first 8 products as featured
         return data.slice(0, 8);
     } catch (error) {
-        console.warn('Products API error, using fallback');
+        console.warn('Products API error, using fallback:', error.message);
         return sampleProducts;
     }
 };
@@ -261,13 +291,31 @@ export const clearCart = async () => {
 };
 
 // Auth API
-export const login = async (email, password) => {
+export const login = async (email, password, role = 'user') => {
     try {
-        const response = await api.post('/v1/auth/login', { email, password });
+        console.log('Login attempt with role:', role);
+        console.log('API URL:', API_BASE_URL);
+        
+        let endpoint = '/v1/auth/login';
+        if (role === 'seller') {
+            endpoint = '/auth/seller/login';
+        } else if (role === 'contractor') {
+            endpoint = '/contractor/auth/login';
+        }
+
+        const response = await api.post(endpoint, { email, password });
+        console.log('Login response:', response.data);
 
         if (response.data.success && response.data.token) {
             await AsyncStorage.setItem('token', response.data.token);
-            await AsyncStorage.setItem('userData', JSON.stringify(response.data.user || {}));
+            await AsyncStorage.setItem('userData', JSON.stringify(
+                response.data.user || 
+                response.data.seller || 
+                response.data.contractor || 
+                {}
+            ));
+            await AsyncStorage.setItem('userRole', role);
+            await AsyncStorage.setItem('isLoggedIn', 'true');
         }
 
         return response.data;
@@ -279,12 +327,62 @@ export const login = async (email, password) => {
 
 export const logout = async () => {
     try {
-        await AsyncStorage.removeItem('token');
-        await AsyncStorage.removeItem('userData');
-        await AsyncStorage.removeItem('cart');
+        await AsyncStorage.multiRemove(['token', 'userData', 'cart', 'userRole', 'isLoggedIn']);
         return { success: true };
     } catch (error) {
         console.error('Logout error:', error);
+        throw error;
+    }
+};
+
+// User Profile API
+export const getUserProfile = async () => {
+    try {
+        console.log('Fetching user profile from:', API_BASE_URL);
+        
+        // Try multiple endpoints
+        let response;
+        try {
+            response = await api.get('/user/profile');
+        } catch (firstError) {
+            console.log('First profile endpoint failed, trying alternative');
+            response = await api.get('/auth/profile');
+        }
+        
+        return response.data;
+    } catch (error) {
+        console.error('Get user profile error:', error);
+        throw error;
+    }
+};
+
+export const updateUserProfile = async (data) => {
+    try {
+        const response = await api.put('/user/profile', data);
+        return response.data;
+    } catch (error) {
+        console.error('Update user profile error:', error);
+        throw error;
+    }
+};
+
+// Orders API
+export const fetchUserOrders = async () => {
+    try {
+        const response = await api.get('/orders/my-orders');
+        return response.data.orders || response.data || [];
+    } catch (error) {
+        console.error('Fetch user orders error:', error);
+        return [];
+    }
+};
+
+export const createOrder = async (orderData) => {
+    try {
+        const response = await api.post('/orders', orderData);
+        return response.data;
+    } catch (error) {
+        console.error('Create order error:', error);
         throw error;
     }
 };
@@ -305,4 +403,16 @@ export const cartAPI = {
     removeFromCart,
     clearCart
 };
-export const authAPI = { login, logout };
+export const authAPI = { 
+    login, 
+    logout,
+    getProfile: getUserProfile,
+    updateProfile: updateUserProfile
+};
+export const ordersAPI = {
+    fetchUserOrders,
+    createOrder
+};
+
+// Export API instance for custom requests
+export { api, API_BASE_URL };

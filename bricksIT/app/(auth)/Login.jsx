@@ -18,11 +18,25 @@ import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 /* =========================
-   API BASE URL (FIXED)
+   DYNAMIC API BASE URL
 ========================= */
-const API_URL = Platform.OS === 'web' 
-  ? 'https://bricks-backend-qyea.onrender.com/api' 
-  : 'http://10.0.2.2:5000/api';
+const getApiBaseUrl = () => {
+  if (Platform.OS === 'web') {
+    return 'https://bricks-backend-qyea.onrender.com/api';
+  }
+  
+  // For Android/iOS apps
+  if (__DEV__) {
+    // When using Expo Go on physical device, use the Render URL
+    // If you want to test with local server on same WiFi, replace with your computer IP
+    return 'https://bricks-backend-qyea.onrender.com/api';
+  }
+  
+  // For production builds
+  return 'https://bricks-backend-qyea.onrender.com/api';
+};
+
+const API_URL = getApiBaseUrl();
 
 export default function Login() {
   const router = useRouter();
@@ -42,19 +56,29 @@ export default function Login() {
 
   const checkBackendConnection = async () => {
     try {
-      const response = await fetch(API_URL.replace('/api', '') + '/health');
+      const healthUrl = API_URL.replace('/api', '/health');
+      console.log('Checking health at:', healthUrl);
+      
+      const response = await fetch(healthUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
       if (response.ok) {
         setBackendStatus('✅ Connected');
       } else {
         setBackendStatus('❌ Failed');
       }
     } catch (err) {
+      console.log('Health check error:', err.message);
       setBackendStatus('❌ Offline');
     }
   };
 
   /* =========================
-     ORIGINAL LOGIN HANDLER - NO CHANGES
+     LOGIN HANDLER
   ========================= */
   const handleLogin = async () => {
     if (!email || !password) {
@@ -76,12 +100,20 @@ export default function Login() {
         endpoint = `${API_URL}/contractor/auth/login`;
       }
 
-      console.log('[LOGIN API]', endpoint);
+      console.log('[LOGIN API]', endpoint, { email, password });
 
+      // Use axios with timeout for better error handling
       const response = await axios.post(endpoint, {
         email,
         password,
+      }, {
+        timeout: 15000, // 15 second timeout
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
+
+      console.log('[LOGIN RESPONSE]', response.data);
 
       const token = response.data.token;
       const userData =
@@ -93,15 +125,18 @@ export default function Login() {
         throw new Error('Invalid server response');
       }
 
+      // Store all data
       await AsyncStorage.multiSet([
         ['token', token],
         ['userRole', role],
         ['userData', JSON.stringify(userData)],
         ['isLoggedIn', 'true'],
+        ['loginTime', new Date().toISOString()],
       ]);
 
       Alert.alert('Success', 'Login successful');
 
+      // Navigate based on role
       if (role === 'seller') {
         router.replace('/(tabs)/seller-dashboard');
       } else if (role === 'contractor') {
@@ -110,12 +145,32 @@ export default function Login() {
         router.replace('/(tabs)');
       }
     } catch (err) {
-      console.error('[LOGIN ERROR]', err?.response || err);
-
-      setError(
-        err?.response?.data?.message ||
-        'Unable to login. Please try again.'
-      );
+      console.error('[LOGIN ERROR]', err);
+      
+      let errorMessage = 'Unable to login. Please try again.';
+      
+      if (err.response) {
+        // Server responded with error
+        errorMessage = err.response.data?.message || `Server error: ${err.response.status}`;
+      } else if (err.request) {
+        // Request made but no response
+        errorMessage = 'No response from server. Check your connection.';
+      } else if (err.code === 'ECONNABORTED') {
+        errorMessage = 'Request timeout. Server might be busy.';
+      } else if (err.message.includes('Network Error')) {
+        errorMessage = 'Network error. Check your internet connection.';
+      }
+      
+      setError(errorMessage);
+      
+      // Show detailed error in development
+      if (__DEV__) {
+        console.log('Detailed error:', {
+          message: err.message,
+          code: err.code,
+          config: err.config?.url,
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -125,14 +180,27 @@ export default function Login() {
   const testConnection = async () => {
     setLoading(true);
     try {
-      const response = await fetch(API_URL.replace('/api', '') + '/health');
+      const healthUrl = API_URL.replace('/api', '/health');
+      const response = await fetch(healthUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      let message = '';
       if (response.ok) {
-        Alert.alert('✅ Backend Connected', `Connected to: ${API_URL}`);
+        const data = await response.json();
+        message = `✅ Connected to backend!\n\nURL: ${API_URL}\nStatus: ${data.status || 'OK'}\nUptime: ${data.uptime ? Math.round(data.uptime) + 's' : 'N/A'}`;
+        Alert.alert('✅ Backend Connected', message);
       } else {
-        Alert.alert('⚠️ Backend Error', `Status: ${response.status}`);
+        message = `⚠️ Backend Error\nStatus: ${response.status}\nURL: ${API_URL}`;
+        Alert.alert('⚠️ Backend Error', message);
       }
     } catch (error) {
-      Alert.alert('❌ Connection Failed', `Cannot connect to ${API_URL}`);
+      console.log('Connection test error:', error);
+      const message = `❌ Connection Failed\n\nCannot connect to: ${API_URL}\n\nMake sure:\n1. Backend server is running\n2. Correct URL is configured\n3. Your device has internet access`;
+      Alert.alert('❌ Connection Failed', message);
     } finally {
       setLoading(false);
     }
@@ -167,6 +235,20 @@ export default function Login() {
           <View style={styles.header}>
             <Text style={styles.welcomeText}>Welcome Back</Text>
             <Text style={styles.subtitle}>Sign in to your account</Text>
+            
+            {/* Connection Status */}
+            <View style={styles.connectionStatus}>
+              <Text style={styles.connectionStatusText}>
+                Server: {backendStatus}
+              </Text>
+              <TouchableOpacity
+                style={styles.testConnectionButton}
+                onPress={testConnection}
+                disabled={loading}
+              >
+                <Text style={styles.testConnectionText}>Test Connection</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Role Selection - Simple tabs like in image */}
@@ -275,7 +357,17 @@ export default function Login() {
               </TouchableOpacity>
             </View>
 
-            
+            {/* Development Info */}
+            {__DEV__ && (
+              <View style={styles.devInfo}>
+                <Text style={styles.devInfoText}>
+                  API URL: {API_URL}
+                </Text>
+                <Text style={styles.devInfoText}>
+                  Platform: {Platform.OS}
+                </Text>
+              </View>
+            )}
           </View>
 
           {/* Footer */}
@@ -320,6 +412,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6b7280',
     textAlign: 'center',
+    marginBottom: 16,
+  },
+  connectionStatus: {
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  connectionStatusText: {
+    fontSize: 14,
+    color: '#4b5563',
+    marginBottom: 8,
+  },
+  testConnectionButton: {
+    backgroundColor: '#4b5563',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  testConnectionText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
   },
   tabsContainer: {
     flexDirection: 'row',
@@ -453,17 +566,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textDecorationLine: 'underline',
   },
-  testButton: {
-    backgroundColor: '#4b5563',
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: 'center',
-    marginTop: 8,
+  devInfo: {
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: '#f3f4f6',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
   },
-  testButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
+  devInfoText: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
   footer: {
     alignItems: 'center',
