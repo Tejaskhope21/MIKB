@@ -21,6 +21,9 @@ import hero1 from '../../assets/images/b2.jpg';
 import hero2 from '../../assets/images/b3.jpg';
 import hero3 from '../../assets/images/b4.jpg';
 
+// Import logo
+import logoImage from '../../assets/newlogo1.png';
+
 // Import API functions
 import {
   fetchAllCategories,
@@ -505,7 +508,17 @@ const HomeScreen = () => {
     <View style={styles.container}>
       {/* 1. NAVBAR */}
       <View style={styles.navbar}>
-        <Text style={styles.navbarTitle}>BricksIT</Text>
+        {/* Logo instead of "BricksIT" text */}
+        <TouchableOpacity 
+          style={styles.logoContainer}
+          onPress={() => router.push('/')}
+        >
+          <Image
+            source={logoImage}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </TouchableOpacity>
         <View style={styles.navbarIcons}>
           <TouchableOpacity onPress={() => router.push('/search')} style={styles.navbarIcon}>
             <Ionicons name="search-outline" size={24} color="#fff" />
@@ -540,8 +553,8 @@ const HomeScreen = () => {
                 onPress={() => router.push('/categories')}
                 style={styles.seeAllButton}
               >
-                <Text style={styles.seeAllText}>See All</Text>
-                <Ionicons name="chevron-forward" size={16} color="#800000" />
+                {/* <Text style={styles.seeAllText}>See All</Text>
+                <Ionicons name="chevron-forward" size={16} color="#800000" /> */}
               </TouchableOpacity>
             </View>
             
@@ -579,7 +592,7 @@ const HomeScreen = () => {
             <View style={styles.sectionHeader}>
               <View style={styles.hotDealsTitleContainer}>
                 <View style={styles.fireIcon}>
-                  <Ionicons name="flame" size={20} color="#ff6b35" />
+                  {/* <Ionicons name="flame" size={20} color="#ff6b35" /> */}
                 </View>
                 <Text style={styles.sectionTitle}>Hot Deals</Text>
               </View>
@@ -587,8 +600,8 @@ const HomeScreen = () => {
                 onPress={() => router.push('/hot-deals')}
                 style={styles.seeAllButton}
               >
-                <Text style={styles.seeAllText}>View All</Text>
-                <Ionicons name="chevron-forward" size={16} color="#800000" />
+                {/* <Text style={styles.seeAllText}>View All</Text> */}
+                {/* <Ionicons name="chevron-forward" size={16} color="#800000" /> */}
               </TouchableOpacity>
             </View>
             
@@ -624,8 +637,8 @@ const HomeScreen = () => {
                 onPress={() => router.push('/trending')}
                 style={styles.seeAllButton}
               >
-                <Text style={styles.seeAllText}>View All</Text>
-                <Ionicons name="chevron-forward" size={16} color="#800000" />
+                {/* <Text style={styles.seeAllText}>View All</Text> */}
+                {/* <Ionicons name="chevron-forward" size={16} color="#800000" /> */}
               </TouchableOpacity>
             </View>
             
@@ -688,15 +701,26 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8f9fa'
   },
-  // 1. NAVBAR STYLES
+  // 1. NAVBAR STYLES - UPDATED FOR LOGO
   navbar: {
     backgroundColor: '#800000',
     paddingTop: 50,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingHorizontal: 1,
+    paddingBottom: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingEnd: 20,
+  },
+  logoContainer: {
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    height: 40,
+  },
+  logo: {
+    width: 100,
+    height: 90,
+    maxWidth: 100,
   },
   navbarTitle: {
     fontSize: 24,
