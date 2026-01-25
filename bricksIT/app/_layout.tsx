@@ -20,6 +20,13 @@ export default function RootLayout() {
           }}
         />
         <Stack.Screen
+          name="prducts"
+          options={{
+            headerShown: false,
+            presentation: 'modal'
+          }}
+        />
+        <Stack.Screen
           name="checkout"
           options={{
             headerShown: false,

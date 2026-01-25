@@ -1,6 +1,6 @@
 // services/api.js
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://bricks-backend-qyea.onrender.com/api/v1';
 
 // Hot Deals API
 export const fetchHotDeals = async (limit = 10) => {
