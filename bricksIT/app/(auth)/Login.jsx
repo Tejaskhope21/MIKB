@@ -11,32 +11,14 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   SafeAreaView,
+  Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
 
-/* =========================
-   DYNAMIC API BASE URL
-========================= */
-const getApiBaseUrl = () => {
-  if (Platform.OS === 'web') {
-    return 'https://bricks-backend-qyea.onrender.com/api';
-  }
-  
-  // For Android/iOS apps
-  if (__DEV__) {
-    // When using Expo Go on physical device, use the Render URL
-    // If you want to test with local server on same WiFi, replace with your computer IP
-    return 'https://bricks-backend-qyea.onrender.com/api';
-  }
-  
-  // For production builds
-  return 'https://bricks-backend-qyea.onrender.com/api';
-};
-
-const API_URL = getApiBaseUrl();
+const API_URL = 'https://bricks-backend-qyea.onrender.com/api';
 
 export default function Login() {
   const router = useRouter();
@@ -47,39 +29,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [backendStatus, setBackendStatus] = useState('Checking...');
 
-  // Check backend connection on mount
-  React.useEffect(() => {
-    checkBackendConnection();
-  }, []);
-
-  const checkBackendConnection = async () => {
-    try {
-      const healthUrl = API_URL.replace('/api', '/health');
-      console.log('Checking health at:', healthUrl);
-      
-      const response = await fetch(healthUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (response.ok) {
-        setBackendStatus('✅ Connected');
-      } else {
-        setBackendStatus('❌ Failed');
-      }
-    } catch (err) {
-      console.log('Health check error:', err.message);
-      setBackendStatus('❌ Offline');
-    }
-  };
-
-  /* =========================
-     LOGIN HANDLER
-  ========================= */
   const handleLogin = async () => {
     if (!email || !password) {
       setError('Email and password are required');
@@ -100,20 +50,15 @@ export default function Login() {
         endpoint = `${API_URL}/contractor/auth/login`;
       }
 
-      console.log('[LOGIN API]', endpoint, { email, password });
-
-      // Use axios with timeout for better error handling
       const response = await axios.post(endpoint, {
         email,
         password,
       }, {
-        timeout: 15000, // 15 second timeout
+        timeout: 15000,
         headers: {
           'Content-Type': 'application/json',
         },
       });
-
-      console.log('[LOGIN RESPONSE]', response.data);
 
       const token = response.data.token;
       const userData =
@@ -125,7 +70,6 @@ export default function Login() {
         throw new Error('Invalid server response');
       }
 
-      // Store all data
       await AsyncStorage.multiSet([
         ['token', token],
         ['userRole', role],
@@ -136,7 +80,6 @@ export default function Login() {
 
       Alert.alert('Success', 'Login successful');
 
-      // Navigate based on role
       if (role === 'seller') {
         router.replace('/(tabs)/seller-dashboard');
       } else if (role === 'contractor') {
@@ -145,15 +88,11 @@ export default function Login() {
         router.replace('/(tabs)');
       }
     } catch (err) {
-      console.error('[LOGIN ERROR]', err);
-      
       let errorMessage = 'Unable to login. Please try again.';
       
       if (err.response) {
-        // Server responded with error
         errorMessage = err.response.data?.message || `Server error: ${err.response.status}`;
       } else if (err.request) {
-        // Request made but no response
         errorMessage = 'No response from server. Check your connection.';
       } else if (err.code === 'ECONNABORTED') {
         errorMessage = 'Request timeout. Server might be busy.';
@@ -162,56 +101,15 @@ export default function Login() {
       }
       
       setError(errorMessage);
-      
-      // Show detailed error in development
-      if (__DEV__) {
-        console.log('Detailed error:', {
-          message: err.message,
-          code: err.code,
-          config: err.config?.url,
-        });
-      }
     } finally {
       setLoading(false);
     }
   };
 
-  // Test backend connection
-  const testConnection = async () => {
-    setLoading(true);
-    try {
-      const healthUrl = API_URL.replace('/api', '/health');
-      const response = await fetch(healthUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      let message = '';
-      if (response.ok) {
-        const data = await response.json();
-        message = `✅ Connected to backend!\n\nURL: ${API_URL}\nStatus: ${data.status || 'OK'}\nUptime: ${data.uptime ? Math.round(data.uptime) + 's' : 'N/A'}`;
-        Alert.alert('✅ Backend Connected', message);
-      } else {
-        message = `⚠️ Backend Error\nStatus: ${response.status}\nURL: ${API_URL}`;
-        Alert.alert('⚠️ Backend Error', message);
-      }
-    } catch (error) {
-      console.log('Connection test error:', error);
-      const message = `❌ Connection Failed\n\nCannot connect to: ${API_URL}\n\nMake sure:\n1. Backend server is running\n2. Correct URL is configured\n3. Your device has internet access`;
-      Alert.alert('❌ Connection Failed', message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Handle sign up navigation
   const handleSignUp = () => {
-    router.push('/register');
+    router.push('/Register');
   };
 
-  // Handle forgot password
   const handleForgotPassword = () => {
     Alert.alert(
       'Forgot Password',
@@ -231,50 +129,38 @@ export default function Login() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Simple Header - Match the image */}
+          {/* Header with #800000 background */}
           <View style={styles.header}>
-            <Text style={styles.welcomeText}>Welcome Back</Text>
-            <Text style={styles.subtitle}>Sign in to your account</Text>
-            
-            {/* Connection Status */}
-            <View style={styles.connectionStatus}>
-              <Text style={styles.connectionStatusText}>
-                Server: {backendStatus}
-              </Text>
-              <TouchableOpacity
-                style={styles.testConnectionButton}
-                onPress={testConnection}
-                disabled={loading}
-              >
-                <Text style={styles.testConnectionText}>Test Connection</Text>
-              </TouchableOpacity>
+            <View style={styles.headerContent}>
+              <Text style={styles.headerTitle}>Welcome Back</Text>
+              <Text style={styles.headerSubtitle}>Sign in to your account</Text>
             </View>
           </View>
 
-          {/* Role Selection - Simple tabs like in image */}
-          <View style={styles.tabsContainer}>
-            {['user', 'seller', 'contractor'].map(r => (
-              <TouchableOpacity
-                key={r}
-                style={[
-                  styles.tab,
-                  role === r && styles.activeTab
-                ]}
-                onPress={() => setRole(r)}
-                disabled={loading}
-              >
-                <Text style={[
-                  styles.tabText,
-                  role === r && styles.activeTabText
-                ]}>
-                  {r.charAt(0).toUpperCase() + r.slice(1)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          {/* Login Card */}
+          <View style={styles.card}>
+            {/* Role Selection Tabs */}
+            <View style={styles.tabsContainer}>
+              {['user', 'seller', 'contractor'].map(r => (
+                <TouchableOpacity
+                  key={r}
+                  style={[
+                    styles.tab,
+                    role === r && styles.activeTab
+                  ]}
+                  onPress={() => setRole(r)}
+                  disabled={loading}
+                >
+                  <Text style={[
+                    styles.tabText,
+                    role === r && styles.activeTabText
+                  ]}>
+                    {r.charAt(0).toUpperCase() + r.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
 
-          {/* Login Form */}
-          <View style={styles.formContainer}>
             {/* Error Message */}
             {error ? (
               <View style={styles.errorContainer}>
@@ -349,25 +235,13 @@ export default function Login() {
               )}
             </TouchableOpacity>
 
-            {/* Sign Up Link - Like in image */}
+            {/* Sign Up Link */}
             <View style={styles.signUpContainer}>
               <Text style={styles.signUpText}>Don't have an account? </Text>
               <TouchableOpacity onPress={handleSignUp} disabled={loading}>
                 <Text style={styles.signUpLink}>Sign up now</Text>
               </TouchableOpacity>
             </View>
-
-            {/* Development Info */}
-            {__DEV__ && (
-              <View style={styles.devInfo}>
-                <Text style={styles.devInfoText}>
-                  API URL: {API_URL}
-                </Text>
-                <Text style={styles.devInfoText}>
-                  Platform: {Platform.OS}
-                </Text>
-              </View>
-            )}
           </View>
 
           {/* Footer */}
@@ -380,9 +254,6 @@ export default function Login() {
   );
 }
 
-/* =========================
-   STYLES MATCHING THE IMAGE
-========================= */
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -393,62 +264,51 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingVertical: 20,
   },
   header: {
-    alignItems: 'center',
-    marginTop: 40,
-    marginBottom: 40,
+    backgroundColor: '#800000',
+    paddingVertical: 40,
+    paddingHorizontal: 24,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    marginBottom: 30,
   },
-  welcomeText: {
+  headerContent: {
+    alignItems: 'center',
+  },
+  headerTitle: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#6b7280',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  connectionStatus: {
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  connectionStatusText: {
-    fontSize: 14,
-    color: '#4b5563',
-    marginBottom: 8,
-  },
-  testConnectionButton: {
-    backgroundColor: '#4b5563',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  testConnectionText: {
     color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 24,
+    marginHorizontal: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
   },
   tabsContainer: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
+    backgroundColor: '#f1f5f9',
     borderRadius: 12,
     padding: 4,
-    marginBottom: 32,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    marginBottom: 24,
   },
   tab: {
     flex: 1,
-    paddingVertical: 14,
+    paddingVertical: 12,
     paddingHorizontal: 12,
     alignItems: 'center',
     borderRadius: 8,
@@ -457,22 +317,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#800000',
   },
   tabText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#6b7280',
   },
   activeTabText: {
     color: '#fff',
-  },
-  formContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
   },
   errorContainer: {
     flexDirection: 'row',
@@ -491,7 +341,7 @@ const styles = StyleSheet.create({
     color: '#dc2626',
   },
   inputGroup: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   label: {
     fontSize: 14,
@@ -553,7 +403,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
     paddingVertical: 8,
   },
   signUpText: {
@@ -566,23 +415,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textDecorationLine: 'underline',
   },
-  devInfo: {
-    marginTop: 16,
-    padding: 12,
-    backgroundColor: '#f3f4f6',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  devInfoText: {
-    fontSize: 12,
-    color: '#6b7280',
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-  },
   footer: {
     alignItems: 'center',
     marginTop: 32,
     paddingBottom: 20,
+    paddingHorizontal: 24,
   },
   footerText: {
     fontSize: 12,

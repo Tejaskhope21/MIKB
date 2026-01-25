@@ -292,7 +292,6 @@ export default function AllProductsScreen() {
     });
   };
 
-
   /* ================= RENDER HELPERS ================= */
   const renderProductItem = ({ item }) => {
     const originalPrice = item.originalPrice || item.mrp || item.price || 0;
@@ -368,8 +367,9 @@ export default function AllProductsScreen() {
 
       {/* HEADER */}
       <View style={styles.header}>
-        
-
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color="#fff" />
+        </TouchableOpacity>
         
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle} numberOfLines={1}>
@@ -385,7 +385,6 @@ export default function AllProductsScreen() {
           {hasActiveFilters && <View style={styles.filterIndicator} />}
         </TouchableOpacity>
       </View>
-
 
       {/* QUICK CATEGORY FILTERS */}
       {categories.length > 0 && (
@@ -422,17 +421,7 @@ export default function AllProductsScreen() {
         </View>
       )}
 
-      {/* RESULTS HEADER */}
-      <View style={styles.resultsHeader}>
-        <View>
-          <Text style={styles.resultsTitle}>
-            {selectedCategory === 'all' ? 'All Products' : currentCategoryInfo.name}
-          </Text>
-          
-        </View>
-        
-        
-      </View>
+      
 
       {/* ACTIVE FILTERS BAR */}
       {hasActiveFilters && (
@@ -900,22 +889,24 @@ const styles = StyleSheet.create({
     color: '#64748b',
   },
   
-  // Header
+  // Header - INCREASED HEIGHT
   header: {
     backgroundColor: '#800000',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 35,
+    paddingTop: 40,
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+    minHeight: 85,
   },
   backButton: {
     padding: 8,
-    marginRight: 8,
+    marginRight: 12,
     borderRadius: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
@@ -924,13 +915,13 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 2,
+    textAlign: 'center',
   },
   headerSubtitle: {
     color: 'rgba(255, 255, 255, 0.9)',
-    fontSize: 13,
+    fontSize: 14,
   },
   filterButton: {
     padding: 8,
@@ -1611,14 +1602,14 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   
-  // Sort Options
+  // Sort Options - TEXT ALIGNED PROPERLY
   sortOptions: {
     marginTop: 8,
   },
   sortOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: 12,
     backgroundColor: '#f8fafc',
@@ -1637,6 +1628,8 @@ const styles = StyleSheet.create({
     color: '#334155',
     fontWeight: '500',
     marginLeft: 12,
+    lineHeight: 20,
+    textAlignVertical: 'center',
   },
   sortOptionTextSelected: {
     color: '#800000',

@@ -17,25 +17,7 @@ import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
 import axios from 'axios';
 
-/* =========================
-   DYNAMIC API BASE URL
-========================= */
-const getApiBaseUrl = () => {
-  if (Platform.OS === 'web') {
-    return 'https://bricks-backend-qyea.onrender.com/api';
-  }
-  
-  // For Android/iOS apps
-  if (__DEV__) {
-    // When using Expo Go on physical device, use the Render URL
-    return 'https://bricks-backend-qyea.onrender.com/api';
-  }
-  
-  // For production builds
-  return 'https://bricks-backend-qyea.onrender.com/api';
-};
-
-const API_URL = getApiBaseUrl();
+const API_URL = 'https://bricks-backend-qyea.onrender.com/api';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -47,7 +29,6 @@ export default function RegisterScreen() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [specialtiesModal, setSpecialtiesModal] = useState(false);
 
-  // Contractor specialties
   const contractorSpecialties = [
     'Residential Construction',
     'Commercial Construction',
@@ -61,7 +42,6 @@ export default function RegisterScreen() {
     'Project Management'
   ];
 
-  // Form states
   const [userForm, setUserForm] = useState({
     name: '',
     email: '',
@@ -105,7 +85,6 @@ export default function RegisterScreen() {
     setSuccess('');
   };
 
-  // Handle form changes
   const handleUserChange = (field, value) => {
     setUserForm({ ...userForm, [field]: value });
   };
@@ -174,9 +153,6 @@ export default function RegisterScreen() {
     return null;
   };
 
-  /* =========================
-     BACKEND REGISTRATION FUNCTIONS
-  ========================= */
   const registerUser = async () => {
     try {
       const response = await axios.post(`${API_URL}/auth/user/register`, {
@@ -197,7 +173,6 @@ export default function RegisterScreen() {
         message: 'User registered successfully!'
       };
     } catch (error) {
-      console.error('User registration error:', error.response?.data || error.message);
       return {
         success: false,
         message: error.response?.data?.message || 'User registration failed. Please try again.'
@@ -234,7 +209,6 @@ export default function RegisterScreen() {
         message: 'Seller registration submitted successfully!'
       };
     } catch (error) {
-      console.error('Seller registration error:', error.response?.data || error.message);
       return {
         success: false,
         message: error.response?.data?.message || 'Seller registration failed. Please try again.'
@@ -271,7 +245,6 @@ export default function RegisterScreen() {
         message: 'Contractor registered successfully!'
       };
     } catch (error) {
-      console.error('Contractor registration error:', error.response?.data || error.message);
       return {
         success: false,
         message: error.response?.data?.message || 'Contractor registration failed. Please try again.'
@@ -311,71 +284,13 @@ export default function RegisterScreen() {
       if (result.success) {
         setSuccess(result.message);
         
-        // Auto-login after successful registration
-        setTimeout(async () => {
-          try {
-            // Auto login after registration
-            let loginEndpoint;
-            let loginData;
-            
-            switch (activeTab) {
-              case 'user':
-                loginEndpoint = `${API_URL}/auth/user/login`;
-                loginData = {
-                  email: userForm.email,
-                  password: userForm.password,
-                };
-                break;
-              case 'seller':
-                loginEndpoint = `${API_URL}/auth/seller/login`;
-                loginData = {
-                  email: sellerForm.email,
-                  password: sellerForm.password,
-                };
-                break;
-              case 'contractor':
-                loginEndpoint = `${API_URL}/contractor/auth/login`;
-                loginData = {
-                  email: contractorForm.email,
-                  password: contractorForm.password,
-                };
-                break;
-            }
-
-            const loginResponse = await axios.post(loginEndpoint, loginData, {
-              timeout: 15000,
-              headers: {
-                'Content-Type': 'application/json',
-              },
-            });
-            
-            if (loginResponse.data.token) {
-              // Store token and user data (you'll need to implement AsyncStorage)
-              // For now, we'll just navigate
-              
-              // Redirect based on role
-              setTimeout(() => {
-                if (activeTab === 'seller') {
-                  router.replace('/(tabs)/seller-dashboard');
-                } else if (activeTab === 'contractor') {
-                  router.replace('/(tabs)/contractor-dashboard');
-                } else {
-                  router.replace('/(tabs)');
-                }
-              }, 1000);
-            }
-          } catch (loginError) {
-            console.error('Auto-login failed:', loginError);
-            // Even if auto-login fails, still redirect to login page
-            router.push('/(auth)/login');
-          }
+        setTimeout(() => {
+          router.push('/login');
         }, 2000);
       } else {
         setError(result.message);
       }
     } catch (err) {
-      console.error('Registration error:', err);
-      
       let errorMessage = 'An unexpected error occurred. Please try again.';
       
       if (err.message.includes('Network Error')) {
@@ -844,21 +759,12 @@ export default function RegisterScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Header */}
+          {/* Header with #800000 background */}
           <View style={styles.header}>
-            <View style={styles.logoContainer}>
-              <Icon name="cube" size={48} color="#800000" />
-              <Text style={styles.logoText}>BricksIT</Text>
+            <View style={styles.headerContent}>
+              <Text style={styles.headerTitle}>Create Account</Text>
+              <Text style={styles.headerSubtitle}>Join BricksIT today</Text>
             </View>
-            <Text style={styles.welcomeText}>Create Account</Text>
-            <Text style={styles.subtitle}>Join BricksIT today</Text>
-            
-            {/* API Info */}
-            {__DEV__ && (
-              <Text style={styles.apiInfo}>
-                API: {API_URL}
-              </Text>
-            )}
           </View>
 
           {/* Tabs */}
@@ -951,10 +857,10 @@ export default function RegisterScreen() {
               )}
             </TouchableOpacity>
 
-            {/* login Link */}
+            {/* Login Link */}
             <View style={styles.loginContainer}>
               <Text style={styles.loginText}>Already have an account? </Text>
-              <TouchableOpacity onPress={() => router.push('/(auth)/login')} disabled={loading}>
+              <TouchableOpacity onPress={() => router.push('/login')} disabled={loading}>
                 <Text style={styles.loginLink}>Sign in here</Text>
               </TouchableOpacity>
             </View>
@@ -1036,45 +942,32 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingVertical: 20,
   },
   header: {
-    alignItems: 'center',
+    backgroundColor: '#800000',
+    paddingVertical: 40,
+    paddingHorizontal: 24,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
     marginBottom: 30,
   },
-  logoContainer: {
-    flexDirection: 'row',
+  headerContent: {
     alignItems: 'center',
-    marginBottom: 16,
   },
-  logoText: {
+  headerTitle: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#800000',
-    marginLeft: 12,
-  },
-  welcomeText: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1f2937',
+    color: '#fff',
     marginBottom: 8,
+    textAlign: 'center',
   },
-  subtitle: {
+  headerSubtitle: {
     fontSize: 16,
-    color: '#6b7280',
-  },
-  apiInfo: {
-    fontSize: 12,
-    color: '#9ca3af',
-    marginTop: 8,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    backgroundColor: '#f3f4f6',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
   },
   tabsContainer: {
+    marginHorizontal: 24,
     marginBottom: 24,
   },
   tabsInner: {
@@ -1111,6 +1004,7 @@ const styles = StyleSheet.create({
     borderColor: '#fecaca',
     borderRadius: 12,
     marginBottom: 20,
+    marginHorizontal: 24,
     padding: 16,
   },
   errorContent: {
@@ -1130,6 +1024,7 @@ const styles = StyleSheet.create({
     borderColor: '#a7f3d0',
     borderRadius: 12,
     marginBottom: 20,
+    marginHorizontal: 24,
     padding: 16,
   },
   successContent: {
@@ -1147,6 +1042,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 16,
     padding: 24,
+    marginHorizontal: 24,
     marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -1295,12 +1191,12 @@ const styles = StyleSheet.create({
   footer: {
     alignItems: 'center',
     paddingBottom: 20,
+    paddingHorizontal: 24,
   },
   footerText: {
     fontSize: 12,
     color: '#9ca3af',
   },
-  // Modal styles
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
