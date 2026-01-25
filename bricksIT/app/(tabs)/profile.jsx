@@ -25,6 +25,7 @@ export default function ProfileScreen() {
   useEffect(() => {
     checkloginAndLoadProfile();
   }, []);
+  
 
   const checkloginAndLoadProfile = async () => {
     try {
