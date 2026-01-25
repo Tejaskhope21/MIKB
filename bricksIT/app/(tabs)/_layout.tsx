@@ -1,14 +1,11 @@
-// app/(tabs)/_layout.tsx
 import React from 'react';
 import { Tabs } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useCart } from '../../context/CartContext';
 
 export default function TabLayout() {
-  // This will handle the case when CartProvider is not available
+  // Safe cart hook usage
   const { getCartCount } = useCart();
-
-  // Safe cart count - returns 0 if getCartCount is not a function
   const cartCount = typeof getCartCount === 'function' ? getCartCount() : 0;
 
   return (
@@ -39,7 +36,7 @@ export default function TabLayout() {
           title: 'Home',
           tabBarIcon: ({ focused, size, color }) => (
             <Ionicons
-              name={focused ? "home" : "home-outline"}
+              name={focused ? 'home' : 'home-outline'}
               size={size}
               color={color}
             />
@@ -47,14 +44,14 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Search Tab */}
+      {/* Products Tab */}
       <Tabs.Screen
-        name="search"
+        name="products"
         options={{
-          title: 'Search',
+          title: 'Products',
           tabBarIcon: ({ focused, size, color }) => (
             <Ionicons
-              name={focused ? "search" : "search-outline"}
+              name={focused ? 'cube' : 'cube-outline'}
               size={size}
               color={color}
             />
@@ -69,7 +66,7 @@ export default function TabLayout() {
           title: 'Contractors',
           tabBarIcon: ({ focused, size, color }) => (
             <Ionicons
-              name={focused ? "people" : "people-outline"}
+              name={focused ? 'people' : 'people-outline'}
               size={size}
               color={color}
             />
@@ -84,7 +81,7 @@ export default function TabLayout() {
           title: 'Cart',
           tabBarIcon: ({ focused, size, color }) => (
             <Ionicons
-              name={focused ? "cart" : "cart-outline"}
+              name={focused ? 'cart' : 'cart-outline'}
               size={size}
               color={color}
             />
@@ -110,7 +107,7 @@ export default function TabLayout() {
           title: 'Profile',
           tabBarIcon: ({ focused, size, color }) => (
             <Ionicons
-              name={focused ? "person" : "person-outline"}
+              name={focused ? 'person' : 'person-outline'}
               size={size}
               color={color}
             />

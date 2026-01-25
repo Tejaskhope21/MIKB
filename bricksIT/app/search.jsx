@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { searchAutocomplete, hasSearchResults } from '../../services/featuresApi';
+import { searchAutocomplete, hasSearchResults } from '../services/featuresApi';
 
 const { width } = Dimensions.get('window');
 

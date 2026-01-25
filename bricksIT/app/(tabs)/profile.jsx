@@ -23,15 +23,15 @@ export default function ProfileScreen() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   useEffect(() => {
-    checkLoginAndLoadProfile();
+    checkloginAndLoadProfile();
   }, []);
 
-  const checkLoginAndLoadProfile = async () => {
+  const checkloginAndLoadProfile = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
 
       if (!token) {
-        router.replace('/Login');
+        router.replace('/login');
         return;
       }
 
@@ -57,7 +57,7 @@ export default function ProfileScreen() {
         [
           {
             text: 'OK',
-            onPress: () => router.replace('/(auth)/Login'),
+            onPress: () => router.replace('/(auth)/login'),
           },
         ]
       );

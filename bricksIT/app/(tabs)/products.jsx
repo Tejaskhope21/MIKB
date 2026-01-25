@@ -1,19 +1,19 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
-  TextInput,
   FlatList,
-  StyleSheet,
-  Dimensions,
   SafeAreaView,
   StatusBar,
-  Modal,
-  RefreshControl,
   ActivityIndicator,
   Image,
+  RefreshControl,
+  TextInput,
+  Modal,
+  StyleSheet,
+  Dimensions,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -24,168 +24,38 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 const { width } = Dimensions.get('window');
 const API_BASE_URL = 'https://bricks-backend-qyea.onrender.com';
 
-/* ================= API FUNCTIONS ================= */
-const fetchCategories = async () => {
-  try {
-    const res = await fetch(`${API_BASE_URL}/api/categories`);
-    if (!res.ok) throw new Error('Categories fetch failed');
-    const data = await res.json();
-    return data.categories || data || [];
-  } catch (err) {
-    console.error('fetchCategories error:', err);
-    return [];
-  }
-};
-
-const fetchBrandsFromAPI = async () => {
-  try {
-    const res = await fetch(`${API_BASE_URL}/api/brands`);
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.brands || data || [];
-  } catch (err) {
-    console.error('fetchBrandsFromAPI error:', err);
-    return [];
-  }
-};
-
-const fetchCategoryWithSubcategories = async (categoryId) => {
-  try {
-    if (!categoryId) throw new Error('Category ID missing');
-
-    const res = await fetch(
-      `${API_BASE_URL}/api/products/category/${categoryId}/with-subcategories`
-    );
-
-    const data = await res.json();
-    if (!data.success) throw new Error(data.message);
-
-    return {
-      category: data.category || { name: 'Category' },
-      subcategories: data.subcategories || [],
-      products: data.products?.items || [],
-      pagination: data.products?.pagination || {
-        page: 1,
-        limit: 20,
-        total: 0,
-        pages: 1
-      }
-    };
-  } catch (err) {
-    console.error('fetchCategoryWithSubcategories error:', err);
-    throw err;
-  }
-};
-
-const fetchProductsByCategory = async (categoryId, params = {}) => {
-  try {
-    if (!categoryId) throw new Error('Category ID missing');
-
-    const cleanedParams = {};
-    Object.keys(params).forEach(key => {
-      if (params[key] !== undefined && params[key] !== null && params[key] !== '' && params[key] !== 'all') {
-        cleanedParams[key] = params[key];
-      }
-    });
-
-    const query = new URLSearchParams(cleanedParams).toString();
-    const url = `${API_BASE_URL}/api/products/category/${categoryId}/products?${query}`;
-
-    console.log('Fetching category products from:', url);
-    
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    
-    if (!data.success) throw new Error(data.message || 'API error');
-
-    return {
-      products: data.products?.items || [],
-      pagination: data.products?.pagination || {
-        page: 1,
-        limit: 20,
-        total: 0,
-        pages: 1
-      }
-    };
-  } catch (err) {
-    console.error('fetchProductsByCategory error:', err);
-    throw err;
-  }
-};
-
-const fetchAllProducts = async (params = {}) => {
-  try {
-    const cleanedParams = {};
-    Object.keys(params).forEach(key => {
-      if (params[key] !== undefined && params[key] !== null && params[key] !== '' && params[key] !== 'all') {
-        cleanedParams[key] = params[key];
-      }
-    });
-
-    const query = new URLSearchParams(cleanedParams).toString();
-    const url = query ? `${API_BASE_URL}/api/products?${query}` : `${API_BASE_URL}/api/products`;
-
-    console.log('Fetching all products from:', url);
-    
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    
-    console.log('API Response:', data);
-    
-    if (!data.success) throw new Error(data.message || 'API error');
-
-    return {
-      products: data.products?.items || data.products || [],
-      pagination: data.products?.pagination || {
-        page: 1,
-        limit: 20,
-        total: 0,
-        pages: 1
-      }
-    };
-  } catch (err) {
-    console.error('fetchAllProducts error:', err);
-    throw err;
-  }
-};
-
-/* ================= MAIN COMPONENT ================= */
 export default function AllProductsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  
-  // Get categoryId from params if navigating from category screen
-  const categoryId = params.categoryId || '';
-  const categoryName = params.categoryName || '';
-  
-  // Main states
-  const [allCategories, setAllCategories] = useState([]);
+  const isFirstRender = useRef(true);
+
+  /* ================= STATE ================= */
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState(null);
-  
-  // Filter states
-  const [selectedCategory, setSelectedCategory] = useState(categoryId || 'all');
+  const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
+  const [brands, setBrands] = useState([]);
+
+  // Filter states
+  const [selectedCategory, setSelectedCategory] = useState(params.categoryId || 'all');
   const [selectedSubcategory, setSelectedSubcategory] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
   const [selectedBrand, setSelectedBrand] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState('desc');
-  
+
   // UI states
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [showFiltersModal, setShowFiltersModal] = useState(false);
   const [showPriceFilter, setShowPriceFilter] = useState(false);
   const [viewMode, setViewMode] = useState('grid');
-  
-  // Data states
-  const [brands, setBrands] = useState([]);
-  const [currentCategoryInfo, setCurrentCategoryInfo] = useState({ name: categoryName || 'All Products' });
+
+  const [currentCategoryInfo, setCurrentCategoryInfo] = useState({
+    name: params.categoryName || 'All Products',
+  });
+
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
@@ -193,184 +63,47 @@ export default function AllProductsScreen() {
     pages: 1
   });
 
-  /* ================= TRANSFORM PRODUCT ================= */
-  const transformProduct = useCallback((product) => {
-    const originalPrice = product.originalPrice || product.mrp || product.price || 0;
-    const currentPrice = product.price || product.sellingPrice || product.discountedPrice || 0;
-
-    let discount = 0;
-    if (originalPrice > currentPrice && originalPrice > 0) {
-      discount = Math.round(((originalPrice - currentPrice) / originalPrice) * 100);
-    }
-
-    const placeholderColors = ['f87171', 'fb923c', 'fbbf24', '34d399', '60a5fa', '818cf8', 'a78bfa', 'f472b6'];
-    const colorIndex = Math.abs(product.name?.length || 0) % placeholderColors.length;
-    const placeholderColor = placeholderColors[colorIndex];
-    
-    const placeholderImage = `https://via.placeholder.com/180x220/${placeholderColor}/ffffff?text=${encodeURIComponent(product.name?.substring(0, 20) || 'Product')}`;
-
-    return {
-      id: product._id || product.numericId || Math.random().toString(),
-      name: product.name || 'Unnamed Product',
-      image: product.image || product.images?.[0] || placeholderImage,
-      price: currentPrice,
-      originalPrice,
-      discount,
-      brand: product.brand || 'Unknown Brand',
-      category: product.category || '',
-      subcategory: product.subcategory || '',
-    };
-  }, []);
-
-  /* ================= INITIAL LOAD ================= */
-  useEffect(() => {
-    loadInitialData();
-  }, []);
-
-  const loadInitialData = async () => {
-    setLoading(true);
-    setError(null);
+  /* ================= API FUNCTIONS ================= */
+  const fetchCategories = async () => {
     try {
-      // Load all categories
-      const categories = await fetchCategories();
-      setAllCategories(categories);
-      
-      // Load brands from API
-      const apiBrands = await fetchBrandsFromAPI();
-      setBrands(apiBrands);
-      
-      // If we have a categoryId from params, load its data
-      if (categoryId && categoryId !== 'all') {
-        const categoryData = await fetchCategoryWithSubcategories(categoryId);
-        setCurrentCategoryInfo(categoryData.category);
-        setSubcategories(categoryData.subcategories);
-        
-        // Set initial products
-        const transformed = categoryData.products.map(transformProduct);
-        setProducts(transformed);
-        
-        // Set pagination
-        setPagination(categoryData.pagination);
-        
-        // Extract brands from products if not already loaded from API
-        if (apiBrands.length === 0) {
-          extractBrandsFromProducts(transformed);
-        }
-      } else {
-        // Load all products if no specific category
-        await loadProducts();
-      }
-      
+      const res = await fetch(`${API_BASE_URL}/api/categories`);
+      const data = await res.json();
+      setCategories(data.categories || []);
     } catch (err) {
-      setError('Failed to load data: ' + err.message);
-    } finally {
-      setLoading(false);
+      console.error('Fetch categories error:', err);
     }
   };
 
-  /* ================= LOAD PRODUCTS ================= */
-  const loadProducts = async (page = 1, isRefresh = false) => {
-    if (!isRefresh && loading) return;
-    
-    if (isRefresh) {
-      setRefreshing(true);
-    } else {
-      setLoading(true);
-    }
-    
-    setError(null);
-
+  const fetchCategoryDetails = async (categoryId) => {
     try {
-      // Build query params
-      const params = {
-        page: page,
-        limit: 20,
-        sortBy: sortBy,
-        sortOrder: sortOrder
-      };
-
-      // Add search
-      if (searchTerm.trim()) {
-        params.search = searchTerm.trim();
-      }
-
-      // Add brand filter - only if not 'all'
-      if (selectedBrand && selectedBrand !== 'all') {
-        params.brand = selectedBrand;
-      }
-
-      // Add price filters
-      if (minPrice && !isNaN(minPrice) && minPrice !== '') {
-        params.minPrice = parseInt(minPrice);
-      }
+      const res = await fetch(
+        `${API_BASE_URL}/api/products/category/${categoryId}/with-subcategories`
+      );
+      const data = await res.json();
+      setSubcategories(data.subcategories || []);
+      setCurrentCategoryInfo(data.category || { name: 'Category' });
       
-      if (maxPrice && !isNaN(maxPrice) && maxPrice !== '') {
-        params.maxPrice = parseInt(maxPrice);
+      // Extract brands from category products
+      if (data.products?.items) {
+        extractBrandsFromProducts(data.products.items);
       }
-
-      let result;
-      
-      // Choose API endpoint based on category selection
-      if (selectedCategory && selectedCategory !== 'all') {
-        // Add subcategory filter if selected
-        if (selectedSubcategory && selectedSubcategory !== 'all') {
-          params.subcategoryId = selectedSubcategory;
-        }
-        
-        // Load category products
-        console.log('Loading category products for:', selectedCategory, 'with params:', params);
-        result = await fetchProductsByCategory(selectedCategory, params);
-        
-        // Load subcategories if not already loaded
-        if ((!subcategories || subcategories.length === 0) && page === 1) {
-          try {
-            const categoryData = await fetchCategoryWithSubcategories(selectedCategory);
-            setSubcategories(categoryData.subcategories);
-            setCurrentCategoryInfo(categoryData.category);
-          } catch (err) {
-            console.error('Failed to load subcategories:', err);
-          }
-        }
-      } else {
-        // Load all products
-        console.log('Loading all products with params:', params);
-        result = await fetchAllProducts(params);
-      }
-
-      console.log('API Result:', result);
-      
-      const transformed = result.products.map(transformProduct);
-      
-      // Update products
-      if (page === 1) {
-        setProducts(transformed);
-      } else {
-        setProducts(prev => [...prev, ...transformed]);
-      }
-      
-      // Update pagination
-      setPagination(result.pagination || {
-        page: page,
-        limit: 20,
-        total: transformed.length,
-        pages: 1
-      });
-      
-      // Extract brands on first load if no brands loaded yet
-      if (page === 1 && brands.length === 0) {
-        extractBrandsFromProducts(transformed);
-      }
-      
     } catch (err) {
-      setError('Failed to load products: ' + err.message);
-      console.error('Error loading products:', err);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      console.error('Fetch category details error:', err);
     }
   };
 
-  /* ================= EXTRACT BRANDS ================= */
+  const fetchAllBrands = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/brands`);
+      if (res.ok) {
+        const data = await res.json();
+        setBrands(data.brands || data || []);
+      }
+    } catch (err) {
+      console.error('Fetch brands error:', err);
+    }
+  };
+
   const extractBrandsFromProducts = (productList) => {
     const uniqueBrands = [...new Set(
       productList
@@ -378,71 +111,159 @@ export default function AllProductsScreen() {
         .filter(brand => brand && brand.trim() !== '' && brand !== 'Unknown Brand')
         .sort((a, b) => a.localeCompare(b))
     )];
-    console.log('Extracted brands:', uniqueBrands);
-    setBrands(uniqueBrands);
+    setBrands(prev => {
+      const combined = [...new Set([...prev, ...uniqueBrands])];
+      return combined.sort((a, b) => a.localeCompare(b));
+    });
   };
+
+  const fetchProducts = async (isRefresh = false) => {
+    if (!isRefresh) setLoading(true);
+    
+    try {
+      let query = new URLSearchParams();
+
+      // Add pagination
+      query.append('page', pagination.page);
+      query.append('limit', pagination.limit);
+      query.append('sortBy', sortBy);
+      query.append('sortOrder', sortOrder);
+
+      // Add search
+      if (searchTerm.trim()) {
+        query.append('search', searchTerm.trim());
+      }
+
+      // Only apply filters when NOT "all"
+      if (selectedCategory !== 'all') {
+        if (selectedSubcategory !== 'all') {
+          query.append('subcategoryId', selectedSubcategory);
+        }
+        if (selectedBrand !== 'all') {
+          query.append('brand', selectedBrand);
+        }
+      } else if (selectedBrand !== 'all') {
+        // Apply brand filter even when category is "all"
+        query.append('brand', selectedBrand);
+      }
+
+      // Add price filters
+      if (minPrice && !isNaN(minPrice) && minPrice !== '') {
+        query.append('minPrice', parseInt(minPrice));
+      }
+      
+      if (maxPrice && !isNaN(maxPrice) && maxPrice !== '') {
+        query.append('maxPrice', parseInt(maxPrice));
+      }
+
+      const url = selectedCategory === 'all'
+        ? `${API_BASE_URL}/api/products?${query}`
+        : `${API_BASE_URL}/api/products/category/${selectedCategory}/products?${query}`;
+
+      console.log('Fetching from:', url);
+
+      const res = await fetch(url);
+      const data = await res.json();
+
+      const productsList = data.products?.items || data.products || [];
+      setProducts(productsList);
+      
+      // Update pagination
+      setPagination(data.products?.pagination || {
+        page: pagination.page,
+        limit: 20,
+        total: productsList.length,
+        pages: 1
+      });
+
+      // Extract brands from products
+      if (productsList.length > 0 && brands.length === 0) {
+        extractBrandsFromProducts(productsList);
+      }
+
+    } catch (err) {
+      console.error('Fetch products error:', err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  /* ================= INITIAL LOAD ================= */
+  useEffect(() => {
+    const init = async () => {
+      await Promise.all([
+        fetchCategories(),
+        fetchAllBrands(),
+        fetchProducts()
+      ]);
+    };
+    init();
+  }, []);
+
+  /* ================= FILTER EFFECT ================= */
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    // Reset to page 1 when filters change
+    setPagination(prev => ({ ...prev, page: 1 }));
+    
+    fetchProducts();
+
+    if (selectedCategory === 'all') {
+      setSubcategories([]);
+      setCurrentCategoryInfo({ name: 'All Products' });
+    } else {
+      fetchCategoryDetails(selectedCategory);
+    }
+  }, [selectedCategory, selectedSubcategory, selectedBrand, minPrice, maxPrice, sortBy, sortOrder, searchTerm]);
+
+  /* ================= PAGE CHANGE EFFECT ================= */
+  useEffect(() => {
+    if (pagination.page > 1) {
+      fetchProducts();
+    }
+  }, [pagination.page]);
 
   /* ================= HANDLERS ================= */
   const handleCategorySelect = (categoryId) => {
-    console.log('Category selected:', categoryId);
-    setSelectedCategory(categoryId);
-    setSelectedSubcategory('all');
-    setSubcategories([]);
-    
     if (categoryId === 'all') {
+      setSelectedCategory('all');
+      setSelectedSubcategory('all');
+      setSelectedBrand('all');
+      setSubcategories([]);
       setCurrentCategoryInfo({ name: 'All Products' });
     } else {
-      const selectedCat = allCategories.find(c => c._id === categoryId);
+      setSelectedCategory(categoryId);
+      setSelectedSubcategory('all');
+      setSelectedBrand('all');
+      
+      const selectedCat = categories.find(c => c._id === categoryId);
       setCurrentCategoryInfo(selectedCat || { name: 'Category' });
-    }
-    
-    setPagination(prev => ({ ...prev, page: 1 }));
-    
-    // If category is 'all', load all products immediately
-    if (categoryId === 'all') {
-      loadProducts(1);
-    } else {
-      // Load category data first
-      fetchCategoryWithSubcategories(categoryId)
-        .then(data => {
-          setSubcategories(data.subcategories);
-          setCurrentCategoryInfo(data.category);
-          // Then load products for selected category
-          loadProducts(1);
-        })
-        .catch(err => {
-          console.error('Failed to load category:', err);
-          // Still try to load products even if category data fails
-          loadProducts(1);
-        });
     }
   };
 
   const handleSubcategorySelect = (subcategoryId) => {
-    console.log('Subcategory selected:', subcategoryId);
     setSelectedSubcategory(subcategoryId);
-    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   const handleBrandSelect = (brand) => {
-    console.log('Brand selected:', brand);
     setSelectedBrand(brand);
-    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   const handleSortChange = (newSortBy, newSortOrder) => {
-    console.log('Sort changed:', newSortBy, newSortOrder);
     setSortBy(newSortBy);
     setSortOrder(newSortOrder);
-    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   const handleClearFilters = () => {
-    console.log('Clearing all filters');
     setSelectedCategory('all');
     setSelectedSubcategory('all');
-    setSearchTerm('');
     setSelectedBrand('all');
+    setSearchTerm('');
     setMinPrice('');
     setMaxPrice('');
     setSortBy('createdAt');
@@ -454,99 +275,70 @@ export default function AllProductsScreen() {
 
   const handlePageChange = (newPage) => {
     if (newPage >= 1 && newPage <= pagination.pages) {
-      console.log('Page change:', newPage);
       setPagination(prev => ({ ...prev, page: newPage }));
     }
   };
 
   const handleRefresh = () => {
-    console.log('Refreshing...');
     setRefreshing(true);
-    loadProducts(1, true);
+    setPagination(prev => ({ ...prev, page: 1 }));
+    fetchProducts(true);
   };
 
   const handleProductPress = (productId) => {
-    if (!productId) {
-      alert('Product ID not found');
-      return;
-    }
-    
     router.push({
       pathname: '/productDetails/[id]',
       params: { id: productId }
     });
   };
 
-  /* ================= EFFECTS ================= */
-  // Load products when filters change (with debounce for search)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      console.log('Filters changed, loading products...', {
-        selectedCategory,
-        selectedSubcategory,
-        searchTerm,
-        selectedBrand,
-        minPrice,
-        maxPrice,
-        sortBy,
-        sortOrder
-      });
-      loadProducts(1);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [selectedCategory, selectedSubcategory, searchTerm, selectedBrand, minPrice, maxPrice, sortBy, sortOrder]);
-
-  // Load more products when page changes
-  useEffect(() => {
-    if (pagination.page > 1) {
-      console.log('Loading page:', pagination.page);
-      loadProducts(pagination.page);
-    }
-  }, [pagination.page]);
 
   /* ================= RENDER HELPERS ================= */
-  const renderProductItem = ({ item }) => (
-    <TouchableOpacity 
-      style={[styles.productCard, viewMode === 'grid' ? styles.productCardGrid : styles.productCardList]}
-      onPress={() => handleProductPress(item.id)}
-      activeOpacity={0.9}
-    >
-      <View style={styles.productImageContainer}>
-        {item.image ? (
+  const renderProductItem = ({ item }) => {
+    const originalPrice = item.originalPrice || item.mrp || item.price || 0;
+    const currentPrice = item.price || item.sellingPrice || item.discountedPrice || 0;
+    let discount = 0;
+    
+    if (originalPrice > currentPrice && originalPrice > 0) {
+      discount = Math.round(((originalPrice - currentPrice) / originalPrice) * 100);
+    }
+
+    return (
+      <TouchableOpacity 
+        style={[styles.productCard, viewMode === 'grid' ? styles.productCardGrid : styles.productCardList]}
+        onPress={() => handleProductPress(item._id)}
+        activeOpacity={0.9}
+      >
+        <View style={styles.productImageContainer}>
           <Image 
-            source={{ uri: item.image }} 
+            source={{ uri: item.image || item.images?.[0] }} 
             style={styles.productImage}
             resizeMode="cover"
           />
-        ) : (
-          <View style={styles.productImagePlaceholder}>
-            <MaterialCommunityIcons name="package-variant" size={40} color="#ccc" />
-          </View>
-        )}
-        
-        {item.discount > 0 && (
-          <View style={styles.discountBadge}>
-            <Text style={styles.discountText}>{item.discount}% OFF</Text>
-          </View>
-        )}
-      </View>
-      
-      <View style={styles.productInfo}>
-        <Text style={styles.productName} numberOfLines={2}>
-          {item.name}
-        </Text>
-        <Text style={styles.productBrand}>{item.brand || '—'}</Text>
-        
-        <View style={styles.productPriceRow}>
-          <Text style={styles.currentPrice}>₹{Math.round(item.price)}</Text>
-          {item.discount > 0 && (
-            <Text style={styles.originalPrice}>₹{Math.round(item.originalPrice)}</Text>
+          
+          {discount > 0 && (
+            <View style={styles.discountBadge}>
+              <Text style={styles.discountText}>{discount}% OFF</Text>
+            </View>
           )}
         </View>
-      </View>
-    </TouchableOpacity>
-  );
+        
+        <View style={styles.productInfo}>
+          <Text style={styles.productName} numberOfLines={2}>
+            {item.name}
+          </Text>
+          <Text style={styles.productBrand}>{item.brand || '—'}</Text>
+          
+          <View style={styles.productPriceRow}>
+            <Text style={styles.currentPrice}>₹{Math.round(currentPrice)}</Text>
+            {discount > 0 && (
+              <Text style={styles.originalPrice}>₹{Math.round(originalPrice)}</Text>
+            )}
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   /* ================= CHECK ACTIVE FILTERS ================= */
   const hasActiveFilters = selectedCategory !== 'all' || 
@@ -570,44 +362,18 @@ export default function AllProductsScreen() {
     );
   }
 
-  /* ================= ERROR STATE ================= */
-  if (error && products.length === 0) {
-    return (
-      <SafeAreaView style={styles.center}>
-        <View style={styles.errorContainer}>
-          <MaterialIcons name="error-outline" size={60} color="#800000" />
-          <Text style={styles.errorTitle}>Oops!</Text>
-          <Text style={styles.errorText}>{error}</Text>
-          <View style={styles.errorButtons}>
-            <TouchableOpacity style={styles.primaryButton} onPress={loadInitialData}>
-              <Text style={styles.primaryButtonText}>Try Again</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  /* ================= MAIN RENDER ================= */
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#800000" barStyle="light-content" />
 
       {/* HEADER */}
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-        >
-          <Ionicons name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
+        
+
         
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle} numberOfLines={1}>
-            {currentCategoryInfo.name || 'All Products'}
-          </Text>
-          <Text style={styles.headerSubtitle}>
-            {pagination.total > 0 ? `${pagination.total} products` : 'No products'}
+            {currentCategoryInfo.name}
           </Text>
         </View>
         
@@ -620,57 +386,34 @@ export default function AllProductsScreen() {
         </TouchableOpacity>
       </View>
 
-     
-      <View style={styles.searchContainer}>
-       
-      </View>
 
       {/* QUICK CATEGORY FILTERS */}
-      {allCategories.length > 0 && (
+      {categories.length > 0 && (
         <View style={styles.quickFiltersContainer}>
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            style={styles.quickFiltersScroll}
-          >
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickFiltersScroll}>
             <TouchableOpacity
-              style={[
-                styles.quickFilter,
-                selectedCategory === 'all' && styles.quickFilterActive
-              ]}
+              style={[styles.quickFilter, selectedCategory === 'all' && styles.quickFilterActive]}
               onPress={() => handleCategorySelect('all')}
             >
-              <Text style={[
-                styles.quickFilterText,
-                selectedCategory === 'all' && styles.quickFilterTextActive
-              ]}>
+              <Text style={[styles.quickFilterText, selectedCategory === 'all' && styles.quickFilterTextActive]}>
                 All
               </Text>
             </TouchableOpacity>
             
-            {allCategories.slice(0, 8).map((cat) => (
+            {categories.slice(0, 8).map((cat) => (
               <TouchableOpacity
                 key={cat._id}
-                style={[
-                  styles.quickFilter,
-                  selectedCategory === cat._id && styles.quickFilterActive
-                ]}
+                style={[styles.quickFilter, selectedCategory === cat._id && styles.quickFilterActive]}
                 onPress={() => handleCategorySelect(cat._id)}
               >
-                <Text style={[
-                  styles.quickFilterText,
-                  selectedCategory === cat._id && styles.quickFilterTextActive
-                ]}>
-                  {cat.name || cat.title}
+                <Text style={[styles.quickFilterText, selectedCategory === cat._id && styles.quickFilterTextActive]}>
+                  {cat.name}
                 </Text>
               </TouchableOpacity>
             ))}
             
-            {allCategories.length > 8 && (
-              <TouchableOpacity
-                style={styles.viewAllFilter}
-                onPress={() => setShowFiltersModal(true)}
-              >
+            {categories.length > 8 && (
+              <TouchableOpacity style={styles.viewAllFilter} onPress={() => setShowFiltersModal(true)}>
                 <Text style={styles.viewAllText}>View All</Text>
                 <Ionicons name="chevron-forward" size={16} color="#800000" />
               </TouchableOpacity>
@@ -685,21 +428,16 @@ export default function AllProductsScreen() {
           <Text style={styles.resultsTitle}>
             {selectedCategory === 'all' ? 'All Products' : currentCategoryInfo.name}
           </Text>
-          <Text style={styles.resultsCount}>
-            Showing {products.length} of {pagination.total} products
-          </Text>
+          
         </View>
-       
+        
+        
       </View>
 
       {/* ACTIVE FILTERS BAR */}
       {hasActiveFilters && (
         <View style={styles.activeFiltersBar}>
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            style={styles.activeFiltersScroll}
-          >
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.activeFiltersScroll}>
             <View style={styles.activeFiltersContent}>
               {selectedCategory !== 'all' && (
                 <View style={styles.activeFilterTag}>
@@ -715,7 +453,7 @@ export default function AllProductsScreen() {
                   <Text style={styles.activeFilterText}>
                     {subcategories.find(s => s._id === selectedSubcategory)?.title || 'Subcategory'}
                   </Text>
-                  <TouchableOpacity onPress={() => handleSubcategorySelect('all')}>
+                  <TouchableOpacity onPress={() => setSelectedSubcategory('all')}>
                     <Ionicons name="close" size={16} color="#800000" />
                   </TouchableOpacity>
                 </View>
@@ -775,7 +513,7 @@ export default function AllProductsScreen() {
           <FlatList
             data={products}
             renderItem={renderProductItem}
-            keyExtractor={(item) => item.id.toString()}
+            keyExtractor={(item) => item._id}
             numColumns={viewMode === 'grid' ? 2 : 1}
             refreshControl={
               <RefreshControl 
@@ -917,47 +655,35 @@ export default function AllProductsScreen() {
                 <View style={styles.filterSectionHeader}>
                   <Text style={styles.filterSectionTitle}>Categories</Text>
                   <View style={styles.filterSectionCountBadge}>
-                    <Text style={styles.filterSectionCountText}>{allCategories.length}</Text>
+                    <Text style={styles.filterSectionCountText}>{categories.length}</Text>
                   </View>
                 </View>
                 
                 <View style={styles.categoryGrid}>
                   <TouchableOpacity
-                    style={[
-                      styles.categoryChipModal,
-                      selectedCategory === 'all' && styles.categoryChipModalSelected
-                    ]}
+                    style={[styles.categoryChipModal, selectedCategory === 'all' && styles.categoryChipModalSelected]}
                     onPress={() => handleCategorySelect('all')}
                   >
-                    <Text style={[
-                      styles.categoryChipModalText,
-                      selectedCategory === 'all' && styles.categoryChipModalTextSelected
-                    ]}>
+                    <Text style={[styles.categoryChipModalText, selectedCategory === 'all' && styles.categoryChipModalTextSelected]}>
                       All Categories
                     </Text>
                   </TouchableOpacity>
                   
-                  {allCategories.map((cat) => (
+                  {categories.map((cat) => (
                     <TouchableOpacity
                       key={cat._id}
-                      style={[
-                        styles.categoryChipModal,
-                        selectedCategory === cat._id && styles.categoryChipModalSelected
-                      ]}
+                      style={[styles.categoryChipModal, selectedCategory === cat._id && styles.categoryChipModalSelected]}
                       onPress={() => handleCategorySelect(cat._id)}
                     >
-                      <Text style={[
-                        styles.categoryChipModalText,
-                        selectedCategory === cat._id && styles.categoryChipModalTextSelected
-                      ]}>
-                        {cat.name || cat.title}
+                      <Text style={[styles.categoryChipModalText, selectedCategory === cat._id && styles.categoryChipModalTextSelected]}>
+                        {cat.name}
                       </Text>
                     </TouchableOpacity>
                   ))}
                 </View>
               </View>
 
-              {/* SUBCATEGORIES SECTION (Only show if a category is selected) */}
+              {/* SUBCATEGORIES SECTION */}
               {selectedCategory !== 'all' && subcategories.length > 0 && (
                 <View style={styles.filterSection}>
                   <View style={styles.filterSectionHeader}>
@@ -969,16 +695,10 @@ export default function AllProductsScreen() {
                   
                   <View style={styles.subcategoryGrid}>
                     <TouchableOpacity
-                      style={[
-                        styles.subcategoryChipModal,
-                        selectedSubcategory === 'all' && styles.subcategoryChipModalSelected
-                      ]}
-                      onPress={() => handleSubcategorySelect('all')}
+                      style={[styles.subcategoryChipModal, selectedSubcategory === 'all' && styles.subcategoryChipModalSelected]}
+                      onPress={() => setSelectedSubcategory('all')}
                     >
-                      <Text style={[
-                        styles.subcategoryChipModalText,
-                        selectedSubcategory === 'all' && styles.subcategoryChipModalTextSelected
-                      ]}>
+                      <Text style={[styles.subcategoryChipModalText, selectedSubcategory === 'all' && styles.subcategoryChipModalTextSelected]}>
                         All Subcategories
                       </Text>
                     </TouchableOpacity>
@@ -986,16 +706,10 @@ export default function AllProductsScreen() {
                     {subcategories.map((sub) => (
                       <TouchableOpacity
                         key={sub._id}
-                        style={[
-                          styles.subcategoryChipModal,
-                          selectedSubcategory === sub._id && styles.subcategoryChipModalSelected
-                        ]}
-                        onPress={() => handleSubcategorySelect(sub._id)}
+                        style={[styles.subcategoryChipModal, selectedSubcategory === sub._id && styles.subcategoryChipModalSelected]}
+                        onPress={() => setSelectedSubcategory(sub._id)}
                       >
-                        <Text style={[
-                          styles.subcategoryChipModalText,
-                          selectedSubcategory === sub._id && styles.subcategoryChipModalTextSelected
-                        ]}>
+                        <Text style={[styles.subcategoryChipModalText, selectedSubcategory === sub._id && styles.subcategoryChipModalTextSelected]}>
                           {sub.title}
                         </Text>
                         {sub.count && (
@@ -1021,16 +735,10 @@ export default function AllProductsScreen() {
                   
                   <View style={styles.brandGrid}>
                     <TouchableOpacity
-                      style={[
-                        styles.brandChipModal,
-                        selectedBrand === 'all' && styles.brandChipModalSelected
-                      ]}
-                      onPress={() => handleBrandSelect('all')}
+                      style={[styles.brandChipModal, selectedBrand === 'all' && styles.brandChipModalSelected]}
+                      onPress={() => setSelectedBrand('all')}
                     >
-                      <Text style={[
-                        styles.brandChipModalText,
-                        selectedBrand === 'all' && styles.brandChipModalTextSelected
-                      ]}>
+                      <Text style={[styles.brandChipModalText, selectedBrand === 'all' && styles.brandChipModalTextSelected]}>
                         All Brands
                       </Text>
                     </TouchableOpacity>
@@ -1038,16 +746,10 @@ export default function AllProductsScreen() {
                     {brands.map((brand) => (
                       <TouchableOpacity
                         key={brand}
-                        style={[
-                          styles.brandChipModal,
-                          selectedBrand === brand && styles.brandChipModalSelected
-                        ]}
-                        onPress={() => handleBrandSelect(brand)}
+                        style={[styles.brandChipModal, selectedBrand === brand && styles.brandChipModalSelected]}
+                        onPress={() => setSelectedBrand(brand)}
                       >
-                        <Text style={[
-                          styles.brandChipModalText,
-                          selectedBrand === brand && styles.brandChipModalTextSelected
-                        ]}>
+                        <Text style={[styles.brandChipModalText, selectedBrand === brand && styles.brandChipModalTextSelected]}>
                           {brand}
                         </Text>
                       </TouchableOpacity>
@@ -1060,15 +762,8 @@ export default function AllProductsScreen() {
               <View style={styles.filterSection}>
                 <View style={styles.filterSectionHeader}>
                   <Text style={styles.filterSectionTitle}>Price Range</Text>
-                  <TouchableOpacity 
-                    onPress={() => setShowPriceFilter(!showPriceFilter)}
-                    style={styles.priceToggleButton}
-                  >
-                    <Ionicons 
-                      name={showPriceFilter ? "chevron-up" : "chevron-down"} 
-                      size={20} 
-                      color="#666" 
-                    />
+                  <TouchableOpacity onPress={() => setShowPriceFilter(!showPriceFilter)} style={styles.priceToggleButton}>
+                    <Ionicons name={showPriceFilter ? "chevron-up" : "chevron-down"} size={20} color="#666" />
                   </TouchableOpacity>
                 </View>
 
@@ -1121,21 +816,11 @@ export default function AllProductsScreen() {
                 
                 <View style={styles.sortOptions}>
                   <TouchableOpacity
-                    style={[
-                      styles.sortOption,
-                      sortBy === 'createdAt' && sortOrder === 'desc' && styles.sortOptionSelected
-                    ]}
+                    style={[styles.sortOption, sortBy === 'createdAt' && sortOrder === 'desc' && styles.sortOptionSelected]}
                     onPress={() => handleSortChange('createdAt', 'desc')}
                   >
-                    <MaterialIcons 
-                      name="new-releases" 
-                      size={20} 
-                      color={sortBy === 'createdAt' && sortOrder === 'desc' ? '#800000' : '#666'} 
-                    />
-                    <Text style={[
-                      styles.sortOptionText,
-                      sortBy === 'createdAt' && sortOrder === 'desc' && styles.sortOptionTextSelected
-                    ]}>
+                    <MaterialIcons name="new-releases" size={20} color={sortBy === 'createdAt' && sortOrder === 'desc' ? '#800000' : '#666'} />
+                    <Text style={[styles.sortOptionText, sortBy === 'createdAt' && sortOrder === 'desc' && styles.sortOptionTextSelected]}>
                       Newest First
                     </Text>
                     {sortBy === 'createdAt' && sortOrder === 'desc' && (
@@ -1144,21 +829,11 @@ export default function AllProductsScreen() {
                   </TouchableOpacity>
                   
                   <TouchableOpacity
-                    style={[
-                      styles.sortOption,
-                      sortBy === 'price' && sortOrder === 'asc' && styles.sortOptionSelected
-                    ]}
+                    style={[styles.sortOption, sortBy === 'price' && sortOrder === 'asc' && styles.sortOptionSelected]}
                     onPress={() => handleSortChange('price', 'asc')}
                   >
-                    <MaterialIcons 
-                      name="trending-up" 
-                      size={20} 
-                      color={sortBy === 'price' && sortOrder === 'asc' ? '#800000' : '#666'} 
-                    />
-                    <Text style={[
-                      styles.sortOptionText,
-                      sortBy === 'price' && sortOrder === 'asc' && styles.sortOptionTextSelected
-                    ]}>
+                    <MaterialIcons name="trending-up" size={20} color={sortBy === 'price' && sortOrder === 'asc' ? '#800000' : '#666'} />
+                    <Text style={[styles.sortOptionText, sortBy === 'price' && sortOrder === 'asc' && styles.sortOptionTextSelected]}>
                       Price: Low to High
                     </Text>
                     {sortBy === 'price' && sortOrder === 'asc' && (
@@ -1167,21 +842,11 @@ export default function AllProductsScreen() {
                   </TouchableOpacity>
                   
                   <TouchableOpacity
-                    style={[
-                      styles.sortOption,
-                      sortBy === 'price' && sortOrder === 'desc' && styles.sortOptionSelected
-                    ]}
+                    style={[styles.sortOption, sortBy === 'price' && sortOrder === 'desc' && styles.sortOptionSelected]}
                     onPress={() => handleSortChange('price', 'desc')}
                   >
-                    <MaterialIcons 
-                      name="trending-down" 
-                      size={20} 
-                      color={sortBy === 'price' && sortOrder === 'desc' ? '#800000' : '#666'} 
-                    />
-                    <Text style={[
-                      styles.sortOptionText,
-                      sortBy === 'price' && sortOrder === 'desc' && styles.sortOptionTextSelected
-                    ]}>
+                    <MaterialIcons name="trending-down" size={20} color={sortBy === 'price' && sortOrder === 'desc' ? '#800000' : '#666'} />
+                    <Text style={[styles.sortOptionText, sortBy === 'price' && sortOrder === 'desc' && styles.sortOptionTextSelected]}>
                       Price: High to Low
                     </Text>
                     {sortBy === 'price' && sortOrder === 'desc' && (
@@ -1194,19 +859,13 @@ export default function AllProductsScreen() {
 
             {/* MODAL FOOTER */}
             <View style={styles.modalFooter}>
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.secondaryButton]} 
-                onPress={() => setShowFiltersModal(false)}
-              >
+              <TouchableOpacity style={[styles.modalButton, styles.secondaryButton]} onPress={() => setShowFiltersModal(false)}>
                 <Text style={styles.secondaryButtonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.primaryButton]} 
-                onPress={() => {
-                  setShowFiltersModal(false);
-                  loadProducts(1);
-                }}
-              >
+              <TouchableOpacity style={[styles.modalButton, styles.primaryButton]} onPress={() => {
+                setShowFiltersModal(false);
+                fetchProducts();
+              }}>
                 <Text style={styles.primaryButtonText}>Apply Filters</Text>
               </TouchableOpacity>
             </View>
@@ -1217,7 +876,6 @@ export default function AllProductsScreen() {
   );
 }
 
-// Keep the exact same styles as before...
 /* ================= STYLES ================= */
 const styles = StyleSheet.create({
   container: { 
@@ -1236,10 +894,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 40,
   },
-  errorContainer: {
-    alignItems: 'center',
-    padding: 40,
-    maxWidth: 300,
+  loadingText: {
+    marginTop: 16,
+    fontSize: 15,
+    color: '#64748b',
   },
   
   // Header
@@ -1516,13 +1174,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  productImagePlaceholder: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#e5e5e5',
-  },
   discountBadge: {
     position: 'absolute',
     top: 8,
@@ -1659,11 +1310,6 @@ const styles = StyleSheet.create({
   },
   
   // Loading & Error States
-  loadingText: {
-    marginTop: 16,
-    fontSize: 15,
-    color: '#64748b',
-  },
   footerLoader: {
     alignItems: 'center',
     paddingVertical: 20,
@@ -1672,24 +1318,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 14,
     color: '#666',
-  },
-  errorTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#1e293b',
-    marginTop: 20,
-    marginBottom: 12,
-  },
-  errorText: {
-    fontSize: 15,
-    color: '#64748b',
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 24,
-  },
-  errorButtons: {
-    flexDirection: 'row',
-    gap: 12,
   },
   
   // Buttons
@@ -1810,12 +1438,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#1e293b',
-  },
-  filterSectionDescription: {
-    fontSize: 14,
-    color: '#64748b',
-    marginBottom: 16,
-    lineHeight: 20,
   },
   filterSectionCountBadge: {
     backgroundColor: '#80000010',
@@ -2017,96 +1639,6 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   sortOptionTextSelected: {
-    color: '#800000',
-  },
-  
-  // Category Chips (Top)
-  categoryChip: {
-    backgroundColor: '#f1f5f9',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 10,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  categoryChipSelected: {
-    backgroundColor: '#800000',
-    borderColor: '#800000',
-  },
-  categoryChipText: {
-    fontSize: 14,
-    color: '#64748b',
-    fontWeight: '500',
-  },
-  categoryChipTextSelected: {
-    color: '#fff',
-  },
-  
-  // Subcategory Items
-  subcategoryItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    backgroundColor: '#f8fafc',
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  subcategoryItemSelected: {
-    backgroundColor: '#80000010',
-    borderWidth: 1,
-    borderColor: '#800000',
-  },
-  subcategoryText: {
-    fontSize: 15,
-    color: '#334155',
-    fontWeight: '500',
-  },
-  subcategoryTextSelected: {
-    color: '#800000',
-  },
-  countBadge: {
-    backgroundColor: '#800000',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-    minWidth: 30,
-    alignItems: 'center',
-  },
-  countText: {
-    fontSize: 13,
-    color: '#fff',
-    fontWeight: '600',
-  },
-  
-  // Brand Items
-  brandItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    backgroundColor: '#f8fafc',
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  brandItemSelected: {
-    backgroundColor: '#80000010',
-    borderWidth: 1,
-    borderColor: '#800000',
-  },
-  brandText: {
-    fontSize: 15,
-    color: '#334155',
-    fontWeight: '500',
-  },
-  brandTextSelected: {
     color: '#800000',
   },
 });
