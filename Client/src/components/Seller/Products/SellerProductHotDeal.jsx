@@ -11,7 +11,7 @@ import {
 /* ===============================
    API BASE
 ================================ */
-const API = 'http://localhost:5000/api/v1';
+const API = 'https://bricks-backend-qyea.onrender.com/api/v1';
 
 const SellerProductHotDeal = () => {
     const [products, setProducts] = useState([]);

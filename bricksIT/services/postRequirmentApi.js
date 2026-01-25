@@ -1,6 +1,6 @@
 // api/requirements.js
 import AsyncStorage from '@react-native-async-storage/async-storage';
-const API_BASE_URL =  'http://localhost:5000/api';
+const API_BASE_URL =  'https://bricks-backend-qyea.onrender.com/api';
 
 // Helper function for safe fetch with timeout
 const safeFetch = async (url, options = {}) => {

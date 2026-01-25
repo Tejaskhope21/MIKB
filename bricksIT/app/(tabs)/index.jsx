@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback, memo } from 'react';
+// screens/HomeScreen.jsx
+import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 import {
   View,
   ScrollView,
@@ -14,6 +15,12 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Banner from '../../components/Banner/Banner';
+
+// Import local images directly
+import hero1 from '../../assets/images/b2.jpg';
+import hero2 from '../../assets/images/b3.jpg';
+import hero3 from '../../assets/images/b4.jpg';
+
 // Import API functions
 import {
   fetchAllCategories,
@@ -30,6 +37,128 @@ import {
 } from '../../services/featuresApi';
 
 const { width } = Dimensions.get('window');
+
+/* =========================
+   HERO COMPONENT (Embedded in HomeScreen)
+========================= */
+const Hero = () => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const scrollViewRef = useRef(null);
+  const autoScrollRef = useRef(null);
+
+  // Your images
+  const heroSlides = [
+    { id: '1', image: hero1 },
+    { id: '2', image: hero2 },
+    { id: '3', image: hero3 },
+  ];
+
+  useEffect(() => {
+    // Auto scroll every 4 seconds
+    autoScrollRef.current = setInterval(() => {
+      const nextIndex = (currentIndex + 1) % heroSlides.length;
+      setCurrentIndex(nextIndex);
+      scrollViewRef.current?.scrollTo({
+        x: nextIndex * (width - 20),
+        animated: true,
+      });
+    }, 4000);
+
+    return () => clearInterval(autoScrollRef.current);
+  }, [currentIndex]);
+
+  const handleScroll = (event) => {
+    const contentOffsetX = event.nativeEvent.contentOffset.x;
+    const index = Math.round(contentOffsetX / (width - 20));
+    setCurrentIndex(index);
+  };
+
+  const scrollToIndex = (index) => {
+    setCurrentIndex(index);
+    scrollViewRef.current?.scrollTo({
+      x: index * (width - 20),
+      animated: true,
+    });
+  };
+
+  return (
+    <View style={heroStyles.container}>
+      <ScrollView
+        ref={scrollViewRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        style={heroStyles.scrollView}
+      >
+        {heroSlides.map((slide) => (
+          <View key={slide.id} style={heroStyles.slide}>
+            <Image 
+              source={slide.image} 
+              style={heroStyles.image} 
+              resizeMode="cover"
+            />
+          </View>
+        ))}
+      </ScrollView>
+
+      {/* Pagination Dots */}
+      <View style={heroStyles.pagination}>
+        {heroSlides.map((_, index) => (
+          <TouchableOpacity
+            key={index}
+            style={[
+              heroStyles.dot,
+              currentIndex === index && heroStyles.activeDot,
+            ]}
+            onPress={() => scrollToIndex(index)}
+          />
+        ))}
+      </View>
+    </View>
+  );
+};
+
+const heroStyles = StyleSheet.create({
+  container: {
+    height: 180,
+    position: 'relative',
+    marginHorizontal: 10,
+    marginTop: 10,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#f0f0f0',
+  },
+  scrollView: {
+    flex: 1,
+    borderRadius: 8,
+  },
+  slide: {
+    width: width - 20,
+    height: 180,
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+  },
+  pagination: {
+    flexDirection: 'row',
+    position: 'absolute',
+    bottom: 10,
+    alignSelf: 'center',
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+    marginHorizontal: 4,
+  },
+  activeDot: {
+    backgroundColor: '#fff',
+  },
+});
 
 /* =========================
    HOT DEAL ITEM COMPONENT
@@ -195,8 +324,6 @@ const TrendingProductCard = memo(({ item, onPress, index }) => {
           {item.name || 'Product Name'}
         </Text>
 
-        
-
         <View style={styles.trendingPriceRow}>
           <Text style={styles.trendingPrice}>
             {formatPrice(item.price || 0)}
@@ -245,29 +372,6 @@ const HomeScreen = () => {
   const [trendingProducts, setTrendingProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeHeroIndex, setActiveHeroIndex] = useState(0);
-
-  // Hero images
-  const heroImages = [
-    { 
-      id: 1, 
-      image: require('../../assets/images/b3.jpg'), 
-      title: 'Premium Building Materials',
-      subtitle: 'Best quality for your construction needs'
-    },
-    { 
-      id: 2, 
-      image: require('../../assets/images/b2.jpg'), 
-      title: 'Trusted Brands',
-      subtitle: 'Partnered with leading manufacturers'
-    },
-    { 
-      id: 3, 
-      image: require('../../assets/images/b4.jpg'), 
-      title: 'Hot Deals Every Day',
-      subtitle: 'Exclusive discounts on best products'
-    },
-  ];
 
   const loadData = async () => {
     try {
@@ -321,7 +425,6 @@ const HomeScreen = () => {
           image: product.image || getProductImage(product.images),
           images: product.images || [],
           inStock: product.inStock !== false,
-          // rating: Number(product.rating) || 4.0,
           description: product.description || '',
           reviewCount: product.reviewCount || 0,
           trendScore: product.trendScore || 0,
@@ -389,12 +492,6 @@ const HomeScreen = () => {
     });
   };
 
-  const handleHeroScroll = (event) => {
-    const contentOffset = event.nativeEvent.contentOffset.x;
-    const index = Math.round(contentOffset / width);
-    setActiveHeroIndex(index);
-  };
-
   if (loading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
@@ -431,41 +528,8 @@ const HomeScreen = () => {
           />
         }
       >
-        {/* 2. HERO CAROUSEL */}
-        <View style={styles.heroContainer}>
-          <ScrollView 
-            horizontal 
-            pagingEnabled 
-            showsHorizontalScrollIndicator={false}
-            onScroll={handleHeroScroll}
-            scrollEventThrottle={16}
-          >
-            {heroImages.map((image) => (
-              <View key={image.id} style={styles.heroSlide}>
-                <Image source={image.image} style={styles.heroImage} resizeMode="cover" />
-                <View style={styles.heroOverlay}>
-                  <Text style={styles.heroTitle}>{image.title}</Text>
-                  {image.subtitle && (
-                    <Text style={styles.heroSubtitle}>{image.subtitle}</Text>
-                  )}
-                </View>
-              </View>
-            ))}
-          </ScrollView>
-          
-          {/* Hero Indicators */}
-          <View style={styles.heroIndicators}>
-            {heroImages.map((_, index) => (
-              <View 
-                key={index} 
-                style={[
-                  styles.heroIndicator, 
-                  activeHeroIndex === index && styles.heroIndicatorActive
-                ]} 
-              />
-            ))}
-          </View>
-        </View>
+        {/* 2. HERO CAROUSEL - Embedded Hero component */}
+        <Hero />
 
         {/* 3. CATEGORIES SECTION */}
         {categories.length > 0 && (
@@ -476,8 +540,8 @@ const HomeScreen = () => {
                 onPress={() => router.push('/categories')}
                 style={styles.seeAllButton}
               >
-                {/* <Text style={styles.seeAllText}>See All</Text>
-                <Ionicons name="chevron-forward" size={16} color="#800000" /> */}
+                <Text style={styles.seeAllText}>See All</Text>
+                <Ionicons name="chevron-forward" size={16} color="#800000" />
               </TouchableOpacity>
             </View>
             
@@ -523,8 +587,8 @@ const HomeScreen = () => {
                 onPress={() => router.push('/hot-deals')}
                 style={styles.seeAllButton}
               >
-                {/* <Text style={styles.seeAllText}>View All</Text>
-                <Ionicons name="chevron-forward" size={16} color="#800000" /> */}
+                <Text style={styles.seeAllText}>View All</Text>
+                <Ionicons name="chevron-forward" size={16} color="#800000" />
               </TouchableOpacity>
             </View>
             
@@ -560,8 +624,8 @@ const HomeScreen = () => {
                 onPress={() => router.push('/trending')}
                 style={styles.seeAllButton}
               >
-                {/* <Text style={styles.seeAllText}>View All</Text>
-                <Ionicons name="chevron-forward" size={16} color="#800000" /> */}
+                <Text style={styles.seeAllText}>View All</Text>
+                <Ionicons name="chevron-forward" size={16} color="#800000" />
               </TouchableOpacity>
             </View>
             
@@ -580,7 +644,7 @@ const HomeScreen = () => {
           </View>
         )}
 
-        {/* 7. ACTION BUTTONS SECTION - Added below Trending */}
+        {/* 7. ACTION BUTTONS SECTION */}
         <View style={styles.actionSection}>
           <View style={styles.actionButtonsContainer}>
             <TouchableOpacity
@@ -608,36 +672,6 @@ const HomeScreen = () => {
             </TouchableOpacity>
           </View>
         </View>
-
-        {/* Why Choose Us Section */}
-        {/* <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Why Choose BricksIT?</Text>
-          <View style={styles.featuresGrid}>
-            <View style={styles.featureItem}>
-              <View style={styles.featureIconContainer}>
-                <Ionicons name="shield-checkmark-outline" size={24} color="#800000" />
-              </View>
-              <Text style={styles.featureTitle}>Quality Assured</Text>
-              <Text style={styles.featureDescription}>All products are tested and certified</Text>
-            </View> */}
-            
-            {/* <View style={styles.featureItem}>
-              <View style={styles.featureIconContainer}>
-                <Ionicons name="car-outline" size={24} color="#800000" />
-              </View>
-              <Text style={styles.featureTitle}>Fast Delivery</Text>
-              <Text style={styles.featureDescription}>On-time delivery across the city</Text>
-            </View> */}
-            
-            {/* <View style={styles.featureItem}>
-              <View style={styles.featureIconContainer}>
-                <Ionicons name="headset-outline" size={24} color="#800000" />
-              </View>
-              <Text style={styles.featureTitle}>24/7 Support</Text>
-              <Text style={styles.featureDescription}>Expert assistance available</Text>
-            </View>
-          </View>
-        </View> */}
 
         {/* Footer Space */}
         <View style={styles.footerSpace} />
@@ -690,57 +724,6 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: 16,
     fontWeight: '500'
-  },
-  
-  // 2. HERO STYLES
-  heroContainer: {
-    height: 220,
-    position: 'relative',
-  },
-  heroSlide: {
-    width: width,
-    height: 220,
-  },
-  heroImage: {
-    width: '100%',
-    height: '100%',
-  },
-  heroOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  heroTitle: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: '#fff',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  heroSubtitle: {
-    fontSize: 16,
-    color: '#fff',
-    textAlign: 'center',
-    opacity: 0.9,
-  },
-  heroIndicators: {
-    position: 'absolute',
-    bottom: 16,
-    flexDirection: 'row',
-    alignSelf: 'center',
-  },
-  heroIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255,255,255,0.5)',
-    marginHorizontal: 4,
-  },
-  heroIndicatorActive: {
-    backgroundColor: '#800000',
-    width: 24,
   },
   
   // SECTION COMMON STYLES
@@ -998,22 +981,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     lineHeight: 18,
   },
-  trendingRatingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  trendingRating: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#333',
-    marginLeft: 4,
-    marginRight: 8,
-  },
-  trendingReviewCount: {
-    fontSize: 10,
-    color: '#999',
-  },
   trendingPriceRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1114,42 +1081,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#dc3545',
     fontWeight: '600',
-  },
-  
-  // FEATURES SECTION
-  featuresGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    marginTop: 8,
-  },
-  featureItem: {
-    flex: 1,
-    alignItems: 'center',
-    padding: 12,
-    marginHorizontal: 4,
-  },
-  featureIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#ffe6e6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  featureTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1a1a1a',
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  featureDescription: {
-    fontSize: 12,
-    color: '#666',
-    textAlign: 'center',
-    lineHeight: 16,
   },
   
   // FOOTER
