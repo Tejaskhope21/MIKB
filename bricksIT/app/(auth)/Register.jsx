@@ -1,4 +1,3 @@
-// app/(auth)/Register.jsx
 import React, { useState } from 'react';
 import {
   View,
@@ -19,11 +18,24 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import axios from 'axios';
 
 /* =========================
-   API BASE URL
+   DYNAMIC API BASE URL
 ========================= */
-const API_URL = Platform.OS === 'web' 
-  ? 'https://bricks-backend-qyea.onrender.com/api' 
-  : 'http://10.0.2.2:5000/api';
+const getApiBaseUrl = () => {
+  if (Platform.OS === 'web') {
+    return 'https://bricks-backend-qyea.onrender.com/api';
+  }
+  
+  // For Android/iOS apps
+  if (__DEV__) {
+    // When using Expo Go on physical device, use the Render URL
+    return 'https://bricks-backend-qyea.onrender.com/api';
+  }
+  
+  // For production builds
+  return 'https://bricks-backend-qyea.onrender.com/api';
+};
+
+const API_URL = getApiBaseUrl();
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -172,6 +184,11 @@ export default function RegisterScreen() {
         email: userForm.email,
         password: userForm.password,
         phone: userForm.phone || '',
+      }, {
+        timeout: 15000,
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
 
       return {
@@ -203,6 +220,11 @@ export default function RegisterScreen() {
           accountNumber: sellerForm.bankAccountNumber,
           accountName: sellerForm.bankAccountName,
           ifscCode: sellerForm.bankIFSC,
+        },
+      }, {
+        timeout: 15000,
+        headers: {
+          'Content-Type': 'application/json',
         },
       });
 
@@ -236,6 +258,11 @@ export default function RegisterScreen() {
         projectsCompleted: parseInt(contractorForm.projectsCompleted) || 0,
         teamSize: contractorForm.teamSize,
         website: contractorForm.website || '',
+      }, {
+        timeout: 15000,
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
 
       return {
@@ -315,7 +342,12 @@ export default function RegisterScreen() {
                 break;
             }
 
-            const loginResponse = await axios.post(loginEndpoint, loginData);
+            const loginResponse = await axios.post(loginEndpoint, loginData, {
+              timeout: 15000,
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            });
             
             if (loginResponse.data.token) {
               // Store token and user data (you'll need to implement AsyncStorage)
@@ -343,7 +375,16 @@ export default function RegisterScreen() {
       }
     } catch (err) {
       console.error('Registration error:', err);
-      setError('An unexpected error occurred. Please try again.');
+      
+      let errorMessage = 'An unexpected error occurred. Please try again.';
+      
+      if (err.message.includes('Network Error')) {
+        errorMessage = 'Network error. Please check your internet connection.';
+      } else if (err.code === 'ECONNABORTED') {
+        errorMessage = 'Request timeout. Please try again.';
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -811,6 +852,13 @@ export default function RegisterScreen() {
             </View>
             <Text style={styles.welcomeText}>Create Account</Text>
             <Text style={styles.subtitle}>Join BricksIT today</Text>
+            
+            {/* API Info */}
+            {__DEV__ && (
+              <Text style={styles.apiInfo}>
+                API: {API_URL}
+              </Text>
+            )}
           </View>
 
           {/* Tabs */}
@@ -1015,6 +1063,16 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: '#6b7280',
+  },
+  apiInfo: {
+    fontSize: 12,
+    color: '#9ca3af',
+    marginTop: 8,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    backgroundColor: '#f3f4f6',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
   },
   tabsContainer: {
     marginBottom: 24,

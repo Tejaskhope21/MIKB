@@ -9,11 +9,114 @@ import {
   Alert,
   ActivityIndicator,
   Modal,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { authAPI, ordersAPI } from '../../services/userApi';
+import axios from 'axios';
+
+/* =========================
+   DYNAMIC API BASE URL
+========================= */
+const getApiBaseUrl = () => {
+  if (Platform.OS === 'web') {
+    return 'https://bricks-backend-qyea.onrender.com/api';
+  }
+  
+  // For Android/iOS apps
+  if (__DEV__) {
+    return 'https://bricks-backend-qyea.onrender.com/api';
+  }
+  
+  // For production builds
+  return 'https://bricks-backend-qyea.onrender.com/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
+
+// Create axios instance with dynamic base URL
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+  },
+});
+
+// Request interceptor for adding token
+api.interceptors.request.use(async (config) => {
+  try {
+    const token = await AsyncStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  } catch (error) {
+    console.log('Error getting token:', error);
+  }
+  return config;
+});
+
+// Response interceptor for handling errors
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid
+      await AsyncStorage.multiRemove(['token', 'userData']);
+      // You can trigger a navigation to login here if needed
+    }
+    return Promise.reject(error);
+  }
+);
+
+// API Functions
+const authAPI = {
+  getProfile: async () => {
+    try {
+      console.log('Fetching profile from:', `${API_BASE_URL}/user/profile`);
+      const response = await api.get('/user/profile');
+      return response;
+    } catch (error) {
+      console.log('Profile fetch error:', error.message);
+      
+      // Try alternative endpoints if first one fails
+      try {
+        const response = await api.get('/auth/profile');
+        return response;
+      } catch (secondError) {
+        console.log('Alternative profile fetch error:', secondError.message);
+        throw error;
+      }
+    }
+  },
+
+  logout: async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch (error) {
+      console.log('Logout API error (ignoring):', error.message);
+    }
+    // Always clear local storage
+    await AsyncStorage.multiRemove(['token', 'userData', 'cart', 'userRole', 'isLoggedIn']);
+    return { success: true };
+  },
+};
+
+const ordersAPI = {
+  fetchUserOrders: async () => {
+    try {
+      console.log('Fetching orders from:', `${API_BASE_URL}/orders/my-orders`);
+      const response = await api.get('/orders/my-orders');
+      return response.data.orders || response.data || [];
+    } catch (error) {
+      console.log('Orders fetch error:', error.message);
+      // Return empty array instead of throwing
+      return [];
+    }
+  },
+};
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -25,40 +128,55 @@ export default function ProfileScreen() {
   useEffect(() => {
     checkloginAndLoadProfile();
   }, []);
-  
 
   const checkloginAndLoadProfile = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
+      console.log('Token exists:', !!token);
 
       if (!token) {
-        router.replace('/login');
+        console.log('No token found, redirecting to login');
+        setTimeout(() => {
+          router.replace('/(auth)/Login');
+        }, 100);
         return;
       }
 
+      console.log('API Base URL:', API_BASE_URL);
+      
+      // Fetch profile data
       const profileRes = await authAPI.getProfile();
-      setUser(profileRes.data?.user || profileRes.data);
+      console.log('Profile response:', profileRes?.data);
+      
+      const userData = profileRes.data?.user || profileRes.data;
+      if (!userData) {
+        throw new Error('No user data received');
+      }
+      
+      setUser(userData);
 
+      // Fetch orders
       try {
         const userOrders = await ordersAPI.fetchUserOrders();
+        console.log('Orders fetched:', userOrders.length);
         setOrders(userOrders.slice(0, 5));
       } catch (orderError) {
-        console.log('Order fetch error:', orderError.message);
+        console.log('Order fetch error (non-critical):', orderError.message);
         setOrders([]);
       }
     } catch (error) {
-      console.log('Profile Error:', error.response?.data || error.message);
-
-      await AsyncStorage.removeItem('token');
-      await AsyncStorage.removeItem('userData');
-
+      console.log('Profile Error:', error);
+      
+      // Clear invalid token
+      await AsyncStorage.multiRemove(['token', 'userData']);
+      
       Alert.alert(
         'Session Expired',
         'Please login again',
         [
           {
             text: 'OK',
-            onPress: () => router.replace('/(auth)/login'),
+            onPress: () => router.replace('/(auth)/Login'),
           },
         ]
       );
@@ -70,30 +188,31 @@ export default function ProfileScreen() {
   // Handle logout
   const handleLogout = async () => {
     try {
-      // Call logout API if available
-      try {
-        await authAPI.logout();
-      } catch (apiError) {
-        console.log('Logout API error:', apiError.message);
-      }
-
-      // Clear local storage
-      await AsyncStorage.multiRemove(['token', 'userData']);
+      // Call logout API
+      await authAPI.logout();
       
       // Reset state
       setUser(null);
       setOrders([]);
-
+      
       // Hide modal
       setShowLogoutModal(false);
-
+      
       // Show success message
       Alert.alert(
         'Logged Out',
         'You have been successfully logged out.',
-        [{ text: 'OK' }]
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // Navigate to login after logout
+              router.replace('/(auth)/Login');
+            }
+          }
+        ]
       );
-
+      
     } catch (error) {
       console.log('Logout error:', error);
       Alert.alert('Error', 'Failed to logout. Please try again.');
@@ -107,7 +226,7 @@ export default function ProfileScreen() {
       icon: 'cart-outline',
       label: 'My Orders',
       onPress: () => router.push('/OrdersScreen'),
-      count: orders.length,
+    
     },
     {
       icon: 'location-outline',
@@ -156,7 +275,7 @@ export default function ProfileScreen() {
             <Text style={styles.guestSubtitle}>Sign in to access all features</Text>
             <TouchableOpacity
               style={styles.signInButton}
-              onPress={() => router.push('/(auth)/login')}
+              onPress={() => router.push('/(auth)/Login')}
             >
               <Text style={styles.signInButtonText}>Sign In</Text>
             </TouchableOpacity>
@@ -167,6 +286,9 @@ export default function ProfileScreen() {
         <View style={styles.appInfo}>
           <Text style={styles.appVersion}>BricksIT v1.0.0</Text>
           <Text style={styles.appCopyright}>© 2024 BricksIT. All rights reserved.</Text>
+          {__DEV__ && (
+            <Text style={styles.apiInfo}>API: {API_BASE_URL}</Text>
+          )}
         </View>
       </ScrollView>
     );
@@ -189,7 +311,12 @@ export default function ProfileScreen() {
           <Text style={styles.userPhone}>{user.phone || 'No phone number'}</Text>
         </View>
 
-        
+        <TouchableOpacity
+          style={styles.editButton}
+          onPress={() => router.push('/edit-profile')}
+        >
+          <Icon name="pencil" size={20} color="#800000" />
+        </TouchableOpacity>
       </View>
 
       {/* MENU ITEMS */}
@@ -245,6 +372,9 @@ export default function ProfileScreen() {
       <View style={styles.appInfo}>
         <Text style={styles.appVersion}>BricksIT v1.0.0</Text>
         <Text style={styles.appCopyright}>© 2024 BricksIT. All rights reserved.</Text>
+        {__DEV__ && (
+          <Text style={styles.apiInfo}>API: {API_BASE_URL}</Text>
+        )}
       </View>
 
       {/* Logout Confirmation Modal */}
@@ -519,6 +649,12 @@ const styles = StyleSheet.create({
   appCopyright: {
     fontSize: 12,
     color: '#999',
+  },
+  apiInfo: {
+    fontSize: 10,
+    color: '#ccc',
+    marginTop: 4,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
   // Modal Styles
   modalOverlay: {
