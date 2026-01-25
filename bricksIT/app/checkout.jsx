@@ -79,11 +79,11 @@ export default function CheckoutScreen() {
             const token = await AsyncStorage.getItem('token');
             if (!token) {
                 Alert.alert(
-                    'Login Required',
+                    'login Required',
                     'Please login to proceed to checkout',
                     [
                         { text: 'Cancel', onPress: () => router.back() },
-                        { text: 'Login', onPress: () => router.push('/login') }
+                        { text: 'login', onPress: () => router.push('/login') }
                     ]
                 );
                 return;

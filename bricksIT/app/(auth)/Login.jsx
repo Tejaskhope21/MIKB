@@ -140,7 +140,7 @@ export default function Login() {
 
   // Handle sign up navigation
   const handleSignUp = () => {
-    router.push('/Register');
+    router.push('/register');
   };
 
   // Handle forgot password

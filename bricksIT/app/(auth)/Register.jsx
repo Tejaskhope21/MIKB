@@ -903,7 +903,7 @@ export default function RegisterScreen() {
               )}
             </TouchableOpacity>
 
-            {/* Login Link */}
+            {/* login Link */}
             <View style={styles.loginContainer}>
               <Text style={styles.loginText}>Already have an account? </Text>
               <TouchableOpacity onPress={() => router.push('/(auth)/login')} disabled={loading}>
