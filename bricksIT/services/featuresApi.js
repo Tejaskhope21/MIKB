@@ -122,7 +122,7 @@ export const fetchTrendingProducts = async (limit = 8) => {
         image: product.images?.[0] || 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400',
         images: product.images || [],
         inStock: product.inStock !== false,
-        rating: Number(product.rating) || 4.0,
+        // rating: Number(product.rating) || 4.0,
         category: product.category,
         trending: product.trending || {},
         // Add trending specific properties
@@ -130,7 +130,7 @@ export const fetchTrendingProducts = async (limit = 8) => {
         views: product.trending?.views || 0,
         clicks: product.trending?.clicks || 0,
         purchases: product.trending?.purchases || 0,
-        reviewCount: product.reviews?.length || 0,
+        // reviewCount: product.reviews?.length || 0,
       }));
     }
     return [];
@@ -256,4 +256,77 @@ export const hasSearchResults = (searchData) => {
       searchData.categories?.length > 0 ||
       searchData.subcategories?.length > 0)
   );
+};
+
+/* ===============================
+   TRENDING PRODUCTS WITH FILTERS
+================================ */
+export const fetchAllTrendingProducts = async (limit = 20, category = '') => {
+  try {
+    let url = `${API_BASE_URL}/trending/all?limit=${limit}`;
+    if (category) {
+      url += `&category=${encodeURIComponent(category)}`;
+    }
+    
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    
+    if (data.success) {
+      // Transform the data to match frontend structure
+      return data.products.map(product => ({
+        id: product._id,
+        _id: product._id,
+        name: product.name,
+        brand: product.brand || 'Brand',
+        price: Number(product.price) || 0,
+        originalPrice: Number(product.originalPrice) || Number(product.price) || 0,
+        discount: product.discount || 0,
+        image: product.images?.[0] || 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400',
+        images: product.images || [],
+        inStock: product.inStock !== false,
+        category: product.category,
+        subcategory: product.subcategory,
+        trending: product.trending || {},
+        trendScore: product.trending?.score || 0,
+        views: product.trending?.views || 0,
+        clicks: product.trending?.clicks || 0,
+        purchases: product.trending?.purchases || 0,
+        createdAt: product.createdAt || new Date().toISOString(),
+      }));
+    }
+    return [];
+  } catch (error) {
+    console.error('Error fetching all trending products:', error);
+    return [];
+  }
+};
+
+/* ===============================
+   GET TRENDING CATEGORIES
+================================ */
+export const fetchTrendingCategories = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/trending/categories`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    
+    if (data.success) {
+      return data.categories.map(cat => ({
+        id: cat._id,
+        _id: cat._id,
+        name: cat.name,
+        image: cat.image || `https://via.placeholder.com/80/cccccc/ffffff?text=${(cat.name || '?').charAt(0)}`,
+        count: cat.count || 0,
+      }));
+    }
+    return [];
+  } catch (error) {
+    console.error('Error fetching trending categories:', error);
+    return [];
+  }
 };
