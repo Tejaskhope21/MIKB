@@ -20,6 +20,7 @@ import { useRouter } from 'expo-router';
 import { useCart } from '../context/CartContext';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_BASE_URL = 'https://bricks-backend-qyea.onrender.com/api';
@@ -30,12 +31,16 @@ export default function CheckoutScreen() {
 
     const [loading, setLoading] = useState(false);
     const [addresses, setAddresses] = useState([]);
-    const [selectedAddress, setSelectedAddress] = useState(null);
+    const [selectedAddressId, setSelectedAddressId] = useState(null);
     const [paymentMethod, setPaymentMethod] = useState('cod');
     const [bankTransferDetails, setBankTransferDetails] = useState({
         transactionId: '',
         screenshot: null,
-        bankName: ''
+        bankName: '',
+        accountName: '',
+        accountNumber: '',
+        ifscCode: '',
+        upiId: ''
     });
     const [notes, setNotes] = useState('');
     const [showAddressModal, setShowAddressModal] = useState(false);
@@ -50,12 +55,12 @@ export default function CheckoutScreen() {
 
     // Bank details
     const bankDetails = {
-        accountName: "BuilderSmart Solutions Pvt Ltd",
-        accountNumber: "123456789012",
-        ifscCode: "SBIN0001234",
-        bankName: "State Bank of India",
+        accountName: "Tejas Khope",
+        accountNumber: "970318210000861",
+        ifscCode: "BKID0009703",
+        bankName: "Bank of India",
         branch: "Mumbai Main Branch",
-        upiId: "buildersmart@sbi"
+        upiId: "khopetejas6-1@oksbi"
     };
 
     useEffect(() => {
@@ -79,11 +84,11 @@ export default function CheckoutScreen() {
             const token = await AsyncStorage.getItem('token');
             if (!token) {
                 Alert.alert(
-                    'login Required',
+                    'Login Required',
                     'Please login to proceed to checkout',
                     [
                         { text: 'Cancel', onPress: () => router.back() },
-                        { text: 'login', onPress: () => router.push('/login') }
+                        { text: 'Login', onPress: () => router.push('/login') }
                     ]
                 );
                 return;
@@ -111,21 +116,6 @@ export default function CheckoutScreen() {
                 setUserProfile(data.user);
             } else {
                 console.error('Failed to fetch user profile:', data.message);
-                // Try alternative endpoint
-                try {
-                    const altResponse = await fetch(`${API_BASE_URL}/user/profile`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json',
-                        },
-                    });
-                    const altData = await altResponse.json();
-                    if (altData.success && altData.user) {
-                        setUserProfile(altData.user);
-                    }
-                } catch (altError) {
-                    console.error('Alternative profile fetch failed:', altError);
-                }
             }
         } catch (error) {
             console.error('Error fetching user profile:', error);
@@ -137,127 +127,45 @@ export default function CheckoutScreen() {
             const token = await AsyncStorage.getItem('token');
             if (!token) return;
 
-            // Try multiple endpoint variations
-            const endpoints = [
-                `${API_BASE_URL}/addresses`,
-                `${API_BASE_URL}/addresses/my`,
-                `${API_BASE_URL}/user/addresses`
-            ];
+            const response = await fetch(`${API_BASE_URL}/auth/me`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
 
-            let addressesData = [];
-            let error = null;
+            const data = await response.json();
+            const userAddresses = data.user?.addresses || [];
 
-            for (const endpoint of endpoints) {
-                try {
-                    const response = await fetch(endpoint, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json',
-                        },
-                    });
+            setAddresses(userAddresses);
 
-                    if (response.ok) {
-                        const data = await response.json();
-
-                        // Handle different response formats
-                        if (data.success && data.addresses) {
-                            addressesData = data.addresses;
-                            break;
-                        } else if (data.success && data.data) {
-                            addressesData = data.data;
-                            break;
-                        } else if (Array.isArray(data)) {
-                            addressesData = data;
-                            break;
-                        }
-                    }
-                } catch (endpointError) {
-                    console.log(`Endpoint ${endpoint} failed:`, endpointError.message);
-                    error = endpointError;
-                }
+            if (userAddresses.length > 0) {
+                const defaultAddr = userAddresses.find(a => a.isDefault) || userAddresses[0];
+                setSelectedAddressId(defaultAddr._id);
             }
-
-            // If no addresses from API, check if addresses are in user profile
-            if (addressesData.length === 0 && userProfile?.addresses) {
-                addressesData = userProfile.addresses;
+        } catch (err) {
+            console.error('Failed to fetch addresses:', err);
+            if (err.response?.status === 401) {
+                router.push('/login');
             }
-
-            // If still no addresses, use mock data
-            if (addressesData.length === 0) {
-                console.log('No addresses found, using mock data');
-                addressesData = [
-                    {
-                        _id: '1',
-                        fullName: userProfile?.name || 'John Doe',
-                        addressLine: '123 Main Street, Apt 4B',
-                        city: 'Mumbai',
-                        state: 'Maharashtra',
-                        pincode: '400001',
-                        phone: userProfile?.phone || '+91 9876543210',
-                        isDefault: true
-                    },
-                    {
-                        _id: '2',
-                        fullName: 'Jane Smith',
-                        addressLine: '456 Park Avenue',
-                        city: 'Delhi',
-                        state: 'Delhi',
-                        pincode: '110001',
-                        phone: '+91 9876543211',
-                        isDefault: false
-                    }
-                ];
-            }
-
-            setAddresses(addressesData);
-
-            // Select default address
-            const defaultAddr = addressesData.find(a => a.isDefault) || addressesData[0];
-            if (defaultAddr) {
-                setSelectedAddress(defaultAddr);
-            }
-
-        } catch (error) {
-            console.error('Error fetching addresses:', error);
-            // Use mock addresses as fallback
-            const mockAddresses = [
-                {
-                    _id: '1',
-                    fullName: userProfile?.name || 'John Doe',
-                    addressLine: '123 Main Street, Apt 4B',
-                    city: 'Mumbai',
-                    state: 'Maharashtra',
-                    pincode: '400001',
-                    phone: userProfile?.phone || '+91 9876543210',
-                    isDefault: true
-                }
-            ];
-            setAddresses(mockAddresses);
-            setSelectedAddress(mockAddresses[0]);
         }
     };
 
-    const handleAddNewAddress = async () => {
-        try {
-            setShowAddressModal(false);
+    const handlePaymentMethodChange = (method) => {
+        setPaymentMethod(method);
+    };
 
-            // Navigate to address form
-            router.push({
-                pathname: '/address-form',
-                params: { redirect: '/checkout' }
-            });
-        } catch (error) {
-            console.error('Error navigating to address form:', error);
-            Alert.alert(
-                'Address Management',
-                'Address management feature is coming soon. For now, please use one of the existing addresses.',
-                [{ text: 'OK' }]
-            );
-        }
+    const handleFileUpload = async () => {
+        // For React Native, you would use ImagePicker or DocumentPicker here
+        Alert.alert(
+            'Upload Payment Proof',
+            'This feature requires react-native-image-picker or react-native-document-picker setup.',
+            [{ text: 'OK' }]
+        );
     };
 
     const validateForm = () => {
-        if (!selectedAddress) {
+        if (!selectedAddressId) {
             Alert.alert('Address Required', 'Please select a delivery address');
             return false;
         }
@@ -275,39 +183,6 @@ export default function CheckoutScreen() {
         return true;
     };
 
-    const createOrderPayload = () => {
-        // Use the correct structure
-        const shippingAddress = {
-            address: selectedAddress.addressLine || selectedAddress.address || '',
-            city: selectedAddress.city || '',
-            state: selectedAddress.state || '',
-            pincode: selectedAddress.pincode || ''
-        };
-
-        const items = cartItems.map(item => ({
-            productId: item.id || item._id,
-            quantity: item.quantity
-        }));
-
-        const payload = {
-            items,
-            shippingAddress,
-            paymentMethod: paymentMethod === 'cod' ? 'COD' : 'BANK_TRANSFER',
-            notes: notes.trim()
-        };
-
-        // Add payment proof for bank transfer
-        if (paymentMethod === 'bank_transfer') {
-            payload.paymentProof = {
-                transactionId: bankTransferDetails.transactionId,
-                screenshot: bankTransferDetails.screenshot,
-                bankName: bankTransferDetails.bankName
-            };
-        }
-
-        return payload;
-    };
-
     const handlePlaceOrder = async () => {
         if (!validateForm()) return;
 
@@ -321,87 +196,93 @@ export default function CheckoutScreen() {
                 return;
             }
 
-            const orderPayload = createOrderPayload();
+            const selectedAddrObj = addresses.find(a => a._id === selectedAddressId);
+            if (!selectedAddrObj) {
+                Alert.alert('Address Error', 'Selected address not found');
+                setLoading(false);
+                return;
+            }
 
-            console.log('Order Payload:', JSON.stringify(orderPayload, null, 2));
+            const shippingAddress = {
+                address: selectedAddrObj.addressLine || selectedAddrObj.address || '',
+                city: selectedAddrObj.city || '',
+                state: selectedAddrObj.state || '',
+                pincode: selectedAddrObj.pincode || '',
+                fullName: selectedAddrObj.fullName || '',
+                phone: selectedAddrObj.phone || ''
+            };
 
-            // Call the order API
+            const payload = {
+                items: cartItems.map(item => ({
+                    productId: item.id || item._id,
+                    quantity: item.quantity
+                })),
+                shippingAddress,
+                paymentMethod: paymentMethod === 'cod' ? 'COD' : 'BANK_TRANSFER',
+                notes: notes.trim()
+            };
+
+            if (paymentMethod === 'bank_transfer') {
+                payload.paymentProof = {
+                    transactionId: bankTransferDetails.transactionId,
+                    screenshot: bankTransferDetails.screenshot,
+                    userBankDetails: {
+                        bankName: bankTransferDetails.bankName,
+                        accountName: bankTransferDetails.accountName,
+                        accountNumber: bankTransferDetails.accountNumber,
+                        ifscCode: bankTransferDetails.ifscCode,
+                        upiId: bankTransferDetails.upiId,
+                        transactionTime: new Date().toLocaleString('en-IN')
+                    },
+                    companyBankDetails: {
+                        accountName: bankDetails.accountName,
+                        accountNumber: bankDetails.accountNumber,
+                        ifscCode: bankDetails.ifscCode,
+                        upiId: bankDetails.upiId,
+                        bankName: bankDetails.bankName,
+                        branch: bankDetails.branch
+                    },
+                    amount: total
+                };
+            }
+
             const response = await fetch(`${API_BASE_URL}/orders`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(orderPayload)
+                body: JSON.stringify(payload)
             });
 
-            // Check if response is ok
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                console.error('Server error response:', errorData);
                 throw new Error(errorData.message || `Server error ${response.status}`);
             }
 
             const data = await response.json();
-            console.log('Order response:', data);
-
-            // Extract order ID from response
-            let orderId = null;
-
-            if (data._id) {
-                orderId = data._id;
-            } else if (data.id) {
-                orderId = data.id;
-            } else if (data.order?._id) {
-                orderId = data.order._id;
-            } else if (data.orderId) {
-                orderId = data.orderId;
-            }
-
+            
+            // Extract order ID
+            let orderId = data._id || data.id || data.order?._id || data.orderId;
             if (!orderId) {
-                // Generate a temporary order ID
                 orderId = 'TEMP_' + Date.now().toString().slice(-8);
             }
 
             // Clear cart after successful order
             clearCart();
 
-            setLoading(false);
-
-            // FIX: Navigate using dynamic route format
-            // This is the key fix - use template literal for dynamic route
+            // Navigate to order success
             router.push(`/order-success/${orderId}`);
 
         } catch (error) {
             console.error('Order failed:', error);
-
-            let errorMessage = 'Failed to place order. Please try again.';
-
-            // Handle specific error cases
-            if (error.message.includes('token') || error.message.includes('auth')) {
-                errorMessage = 'Authentication failed. Please login again.';
-                await AsyncStorage.removeItem('token');
-                router.push('/login');
-            } else if (error.message.includes('stock')) {
-                errorMessage = 'Some items are out of stock. Please update your cart.';
-            } else if (error.message.includes('price')) {
-                errorMessage = 'Price validation failed. Please refresh the cart.';
-            } else if (error.message.includes('500')) {
-                errorMessage = 'Server error. Please try again later or contact support.';
-            }
-
-            Alert.alert('Order Failed', errorMessage);
+            Alert.alert(
+                'Order Failed',
+                error.message || 'Failed to place order. Please try again.'
+            );
+        } finally {
             setLoading(false);
         }
-    };
-
-    const handleUploadScreenshot = async () => {
-        // For React Native, you would use ImagePicker here
-        Alert.alert(
-            'Upload Payment Proof',
-            'This feature requires additional setup with react-native-image-picker library.',
-            [{ text: 'OK' }]
-        );
     };
 
     if (!userToken) {
@@ -451,95 +332,71 @@ export default function CheckoutScreen() {
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={styles.scrollContent}
                 >
-                    {/* Customer Info */}
-                    {userProfile && (
-                        <View style={styles.customerInfoSection}>
-                            <View style={styles.sectionHeader}>
-                                <Ionicons name="person-circle-outline" size={24} color="#800000" />
-                                <Text style={styles.sectionTitle}>Customer Information</Text>
-                            </View>
-                            <View style={styles.customerInfoCard}>
-                                <Text style={styles.customerName}>{userProfile.name || 'User'}</Text>
-                                <Text style={styles.customerEmail}>{userProfile.email}</Text>
-                                {userProfile.phone && (
-                                    <Text style={styles.customerPhone}>Phone: {userProfile.phone}</Text>
-                                )}
-                            </View>
-                        </View>
-                    )}
-
-                    {/* Order Items */}
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Order Items ({getCartCount()} items)</Text>
-                        {cartItems.map((item, index) => (
-                            <View key={item.id || item._id || index} style={styles.orderItem}>
-                                <Image
-                                    source={{ uri: item.image || 'https://via.placeholder.com/60' }}
-                                    style={styles.orderItemImage}
-                                />
-                                <View style={styles.orderItemDetails}>
-                                    <Text style={styles.orderItemName} numberOfLines={2}>
-                                        {item.name}
-                                    </Text>
-                                    <Text style={styles.orderItemQuantity}>
-                                        {item.quantity} × ₹{item.price.toLocaleString()}
-                                    </Text>
-                                    {item.unit && (
-                                        <Text style={styles.orderItemUnit}>Unit: {item.unit}</Text>
-                                    )}
-                                </View>
-                                <Text style={styles.orderItemTotal}>
-                                    ₹{(item.price * item.quantity).toLocaleString()}
-                                </Text>
-                            </View>
-                        ))}
-                    </View>
-
-                    {/* Delivery Address */}
+                    {/* Delivery Address Section */}
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
-                            <MaterialIcons name="location-on" size={24} color="#800000" />
+                            <Ionicons name="location-outline" size={28} color="#800000" />
                             <Text style={styles.sectionTitle}>Delivery Address</Text>
                         </View>
 
-                        {selectedAddress ? (
-                            <TouchableOpacity
-                                style={styles.addressCard}
-                                onPress={() => setShowAddressModal(true)}
-                            >
-                                <Text style={styles.addressName}>{selectedAddress.fullName}</Text>
-                                <Text style={styles.addressText}>{selectedAddress.addressLine}</Text>
-                                <Text style={styles.addressText}>
-                                    {selectedAddress.city}, {selectedAddress.state} - {selectedAddress.pincode}
-                                </Text>
-                                <Text style={styles.addressPhone}>Phone: {selectedAddress.phone}</Text>
-                                {selectedAddress.isDefault && (
-                                    <View style={styles.defaultBadge}>
-                                        <Text style={styles.defaultBadgeText}>Default</Text>
-                                    </View>
-                                )}
+                        {addresses.length === 0 ? (
+                            <View style={styles.noAddressContainer}>
+                                <Text style={styles.noAddressText}>No saved addresses</Text>
                                 <TouchableOpacity
-                                    style={styles.changeAddressButton}
-                                    onPress={() => setShowAddressModal(true)}
+                                    onPress={() => router.push('/profile?tab=addresses')}
+                                    style={styles.addAddressLink}
                                 >
-                                    <Text style={styles.changeAddressText}>Change Address</Text>
+                                    <Text style={styles.addAddressLinkText}>Add Address</Text>
                                 </TouchableOpacity>
-                            </TouchableOpacity>
+                            </View>
                         ) : (
-                            <TouchableOpacity
-                                style={styles.addButton}
-                                onPress={() => setShowAddressModal(true)}
-                            >
-                                <Ionicons name="add-circle-outline" size={24} color="#800000" />
-                                <Text style={styles.addButtonText}>Add Delivery Address</Text>
-                            </TouchableOpacity>
+                            <>
+                                <View style={styles.addressGrid}>
+                                    {addresses.map(addr => (
+                                        <TouchableOpacity
+                                            key={addr._id}
+                                            style={[
+                                                styles.addressCard,
+                                                selectedAddressId === addr._id && styles.addressCardSelected
+                                            ]}
+                                            onPress={() => setSelectedAddressId(addr._id)}
+                                        >
+                                            <View style={styles.addressCardHeader}>
+                                                <Text style={styles.addressName}>{addr.fullName}</Text>
+                                                {selectedAddressId === addr._id && (
+                                                    <Ionicons name="checkmark-circle" size={24} color="#10b981" />
+                                                )}
+                                            </View>
+                                            {addr.isDefault && (
+                                                <View style={styles.defaultBadge}>
+                                                    <Text style={styles.defaultBadgeText}>Default</Text>
+                                                </View>
+                                            )}
+                                            <Text style={styles.addressText}>
+                                                {addr.addressLine || addr.address}
+                                            </Text>
+                                            <Text style={styles.addressText}>
+                                                {addr.city}, {addr.state} - {addr.pincode}
+                                            </Text>
+                                            <Text style={styles.addressPhone}>Phone: {addr.phone}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                                <TouchableOpacity
+                                    onPress={() => router.push('/profile?tab=addresses')}
+                                    style={styles.addNewAddressLink}
+                                >
+                                    <Ionicons name="add-circle-outline" size={24} color="#800000" />
+                                    <Text style={styles.addNewAddressLinkText}>Add New Address</Text>
+                                </TouchableOpacity>
+                            </>
                         )}
                     </View>
 
-                    {/* Payment Method */}
+                    {/* Payment Method Section */}
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
-                            <MaterialIcons name="payment" size={24} color="#800000" />
+                            <FontAwesome name="credit-card" size={28} color="#800000" />
                             <Text style={styles.sectionTitle}>Payment Method</Text>
                         </View>
 
@@ -549,7 +406,7 @@ export default function CheckoutScreen() {
                                 styles.paymentOption,
                                 paymentMethod === 'cod' && styles.paymentOptionSelected
                             ]}
-                            onPress={() => setPaymentMethod('cod')}
+                            onPress={() => handlePaymentMethodChange('cod')}
                         >
                             <View style={styles.paymentOptionHeader}>
                                 <View style={styles.codBadge}>
@@ -571,10 +428,9 @@ export default function CheckoutScreen() {
                         <TouchableOpacity
                             style={[
                                 styles.paymentOption,
-                                paymentMethod === 'bank_transfer' && styles.paymentOptionSelected,
-                                styles.bankTransferOption
+                                paymentMethod === 'bank_transfer' && styles.paymentOptionSelected
                             ]}
-                            onPress={() => setPaymentMethod('bank_transfer')}
+                            onPress={() => handlePaymentMethodChange('bank_transfer')}
                         >
                             <View style={styles.paymentOptionHeader}>
                                 <MaterialIcons name="account-balance" size={24} color="#3b82f6" />
@@ -588,34 +444,47 @@ export default function CheckoutScreen() {
                             </View>
 
                             {paymentMethod === 'bank_transfer' && (
-                                <View style={styles.bankDetails}>
-                                    <Text style={styles.bankDetailsTitle}>Transfer Details:</Text>
-                                    <View style={styles.bankDetailsGrid}>
-                                        <View style={styles.bankDetailRow}>
-                                            <Text style={styles.bankDetailLabel}>Account Name:</Text>
-                                            <Text style={styles.bankDetailValue}>{bankDetails.accountName}</Text>
+                                <View style={styles.bankTransferDetails}>
+                                    {/* Company Bank Details */}
+                                    <View style={styles.companyBankDetails}>
+                                        <Text style={styles.bankDetailsTitle}>Transfer to Company Account</Text>
+                                        <View style={styles.bankDetailsGrid}>
+                                            <View style={styles.bankDetailRow}>
+                                                <Text style={styles.bankDetailLabel}>Account Name:</Text>
+                                                <Text style={styles.bankDetailValue}>{bankDetails.accountName}</Text>
+                                            </View>
+                                            <View style={styles.bankDetailRow}>
+                                                <Text style={styles.bankDetailLabel}>Account No:</Text>
+                                                <Text style={styles.bankDetailValue}>{bankDetails.accountNumber}</Text>
+                                            </View>
+                                            <View style={styles.bankDetailRow}>
+                                                <Text style={styles.bankDetailLabel}>IFSC:</Text>
+                                                <Text style={styles.bankDetailValue}>{bankDetails.ifscCode}</Text>
+                                            </View>
+                                            <View style={styles.bankDetailRow}>
+                                                <Text style={styles.bankDetailLabel}>UPI ID:</Text>
+                                                <Text style={styles.bankDetailValue}>{bankDetails.upiId}</Text>
+                                            </View>
+                                            <View style={styles.bankDetailRow}>
+                                                <Text style={styles.bankDetailLabel}>Bank:</Text>
+                                                <Text style={styles.bankDetailValue}>{bankDetails.bankName}</Text>
+                                            </View>
+                                            <View style={styles.bankDetailRow}>
+                                                <Text style={styles.bankDetailLabel}>Branch:</Text>
+                                                <Text style={styles.bankDetailValue}>{bankDetails.branch}</Text>
+                                            </View>
                                         </View>
-                                        <View style={styles.bankDetailRow}>
-                                            <Text style={styles.bankDetailLabel}>Account No:</Text>
-                                            <Text style={styles.bankDetailValue}>{bankDetails.accountNumber}</Text>
-                                        </View>
-                                        <View style={styles.bankDetailRow}>
-                                            <Text style={styles.bankDetailLabel}>IFSC:</Text>
-                                            <Text style={styles.bankDetailValue}>{bankDetails.ifscCode}</Text>
-                                        </View>
-                                        <View style={styles.bankDetailRow}>
-                                            <Text style={styles.bankDetailLabel}>UPI ID:</Text>
-                                            <Text style={styles.bankDetailValue}>{bankDetails.upiId}</Text>
+                                        <View style={styles.amountWarning}>
+                                            <Ionicons name="warning-outline" size={20} color="#92400e" />
+                                            <Text style={styles.amountWarningText}>
+                                                Transfer exactly ₹{total.toLocaleString()}
+                                            </Text>
                                         </View>
                                     </View>
 
-                                    <View style={styles.amountWarning}>
-                                        <Ionicons name="warning-outline" size={20} color="#92400e" />
-                                        <Text style={styles.amountWarningText}>
-                                            Transfer exactly ₹{total.toLocaleString()}
-                                        </Text>
-                                    </View>
-
+                                    {/* User Payment Details */}
+                                    <Text style={styles.userDetailsTitle}>Your Payment Details (Optional)</Text>
+                                    
                                     <TextInput
                                         style={styles.input}
                                         placeholder="Transaction ID / UPI Reference *"
@@ -626,25 +495,79 @@ export default function CheckoutScreen() {
 
                                     <TextInput
                                         style={styles.input}
-                                        placeholder="Bank Name *"
+                                        placeholder="Your Bank Name *"
                                         value={bankTransferDetails.bankName}
                                         onChangeText={(text) => setBankTransferDetails(prev => ({ ...prev, bankName: text }))}
                                         placeholderTextColor="#94a3b8"
                                     />
 
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Your Account Name (Optional)"
+                                        value={bankTransferDetails.accountName}
+                                        onChangeText={(text) => setBankTransferDetails(prev => ({ ...prev, accountName: text }))}
+                                        placeholderTextColor="#94a3b8"
+                                    />
+
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Your Account Number (Optional)"
+                                        value={bankTransferDetails.accountNumber}
+                                        onChangeText={(text) => setBankTransferDetails(prev => ({ ...prev, accountNumber: text }))}
+                                        placeholderTextColor="#94a3b8"
+                                    />
+
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Your IFSC Code (Optional)"
+                                        value={bankTransferDetails.ifscCode}
+                                        onChangeText={(text) => setBankTransferDetails(prev => ({ ...prev, ifscCode: text }))}
+                                        placeholderTextColor="#94a3b8"
+                                    />
+
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Your UPI ID (Optional)"
+                                        value={bankTransferDetails.upiId}
+                                        onChangeText={(text) => setBankTransferDetails(prev => ({ ...prev, upiId: text }))}
+                                        placeholderTextColor="#94a3b8"
+                                    />
+
+                                    {/* Upload Section */}
                                     <TouchableOpacity
-                                        style={styles.uploadButton}
-                                        onPress={handleUploadScreenshot}
+                                        style={styles.uploadSection}
+                                        onPress={handleFileUpload}
                                     >
-                                        <Ionicons name="cloud-upload-outline" size={24} color="#800000" />
-                                        <Text style={styles.uploadButtonText}>Upload Payment Proof</Text>
+                                        {bankTransferDetails.screenshot ? (
+                                            <View style={styles.imagePreviewContainer}>
+                                                <Image 
+                                                    source={{ uri: bankTransferDetails.screenshot }} 
+                                                    style={styles.imagePreview}
+                                                />
+                                                <TouchableOpacity
+                                                    style={styles.removeImageButton}
+                                                    onPress={() => setBankTransferDetails(prev => ({ ...prev, screenshot: null }))}
+                                                >
+                                                    <Text style={styles.removeImageText}>Remove Image</Text>
+                                                </TouchableOpacity>
+                                            </View>
+                                        ) : (
+                                            <>
+                                                <Ionicons name="cloud-upload-outline" size={48} color="#9ca3af" />
+                                                <Text style={styles.uploadText}>Upload payment proof (screenshot)</Text>
+                                                <TouchableOpacity style={styles.chooseFileButton}>
+                                                    <Text style={styles.chooseFileText}>Choose File</Text>
+                                                </TouchableOpacity>
+                                                <Text style={styles.fileSizeText}>Max 5MB (PNG, JPG, JPEG)</Text>
+                                            </>
+                                        )}
                                     </TouchableOpacity>
                                 </View>
                             )}
                         </TouchableOpacity>
                     </View>
 
-                    {/* Additional Notes */}
+                    {/* Additional Notes Section */}
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Additional Notes (Optional)</Text>
                         <TextInput
@@ -662,48 +585,67 @@ export default function CheckoutScreen() {
                     <View style={styles.summarySection}>
                         <Text style={styles.summaryTitle}>Order Summary</Text>
 
-                        <View style={styles.summaryRow}>
-                            <Text style={styles.summaryLabel}>Subtotal</Text>
-                            <Text style={styles.summaryValue}>₹{subtotal.toLocaleString()}</Text>
+                        {/* Cart Items */}
+                        <ScrollView style={styles.cartItemsScroll} nestedScrollEnabled={true}>
+                            {cartItems.map((item, index) => (
+                                <View key={item.id || item._id || index} style={styles.cartItem}>
+                                    <View style={styles.cartItemInfo}>
+                                        <Text style={styles.cartItemName} numberOfLines={2}>
+                                            {item.name}
+                                        </Text>
+                                        <Text style={styles.cartItemQuantity}>
+                                            {item.quantity} × ₹{item.price.toLocaleString()}
+                                        </Text>
+                                    </View>
+                                    <Text style={styles.cartItemTotal}>
+                                        ₹{(item.price * item.quantity).toLocaleString()}
+                                    </Text>
+                                </View>
+                            ))}
+                        </ScrollView>
+
+                        {/* Price Breakdown */}
+                        <View style={styles.priceBreakdown}>
+                            <View style={styles.summaryRow}>
+                                <Text style={styles.summaryLabel}>Subtotal</Text>
+                                <Text style={styles.summaryValue}>₹{subtotal.toLocaleString()}</Text>
+                            </View>
+
+                            <View style={styles.summaryRow}>
+                                <Text style={styles.summaryLabel}>Shipping</Text>
+                                <Text style={styles.summaryValue}>
+                                    {shipping === 0 ? 'Free' : `₹${shipping}`}
+                                </Text>
+                            </View>
+
+                            <View style={styles.summaryRow}>
+                                <Text style={styles.summaryLabel}>GST (18%)</Text>
+                                <Text style={styles.summaryValue}>₹{tax.toLocaleString()}</Text>
+                            </View>
+
+                            <View style={[styles.summaryRow, styles.totalRow]}>
+                                <Text style={styles.totalLabel}>Total</Text>
+                                <Text style={styles.totalValue}>₹{total.toLocaleString()}</Text>
+                            </View>
                         </View>
 
-                        <View style={styles.summaryRow}>
-                            <Text style={styles.summaryLabel}>Shipping</Text>
-                            <Text style={styles.summaryValue}>
-                                {shipping === 0 ? 'Free' : `₹${shipping}`}
-                            </Text>
-                        </View>
-
-                        <View style={styles.summaryRow}>
-                            <Text style={styles.summaryLabel}>Tax (18%)</Text>
-                            <Text style={styles.summaryValue}>₹{tax.toLocaleString()}</Text>
-                        </View>
-
-                        <View style={[styles.summaryRow, styles.totalRow]}>
-                            <Text style={styles.totalLabel}>Total Amount</Text>
-                            <Text style={styles.totalValue}>₹{total.toLocaleString()}</Text>
-                        </View>
-
+                        {/* Delivery Info */}
                         <View style={styles.deliveryInfo}>
-                            <Ionicons name="time-outline" size={20} color="#10b981" />
-                            <Text style={styles.deliveryText}>Estimated Delivery: 3-7 business days</Text>
-                        </View>
-
-                        <View style={styles.paymentNote}>
-                            <Ionicons name="information-circle-outline" size={20} color="#3b82f6" />
-                            <Text style={styles.paymentNoteText}>
-                                {paymentMethod === 'cod'
-                                    ? 'Payment to be collected upon delivery'
-                                    : 'Order will be processed after payment verification'
-                                }
-                            </Text>
+                            <Ionicons name="time-outline" size={24} color="#10b981" />
+                            <Text style={styles.deliveryText}>Estimated Delivery: 3-7 hours</Text>
                         </View>
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
 
-            {/* Place Order Button */}
+            {/* Footer with Place Order Button */}
             <View style={styles.footer}>
+                <TouchableOpacity
+                    style={styles.backToCartButton}
+                    onPress={() => router.push('/cart')}
+                >
+                    <Text style={styles.backToCartText}>← Back to Cart</Text>
+                </TouchableOpacity>
                 <View style={styles.orderTotal}>
                     <Text style={styles.orderTotalLabel}>Total:</Text>
                     <Text style={styles.orderTotalAmount}>₹{total.toLocaleString()}</Text>
@@ -716,97 +658,35 @@ export default function CheckoutScreen() {
                     {loading ? (
                         <ActivityIndicator color="#fff" />
                     ) : (
-                        <Text style={styles.placeOrderButtonText}>Place Order</Text>
+                        <Text style={styles.placeOrderButtonText}>
+                            Place Order
+                        </Text>
                     )}
                 </TouchableOpacity>
             </View>
-
-            {/* Address Selection Modal */}
-            <Modal
-                visible={showAddressModal}
-                transparent={true}
-                animationType="slide"
-                onRequestClose={() => setShowAddressModal(false)}
-            >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Select Address</Text>
-                            <TouchableOpacity
-                                onPress={() => setShowAddressModal(false)}
-                                style={styles.modalCloseButton}
-                            >
-                                <Ionicons name="close" size={24} color="#64748b" />
-                            </TouchableOpacity>
-                        </View>
-
-                        <ScrollView style={styles.modalScrollView}>
-                            {addresses.map(address => (
-                                <TouchableOpacity
-                                    key={address._id || address.id}
-                                    style={[
-                                        styles.modalAddressItem,
-                                        selectedAddress?._id === address._id && styles.modalAddressItemSelected
-                                    ]}
-                                    onPress={() => {
-                                        setSelectedAddress(address);
-                                        setShowAddressModal(false);
-                                    }}
-                                >
-                                    <View style={styles.modalAddressHeader}>
-                                        <Text style={styles.modalAddressName}>{address.fullName}</Text>
-                                        {selectedAddress?._id === address._id && (
-                                            <Ionicons name="checkmark-circle" size={20} color="#10b981" />
-                                        )}
-                                    </View>
-                                    <Text style={styles.modalAddressText}>{address.addressLine || address.address}</Text>
-                                    <Text style={styles.modalAddressText}>
-                                        {address.city}, {address.state} - {address.pincode}
-                                    </Text>
-                                    <Text style={styles.modalAddressPhone}>Phone: {address.phone}</Text>
-                                    {address.isDefault && (
-                                        <View style={styles.modalDefaultBadge}>
-                                            <Text style={styles.modalDefaultBadgeText}>Default</Text>
-                                        </View>
-                                    )}
-                                </TouchableOpacity>
-                            ))}
-
-                            <TouchableOpacity
-                                style={styles.addNewAddressButton}
-                                onPress={handleAddNewAddress}
-                            >
-                                <Ionicons name="add-circle-outline" size={24} color="#800000" />
-                                <Text style={styles.addNewAddressText}>Add New Address</Text>
-                            </TouchableOpacity>
-                        </ScrollView>
-                    </View>
-                </View>
-            </Modal>
         </SafeAreaView>
     );
 }
 
-// Styles remain the same
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8fafc',
+        backgroundColor: '#f8f9fa',
     },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#f8fafc',
+        backgroundColor: '#f8f9fa',
     },
     loadingText: {
-        marginTop: 16,
-        fontSize: 16,
-        color: '#64748b',
+        marginTop: 12,
+        fontSize: 14,
+        color: '#6c757d',
     },
     emptyContainer: {
         flex: 1,
-        backgroundColor: '#f8fafc',
+        backgroundColor: '#f8f9fa',
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -815,21 +695,21 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     emptyTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#1e293b',
-        marginTop: 16,
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#343a40',
+        marginTop: 12,
     },
     shopButton: {
         backgroundColor: '#800000',
-        paddingHorizontal: 24,
-        paddingVertical: 12,
-        borderRadius: 8,
-        marginTop: 16,
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 6,
+        marginTop: 12,
     },
     shopButtonText: {
         color: '#fff',
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: '600',
     },
     header: {
@@ -837,31 +717,37 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingVertical: 14,
+        paddingHorizontal: 12,
+        paddingVertical: 12,
+        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 8 : 12,
+        elevation: 2,
     },
     backButton: {
-        padding: 8,
+        padding: 4,
     },
     headerTitle: {
         color: '#fff',
         fontSize: 18,
-        fontWeight: 'bold',
+        fontWeight: '600',
     },
     keyboardView: {
         flex: 1,
     },
     scrollContent: {
-        paddingBottom: 150,
+        paddingHorizontal: 12,
+        paddingTop: 12,
+        paddingBottom: 140,
     },
-    customerInfoSection: {
+    section: {
         backgroundColor: '#fff',
-        marginHorizontal: 16,
-        marginTop: 16,
+        borderRadius: 10,
         padding: 16,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#e2e8f0',
+        marginBottom: 12,
+        elevation: 1,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
     },
     sectionHeader: {
         flexDirection: 'row',
@@ -870,153 +756,100 @@ const styles = StyleSheet.create({
     },
     sectionTitle: {
         fontSize: 18,
-        fontWeight: 'bold',
-        color: '#1e293b',
-        marginLeft: 12,
+        fontWeight: '600',
+        color: '#212529',
+        marginLeft: 8,
     },
-    customerInfoCard: {
-        backgroundColor: '#f8fafc',
-        padding: 16,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#e2e8f0',
-    },
-    customerName: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#1e293b',
-        marginBottom: 4,
-    },
-    customerEmail: {
-        fontSize: 14,
-        color: '#475569',
-        marginBottom: 4,
-    },
-    customerPhone: {
-        fontSize: 14,
-        color: '#64748b',
-    },
-    section: {
-        backgroundColor: '#fff',
-        marginHorizontal: 16,
-        marginTop: 16,
-        padding: 16,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#e2e8f0',
-    },
-    orderItem: {
-        flexDirection: 'row',
+    noAddressContainer: {
         alignItems: 'center',
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: '#e2e8f0',
+        paddingVertical: 24,
     },
-    orderItemImage: {
-        width: 60,
-        height: 60,
-        borderRadius: 8,
-    },
-    orderItemDetails: {
-        flex: 1,
-        marginLeft: 12,
-    },
-    orderItemName: {
+    noAddressText: {
         fontSize: 14,
-        fontWeight: '500',
-        color: '#1e293b',
-        marginBottom: 4,
+        color: '#6c757d',
+        marginBottom: 8,
     },
-    orderItemQuantity: {
-        fontSize: 12,
-        color: '#64748b',
-        marginBottom: 2,
+    addAddressLink: {
+        padding: 4,
     },
-    orderItemUnit: {
-        fontSize: 12,
-        color: '#64748b',
-        fontStyle: 'italic',
-    },
-    orderItemTotal: {
-        fontSize: 16,
-        fontWeight: 'bold',
+    addAddressLinkText: {
         color: '#800000',
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    addressGrid: {
+        gap: 8,
+        marginBottom: 12,
     },
     addressCard: {
-        backgroundColor: '#f8fafc',
-        padding: 16,
+        backgroundColor: '#f8f9fa',
         borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#e2e8f0',
+        padding: 12,
+        borderWidth: 1.5,
+        borderColor: '#dee2e6',
+    },
+    addressCardSelected: {
+        borderColor: '#800000',
+        backgroundColor: '#ffeaea',
+    },
+    addressCardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 6,
     },
     addressName: {
         fontSize: 16,
-        fontWeight: 'bold',
-        color: '#1e293b',
-        marginBottom: 4,
+        fontWeight: '600',
+        color: '#212529',
     },
     addressText: {
-        fontSize: 14,
-        color: '#475569',
+        fontSize: 13,
+        color: '#495057',
         marginBottom: 2,
+        lineHeight: 18,
     },
     addressPhone: {
-        fontSize: 14,
-        color: '#64748b',
-        marginTop: 8,
+        fontSize: 13,
+        color: '#6c757d',
+        marginTop: 4,
     },
     defaultBadge: {
         alignSelf: 'flex-start',
-        backgroundColor: '#10b981',
+        backgroundColor: '#28a745',
         paddingHorizontal: 8,
         paddingVertical: 2,
         borderRadius: 4,
-        marginTop: 8,
-        marginBottom: 8,
+        marginBottom: 6,
     },
     defaultBadgeText: {
         color: '#fff',
-        fontSize: 12,
+        fontSize: 10,
         fontWeight: '500',
     },
-    changeAddressButton: {
-        alignSelf: 'flex-start',
-        marginTop: 8,
-    },
-    changeAddressText: {
-        color: '#800000',
-        fontSize: 14,
-        fontWeight: '500',
-    },
-    addButton: {
+    addNewAddressLink: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 20,
-        borderWidth: 2,
-        borderColor: '#e2e8f0',
-        borderStyle: 'dashed',
-        borderRadius: 12,
+        paddingVertical: 8,
+        gap: 6,
     },
-    addButtonText: {
+    addNewAddressLinkText: {
         color: '#800000',
-        fontSize: 16,
-        fontWeight: '500',
-        marginLeft: 8,
+        fontSize: 14,
+        fontWeight: '600',
     },
     paymentOption: {
-        padding: 16,
-        borderWidth: 2,
-        borderColor: '#e2e8f0',
-        borderRadius: 12,
-        marginBottom: 12,
+        backgroundColor: '#f8f9fa',
+        borderRadius: 8,
+        padding: 12,
+        borderWidth: 1.5,
+        borderColor: '#dee2e6',
+        marginBottom: 8,
     },
     paymentOptionSelected: {
         borderColor: '#800000',
-        backgroundColor: '#fef2f2',
-    },
-    bankTransferOption: {
-        paddingBottom: 0,
+        backgroundColor: '#ffeaea',
     },
     paymentOptionHeader: {
         flexDirection: 'row',
@@ -1025,9 +858,9 @@ const styles = StyleSheet.create({
     },
     codBadge: {
         backgroundColor: '#800000',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 4,
     },
     codBadgeText: {
         color: '#fff',
@@ -1036,135 +869,222 @@ const styles = StyleSheet.create({
     },
     paymentOptionText: {
         flex: 1,
-        marginLeft: 12,
+        marginLeft: 10,
     },
     paymentOptionTitle: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#1e293b',
+        color: '#212529',
     },
     paymentOptionDesc: {
-        fontSize: 14,
-        color: '#64748b',
+        fontSize: 12,
+        color: '#6c757d',
         marginTop: 2,
     },
-    bankDetails: {
-        marginTop: 16,
-        paddingTop: 16,
+    bankTransferDetails: {
+        marginTop: 12,
+        paddingTop: 12,
         borderTopWidth: 1,
-        borderTopColor: '#e2e8f0',
+        borderTopColor: '#dee2e6',
+    },
+    companyBankDetails: {
+        backgroundColor: '#e7f1ff',
+        borderRadius: 8,
+        padding: 12,
+        marginBottom: 12,
     },
     bankDetailsTitle: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#1e293b',
-        marginBottom: 12,
+        color: '#212529',
+        marginBottom: 8,
     },
     bankDetailsGrid: {
-        gap: 8,
-        marginBottom: 16,
+        gap: 6,
+        marginBottom: 12,
     },
     bankDetailRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
+        alignItems: 'center',
     },
     bankDetailLabel: {
-        fontSize: 14,
-        color: '#64748b',
-        width: '40%',
+        fontSize: 12,
+        color: '#495057',
+        fontWeight: '500',
+        flex: 1,
     },
     bankDetailValue: {
-        fontSize: 14,
-        color: '#1e293b',
-        fontWeight: '500',
-        width: '60%',
+        fontSize: 12,
+        color: '#212529',
+        fontWeight: '600',
+        flex: 1,
+        textAlign: 'right',
     },
     amountWarning: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#fef3c7',
-        padding: 12,
-        borderRadius: 8,
-        marginBottom: 16,
-        gap: 8,
+        backgroundColor: '#fff3cd',
+        padding: 8,
+        borderRadius: 6,
+        gap: 6,
     },
     amountWarningText: {
-        color: '#92400e',
-        fontSize: 14,
+        color: '#856404',
+        fontSize: 13,
         fontWeight: '600',
         flex: 1,
     },
+    userDetailsTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#212529',
+        marginBottom: 8,
+        marginTop: 4,
+    },
     input: {
         borderWidth: 1,
-        borderColor: '#cbd5e1',
-        borderRadius: 8,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        fontSize: 16,
-        color: '#1e293b',
-        marginBottom: 12,
+        borderColor: '#ced4da',
+        borderRadius: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        fontSize: 14,
+        color: '#212529',
+        marginBottom: 8,
         backgroundColor: '#fff',
     },
     textArea: {
-        minHeight: 100,
+        minHeight: 80,
         textAlignVertical: 'top',
     },
-    uploadButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 2,
-        borderColor: '#800000',
+    uploadSection: {
+        borderWidth: 1.5,
+        borderColor: '#adb5bd',
         borderStyle: 'dashed',
         borderRadius: 8,
-        padding: 16,
-        gap: 8,
-        backgroundColor: '#fff',
+        padding: 24,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 8,
     },
-    uploadButtonText: {
-        color: '#800000',
-        fontSize: 16,
+    uploadText: {
+        fontSize: 14,
+        color: '#6c757d',
+        marginTop: 8,
+        marginBottom: 12,
+        textAlign: 'center',
+    },
+    chooseFileButton: {
+        backgroundColor: '#800000',
+        paddingHorizontal: 20,
+        paddingVertical: 8,
+        borderRadius: 6,
+    },
+    chooseFileText: {
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    fileSizeText: {
+        fontSize: 10,
+        color: '#adb5bd',
+        marginTop: 6,
+    },
+    imagePreviewContainer: {
+        alignItems: 'center',
+    },
+    imagePreview: {
+        width: 160,
+        height: 160,
+        borderRadius: 6,
+        marginBottom: 8,
+    },
+    removeImageButton: {
+        padding: 6,
+    },
+    removeImageText: {
+        color: '#dc3545',
+        fontSize: 14,
         fontWeight: '500',
     },
     summarySection: {
         backgroundColor: '#fff',
-        margin: 16,
+        borderRadius: 10,
         padding: 16,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#e2e8f0',
-        marginBottom: 100,
+        marginBottom: 80,
+        elevation: 1,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
     },
     summaryTitle: {
         fontSize: 18,
-        fontWeight: 'bold',
-        color: '#1e293b',
+        fontWeight: '600',
+        color: '#212529',
         marginBottom: 16,
+    },
+    cartItemsScroll: {
+        maxHeight: 160,
+        marginBottom: 16,
+    },
+    cartItem: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: '#dee2e6',
+    },
+    cartItemInfo: {
+        flex: 1,
+        marginRight: 8,
+    },
+    cartItemName: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: '#212529',
+        marginBottom: 2,
+    },
+    cartItemQuantity: {
+        fontSize: 12,
+        color: '#6c757d',
+    },
+    cartItemTotal: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#212529',
+    },
+    priceBreakdown: {
+        borderTopWidth: 1,
+        borderTopColor: '#dee2e6',
+        paddingTop: 16,
     },
     summaryRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 8,
+        alignItems: 'center',
+        marginBottom: 6,
     },
     summaryLabel: {
         fontSize: 14,
-        color: '#64748b',
+        color: '#6c757d',
     },
     summaryValue: {
         fontSize: 14,
         fontWeight: '500',
-        color: '#1e293b',
+        color: '#212529',
     },
     totalRow: {
         borderTopWidth: 1,
-        borderTopColor: '#e2e8f0',
-        paddingTop: 12,
-        marginTop: 8,
+        borderTopColor: '#dee2e6',
+        paddingTop: 10,
+        marginTop: 6,
     },
     totalLabel: {
         fontSize: 16,
-        fontWeight: 'bold',
-        color: '#1e293b',
+        fontWeight: '600',
+        color: '#212529',
     },
     totalValue: {
         fontSize: 20,
@@ -1177,28 +1097,13 @@ const styles = StyleSheet.create({
         marginTop: 16,
         paddingTop: 16,
         borderTopWidth: 1,
-        borderTopColor: '#e2e8f0',
-        gap: 8,
+        borderTopColor: '#dee2e6',
+        gap: 6,
     },
     deliveryText: {
         fontSize: 14,
-        color: '#10b981',
-        fontWeight: '500',
-    },
-    paymentNote: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: 12,
-        padding: 12,
-        backgroundColor: '#eff6ff',
-        borderRadius: 8,
-        gap: 8,
-    },
-    paymentNoteText: {
-        fontSize: 14,
-        color: '#1e40af',
-        flex: 1,
-        fontStyle: 'italic',
+        color: '#28a745',
+        fontWeight: '600',
     },
     footer: {
         position: 'absolute',
@@ -1207,13 +1112,21 @@ const styles = StyleSheet.create({
         right: 0,
         backgroundColor: '#fff',
         borderTopWidth: 1,
-        borderTopColor: '#e2e8f0',
-        padding: 16,
+        borderTopColor: '#dee2e6',
+        padding: 12,
+        elevation: 4,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: -2 },
         shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 5,
+        shadowRadius: 3,
+    },
+    backToCartButton: {
+        marginBottom: 8,
+    },
+    backToCartText: {
+        color: '#6c757d',
+        fontSize: 14,
+        fontWeight: '500',
     },
     orderTotal: {
         flexDirection: 'row',
@@ -1223,120 +1136,27 @@ const styles = StyleSheet.create({
     },
     orderTotalLabel: {
         fontSize: 16,
-        fontWeight: 'bold',
-        color: '#1e293b',
+        fontWeight: '600',
+        color: '#212529',
     },
     orderTotalAmount: {
-        fontSize: 24,
+        fontSize: 22,
         fontWeight: 'bold',
         color: '#800000',
     },
     placeOrderButton: {
         backgroundColor: '#800000',
-        borderRadius: 12,
+        borderRadius: 8,
         padding: 16,
         alignItems: 'center',
     },
     placeOrderButtonDisabled: {
-        backgroundColor: '#a78bfa',
+        backgroundColor: '#a00000',
         opacity: 0.7,
     },
     placeOrderButtonText: {
         color: '#fff',
-        fontSize: 18,
-        fontWeight: 'bold',
-    },
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        justifyContent: 'flex-end',
-    },
-    modalContent: {
-        backgroundColor: '#fff',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        maxHeight: '80%',
-    },
-    modalHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: '#e2e8f0',
-    },
-    modalTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#1e293b',
-    },
-    modalCloseButton: {
-        padding: 4,
-    },
-    modalScrollView: {
-        padding: 16,
-    },
-    modalAddressItem: {
-        backgroundColor: '#f8fafc',
-        padding: 16,
-        borderRadius: 12,
-        marginBottom: 12,
-        borderWidth: 1,
-        borderColor: '#e2e8f0',
-    },
-    modalAddressItemSelected: {
-        borderColor: '#800000',
-        backgroundColor: '#fef2f2',
-    },
-    modalAddressHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 8,
-    },
-    modalAddressName: {
         fontSize: 16,
-        fontWeight: 'bold',
-        color: '#1e293b',
-    },
-    modalAddressText: {
-        fontSize: 14,
-        color: '#475569',
-        marginBottom: 2,
-    },
-    modalAddressPhone: {
-        fontSize: 14,
-        color: '#64748b',
-        marginTop: 8,
-    },
-    modalDefaultBadge: {
-        alignSelf: 'flex-start',
-        backgroundColor: '#10b981',
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 4,
-        marginTop: 8,
-    },
-    modalDefaultBadgeText: {
-        color: '#fff',
-        fontSize: 12,
-        fontWeight: '500',
-    },
-    addNewAddressButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 20,
-        borderWidth: 2,
-        borderColor: '#800000',
-        borderStyle: 'dashed',
-        borderRadius: 12,
-        gap: 8,
-        marginTop: 8,
-    },
-    addNewAddressText: {
-        color: '#800000',
-        fontSize: 16,
-        fontWeight: '500',
+        fontWeight: '600',
     },
 });
