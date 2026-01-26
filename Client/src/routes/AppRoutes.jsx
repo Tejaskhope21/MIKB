@@ -26,7 +26,8 @@ import Analytics from '../components/Seller/Analytics/Analytics'
 import Reviews from '../components/Seller/Reviews/Reviews'
 import Inventory from '../components/Seller/Inventory/Inventory'
 import StoreSettings from '../components/Seller/Settings/StoreSettings'
-import SellerProductHotDeal from '../components/Seller/Products/SellerProductHotDeal'
+import SellerProductHotDeal from '../components/Seller/ProductsDeals/SellerProductHotDeal'
+import SellerProductTrending from '../components/Seller/ProductsDeals/SellerProductTrending'
 // Contractor Components
 import ContractorLayout from '../layouts/ContractorLayout'
 import ContractorDashboardPage from '../pages/Contractor/DashboardPage'
@@ -143,6 +144,7 @@ const AppRoutes = () => {
                     <Route path="products/import" element={<div className="p-6">Import Products</div>} />
                     <Route path="products/categories" element={<div className="p-6">Product Categories</div>} />
                     <Route path="products/hotdeal" element={<div className="p-6"><SellerProductHotDeal /></div>} />
+                    <Route path="products/trending" element={<div className="p-6"><SellerProductTrending /></div>} />
                     <Route path="orders" element={<OrderList />} />
                     <Route path="orders/:orderId" element={<OrderDetails />} />
                     <Route path="orders/returns" element={<div className="p-6">Returns & Refunds</div>} />

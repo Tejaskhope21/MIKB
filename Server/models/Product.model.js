@@ -3,15 +3,26 @@
 import mongoose from 'mongoose';
 
 /* ===============================
-   VALIDATORS
+   HELPERS
 ================================ */
 const arrayLimit = (val) => Array.isArray(val) && val.length > 0;
+
+/* ===============================
+   SUB SCHEMAS
+================================ */
+const analyticsSchema = {
+    views: { type: Number, default: 0 },
+    clicks: { type: Number, default: 0 }
+};
 
 /* ===============================
    PRODUCT SCHEMA
 ================================ */
 const productSchema = new mongoose.Schema(
     {
+        /* ===============================
+           BASIC INFO
+        =============================== */
         numericId: {
             type: Number,
             unique: true,
@@ -20,7 +31,7 @@ const productSchema = new mongoose.Schema(
 
         name: {
             type: String,
-            required: [true, 'Product name is required'],
+            required: true,
             trim: true
         },
 
@@ -31,13 +42,16 @@ const productSchema = new mongoose.Schema(
 
         description: {
             type: String,
-            required: [true, 'Product description is required']
+            required: true
         },
 
+        /* ===============================
+           CATEGORY
+        =============================== */
         categoryId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Category',
-            required: [true, 'Category is required']
+            required: true
         },
 
         subcategoryId: {
@@ -77,15 +91,18 @@ const productSchema = new mongoose.Schema(
             thermalInsulation: Boolean
         },
 
+        /* ===============================
+           PRICING
+        =============================== */
         price: {
             type: Number,
-            required: [true, 'Price is required'],
-            min: [0, 'Price cannot be negative']
+            required: true,
+            min: 0
         },
 
         originalPrice: {
             type: Number,
-            min: [0, 'Original price cannot be negative']
+            min: 0
         },
 
         discount: {
@@ -93,36 +110,38 @@ const productSchema = new mongoose.Schema(
             default: 0
         },
 
+        /* ===============================
+           MEDIA
+        =============================== */
         images: {
             type: [String],
-            required: [true, 'At least one product image is required'],
+            required: true,
             validate: [arrayLimit, 'At least one image is required']
         },
 
+        /* ===============================
+           INVENTORY
+        =============================== */
         inventory: {
-            stock: {
-                type: Number,
-                default: 0,
-                min: 0
-            },
-            lowStockThreshold: {
-                type: Number,
-                default: 10
-            },
-            moq: {
-                type: Number,
-                default: 1,
-                min: 1
-            },
-            manageStock: {
-                type: Boolean,
-                default: true
-            }
+            stock: { type: Number, default: 0 },
+            lowStockThreshold: { type: Number, default: 10 },
+            moq: { type: Number, default: 1 },
+            manageStock: { type: Boolean, default: true }
         },
 
         unitType: {
             type: String,
-            enum: ['piece', 'kg', 'ton', 'meter', 'sq-meter', 'cubic-meter', 'bag', 'set', 'roll'],
+            enum: [
+                'piece',
+                'kg',
+                'ton',
+                'meter',
+                'sq-meter',
+                'cubic-meter',
+                'bag',
+                'set',
+                'roll'
+            ],
             default: 'piece'
         },
 
@@ -134,11 +153,13 @@ const productSchema = new mongoose.Schema(
             },
             quantityPerPackage: {
                 type: Number,
-                default: 1,
-                min: 1
+                default: 1
             }
         },
 
+        /* ===============================
+           SELLER & STATUS
+        =============================== */
         sellerId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
@@ -151,119 +172,97 @@ const productSchema = new mongoose.Schema(
             default: 'draft'
         },
 
+        /* ===============================
+           SEO
+        =============================== */
         seo: {
             title: String,
             description: String,
             keywords: [String]
         },
+
+        /* ===============================
+           HOT DEAL
+        =============================== */
         hotDeal: {
-    isRequested: {
-        type: Boolean,
-        default: false
-    },
-    isApproved: {
-        type: Boolean,
-        default: false
-    },
-    isRejected: {
-        type: Boolean,
-        default: false
-    },
-    isPaid: {
-        type: Boolean,
-        default: false
-    },
-    priority: {
-        type: Number,
-        default: 0
-    },
-    approvedAt: Date,
-    expiresAt: Date,
+            isRequested: { type: Boolean, default: false },
+            isApproved: { type: Boolean, default: false },
+            isRejected: { type: Boolean, default: false },
+            isExpired: { type: Boolean, default: false },
+            isPaid: { type: Boolean, default: false },
 
-    // Analytics
-    views: {
-        type: Number,
-        default: 0
-    },
-    clicks: {
-        type: Number,
-        default: 0
-    }
-},
-trending: {
-    isRequested: {
-        type: Boolean,
-        default: false
-    },
-    isApproved: {
-        type: Boolean,
-        default: false
-    },
-    isRejected: {
-        type: Boolean,
-        default: false
-    },
-    requestedAt: Date,
-    approvedAt: Date,
-    rejectedAt: Date,
+            priority: { type: Number, default: 0 },
 
-    /* ===== ANALYTICS ===== */
-    views: {
-        type: Number,
-        default: 0
+            requestedAt: Date,
+            approvedAt: Date,
+            expiresAt: Date,
+
+            analytics: analyticsSchema
+        },
+
+        /* ===============================
+           TRENDING
+        =============================== */
+        trending: {
+            isRequested: { type: Boolean, default: false },
+            isApproved: { type: Boolean, default: false },
+            isRejected: { type: Boolean, default: false },
+
+            requestedAt: Date,
+            approvedAt: Date,
+            rejectedAt: Date,
+
+            analytics: analyticsSchema
+        }
     },
-    clicks: {
-        type: Number,
-        default: 0
-    }
-     }    },
-    {
-        timestamps: true
-    }
+    { timestamps: true }
 );
 
 /* ===============================
-   PRE-SAVE HOOK (FIXED)
+   PRE-SAVE HOOKS
 ================================ */
-// IMPORTANT: This is an async middleware → NO 'next' parameter and NO call to next()
 productSchema.pre('save', async function () {
-    try {
-        // Auto-generate numericId if not present
-        if (!this.numericId) {
-            const lastProduct = await this.constructor
-                .findOne({}, { numericId: 1 })
-                .sort({ numericId: -1 })
-                .lean(); // .lean() for better performance (no Mongoose document overhead)
+    /* Auto numericId */
+    if (!this.numericId) {
+        const last = await this.constructor
+            .findOne({}, { numericId: 1 })
+            .sort({ numericId: -1 })
+            .lean();
 
-            this.numericId = lastProduct ? lastProduct.numericId + 1 : 1000;
-        }
+        this.numericId = last ? last.numericId + 1 : 1000;
+    }
 
-        // Auto-calculate discount percentage
-        if (this.originalPrice && this.originalPrice > this.price) {
-            this.discount = Math.round(
-                ((this.originalPrice - this.price) / this.originalPrice) * 100
-            );
-        } else {
-            this.discount = 0;
-        }
-
-        // No need to call next() — just let the async function resolve
-    } catch (error) {
-        // Propagate the error so Mongoose rejects the save
-        throw error;
+    /* Auto discount */
+    if (this.originalPrice && this.originalPrice > this.price) {
+        this.discount = Math.round(
+            ((this.originalPrice - this.price) / this.originalPrice) * 100
+        );
+    } else {
+        this.discount = 0;
     }
 });
+
+/* ===============================
+   INDEXES (PERFORMANCE)
+================================ */
+productSchema.index({
+    sellerId: 1,
+    status: 1
+});
+
 productSchema.index({
     'hotDeal.isApproved': 1,
     'hotDeal.expiresAt': 1,
-    'hotDeal.priority': -1,
+    'hotDeal.priority': -1
+});
+
+productSchema.index({
     'trending.isApproved': 1,
     createdAt: -1
 });
 
 /* ===============================
-   EXPORT MODEL
+   EXPORT
 ================================ */
 const Product = mongoose.model('Product', productSchema);
-
 export default Product;

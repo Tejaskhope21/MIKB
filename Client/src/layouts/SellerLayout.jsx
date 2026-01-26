@@ -10,7 +10,8 @@ import {
     Settings,
     LogOut,
     Store,
-    MessageSquare
+    MessageSquare,
+    Flame
 } from 'lucide-react';
 
 const SellerLayout = () => {
@@ -20,6 +21,7 @@ const SellerLayout = () => {
         { path: '/seller/dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { path: '/seller/products', label: 'Products', icon: Package },
         { path: '/seller/products/hotdeal', label: 'Hot Deal', icon: Package },
+        { path: '/seller/products/trending', label: 'Trending', icon: Flame },
         { path: '/seller/orders', label: 'Orders', icon: ShoppingBag },
         { path: '/seller/payouts', label: 'Payouts', icon: CreditCard },
         { path: '/seller/analytics', label: 'Analytics', icon: BarChart3 },

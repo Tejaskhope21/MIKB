@@ -1,19 +1,28 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import {
-    Flame,
+    TrendingUp,
     Clock,
     CheckCircle,
     XCircle,
-    CreditCard
+    Flame
 } from 'lucide-react';
 
 /* ===============================
    API BASE
 ================================ */
-const API = 'https://bricks-backend-qyea.onrender.com/api/v1';
+const API = 'http://localhost:5000/api/v1';
 
-const SellerProductHotDeal = () => {
+/* ===============================
+   HELPERS
+================================ */
+const isActiveHotDeal = (hotDeal) => {
+    if (!hotDeal?.isApproved) return false;
+    if (!hotDeal?.expiresAt) return false;
+    return new Date(hotDeal.expiresAt) > new Date();
+};
+
+const SellerProductTrending = () => {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
@@ -21,7 +30,7 @@ const SellerProductHotDeal = () => {
     const token = localStorage.getItem('token');
 
     /* ===============================
-       AUTH AXIOS INSTANCE
+       AUTH AXIOS
     ================================ */
     const axiosAuth = axios.create({
         baseURL: API,
@@ -34,75 +43,34 @@ const SellerProductHotDeal = () => {
     /* ===============================
        FETCH SELLER PRODUCTS
     ================================ */
-    const fetchSellerProducts = async () => {
+    const fetchProducts = async () => {
         try {
-            const res = await axiosAuth.get(
-                '/products/seller/my-products'
-            );
-
+            const res = await axiosAuth.get('/products/seller/my-products');
             if (res.data.success) {
                 setProducts(res.data.products);
             }
         } catch (error) {
-            alert(
-                error.response?.data?.message ||
-                'Failed to load products'
-            );
+            alert(error.response?.data?.message || 'Failed to load products');
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchSellerProducts();
+        fetchProducts();
     }, []);
 
     /* ===============================
-       REQUEST HOT DEAL
-       PUT /api/v1/deals/request/:productId
+       REQUEST TRENDING
     ================================ */
-    const requestHotDeal = async (productId) => {
+    const requestTrending = async (productId) => {
         try {
             setActionLoading(true);
-
-            const res = await axiosAuth.put(
-                `/deals/request/${productId}`
-            );
-
-            alert(res.data.message || 'Hot deal request sent');
-            fetchSellerProducts();
+            const res = await axiosAuth.put(`/trending/request/${productId}`);
+            alert(res.data.message);
+            fetchProducts();
         } catch (error) {
-            alert(
-                error.response?.data?.message ||
-                'Hot deal request failed'
-            );
-        } finally {
-            setActionLoading(false);
-        }
-    };
-
-    /* ===============================
-       STRIPE PAYMENT
-       POST /api/v1/deals/create-checkout-session/:productId
-    ================================ */
-    const makePayment = async (productId) => {
-        try {
-            setActionLoading(true);
-
-            const res = await axiosAuth.post(
-                `/deals/create-checkout-session/${productId}`
-            );
-
-            if (res.data.url) {
-                window.location.href = res.data.url;
-            } else {
-                alert('Stripe session not created');
-            }
-        } catch (error) {
-            alert(
-                error.response?.data?.message ||
-                'Payment failed'
-            );
+            alert(error.response?.data?.message || 'Trending request failed');
         } finally {
             setActionLoading(false);
         }
@@ -111,24 +79,16 @@ const SellerProductHotDeal = () => {
     /* ===============================
        STATUS BADGE
     ================================ */
-    const renderStatus = (hotDeal = {}) => {
-        if (hotDeal.isApproved && hotDeal.isPaid) {
+    const renderStatus = (trending = {}) => {
+        if (trending.isApproved) {
             return (
                 <span className="text-green-600 flex items-center gap-1">
-                    <CheckCircle size={16} /> Active
+                    <CheckCircle size={16} /> Trending
                 </span>
             );
         }
 
-        if (hotDeal.isApproved && !hotDeal.isPaid) {
-            return (
-                <span className="text-blue-600 flex items-center gap-1">
-                    <CheckCircle size={16} /> Approved
-                </span>
-            );
-        }
-
-        if (hotDeal.isRejected) {
+        if (trending.isRejected) {
             return (
                 <span className="text-red-600 flex items-center gap-1">
                     <XCircle size={16} /> Rejected
@@ -136,7 +96,7 @@ const SellerProductHotDeal = () => {
             );
         }
 
-        if (hotDeal.isRequested) {
+        if (trending.isRequested) {
             return (
                 <span className="text-yellow-600 flex items-center gap-1">
                     <Clock size={16} /> Pending
@@ -146,45 +106,40 @@ const SellerProductHotDeal = () => {
 
         return (
             <span className="text-gray-500 flex items-center gap-1">
-                <Flame size={16} /> Not in Hot Deal
+                <TrendingUp size={16} /> Not Trending
             </span>
         );
     };
 
     /* ===============================
-       ACTION BUTTON (✅ FIXED)
+       ACTION BUTTON
     ================================ */
     const renderActionButton = (product) => {
-        const hd = product.hotDeal || {};
+        const trending = product.trending || {};
+        const hotDeal = product.hotDeal || {};
 
-        // ✅ Show ONLY if never requested
-        if (!hd.isRequested && !hd.isApproved && !hd.isRejected) {
+        // ❌ Block if Hot Deal active
+        if (isActiveHotDeal(hotDeal)) {
+            return (
+                <span className="text-sm text-orange-600 flex items-center gap-1">
+                    <Flame size={14} /> Hot Deal Active
+                </span>
+            );
+        }
+
+        // ✅ Allow request only once
+        if (!trending.isRequested && !trending.isApproved && !trending.isRejected) {
             return (
                 <button
                     disabled={actionLoading}
-                    onClick={() => requestHotDeal(product._id)}
-                    className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50"
+                    onClick={() => requestTrending(product._id)}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
                 >
-                    Add to Hot Deal
+                    Add to Trending
                 </button>
             );
         }
 
-        // ✅ Approved but payment pending
-        if (hd.isApproved && !hd.isPaid) {
-            return (
-                <button
-                    disabled={actionLoading}
-                    onClick={() => makePayment(product._id)}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg flex items-center gap-2 hover:bg-green-700 disabled:opacity-50"
-                >
-                    <CreditCard size={16} />
-                    Pay Now
-                </button>
-            );
-        }
-
-        // ❌ No button otherwise
         return null;
     };
 
@@ -194,7 +149,7 @@ const SellerProductHotDeal = () => {
     return (
         <div className="p-6">
             <h1 className="text-2xl font-bold mb-6">
-                🔥 Product Hot Deals
+                📈 Product Trending
             </h1>
 
             {loading ? (
@@ -215,7 +170,7 @@ const SellerProductHotDeal = () => {
                                 <p className="text-gray-500">
                                     ₹{product.price}
                                 </p>
-                                {renderStatus(product.hotDeal)}
+                                {renderStatus(product.trending)}
                             </div>
 
                             {renderActionButton(product)}
@@ -227,4 +182,4 @@ const SellerProductHotDeal = () => {
     );
 };
 
-export default SellerProductHotDeal;
+export default SellerProductTrending;
