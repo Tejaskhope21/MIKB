@@ -1,5 +1,5 @@
 import { Stack } from 'expo-router';
-import { ContractorProvider } from '../context/ContractorContext';
+// import { ContractorProvider } from '../context/ContractorContext';
 
 export default function ContractorLayout() {
   return (

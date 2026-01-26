@@ -7,29 +7,30 @@ import {
     getSellerOrders,
     cancelOrder,
     getOrderHistory,
-    getSellerOrderDetails
+    getSellerOrderDetails,
+    verifyPaymentProof,
+    getSellerPaymentDetails,
+    getOrderCount,
+    getOrderSummary
 } from '../controllers/order.controller.js';
 import { protect, authorize } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
-// All routes require authentication
-router.use(protect);
+// User routes (protected)
+router.post('/', protect, createOrder);
+router.get('/my-orders', protect, getOrders);
+router.get('/history', protect, getOrderHistory);
+router.get('/count', protect, getOrderCount);
+router.get('/summary', protect, getOrderSummary);
+router.get('/:id', protect, getOrderById);
+router.patch('/:id/cancel', protect, cancelOrder);
 
-// User routes
-// Seller routes - get orders where user is the seller
-router.get('/seller', protect, authorize('SELLER'), getSellerOrders);
-router.patch('/:id/status', protect, authorize('SELLER'), updateOrderStatusBySeller);
-// Seller get single order
+// Seller routes (require seller authorization)
+router.get('/seller/orders', protect, authorize('SELLER'), getSellerOrders);
 router.get('/seller/:orderId', protect, authorize('SELLER'), getSellerOrderDetails);
-router.post('/orders', protect, createOrder);
-router.post('/', authorize('USER'), createOrder);
-router.get('/my-orders', authorize('USER'), getOrders);
-router.get('/history', authorize('USER'), getOrderHistory);
-router.get('/:id', authorize('USER'), getOrderById);
-router.patch('/:id/cancel', authorize('USER'), cancelOrder);
-
-// Admin/Seller routes (these will be handled in seller routes)
-// router.get('/', authorize('ADMIN', 'SELLER'), getAllOrders);
+router.patch('/:id/status', protect, authorize('SELLER'), updateOrderStatusBySeller);
+router.post('/:orderId/verify-payment', protect, authorize('SELLER'), verifyPaymentProof);
+router.get('/seller/:orderId/payment', protect, authorize('SELLER'), getSellerPaymentDetails);
 
 export default router;
