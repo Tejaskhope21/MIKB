@@ -4,72 +4,21 @@ import { CartProvider } from '../context/CartContext';
 export default function RootLayout() {
   return (
     <CartProvider>
-      <Stack>
-        {/* Login Screen */}
-        <Stack.Screen
-          name="login"
-          options={{
-            headerShown: false,
-          }}
-        />
-        
-        {/* Register Screen */}
-        <Stack.Screen
-          name="register"
-          options={{
-            headerShown: false,
-          }}
-        />
-        
+      <Stack screenOptions={{ headerShown: false }}>
+        {/* Auth Screens */}
+        <Stack.Screen name="login" />
+        <Stack.Screen name="register" />
+
         {/* Main Tabs */}
-        <Stack.Screen
-          name="(tabs)"
-          options={{
-            headerShown: false,
-          }}
-        />
-        
-        {/* Product Details */}
-        <Stack.Screen
-          name="product/[id]"
-          options={{
-            headerShown: false,
-            presentation: 'modal',
-          }}
-        />
-        
-        {/* Products Screen */}
-        <Stack.Screen
-          name="products"
-          options={{
-            headerShown: false,
-          }}
-        />
-        
-        {/* Checkout Screen */}
-        <Stack.Screen
-          name="checkout"
-          options={{
-            headerShown: false,
-            presentation: 'modal',
-          }}
-        />
-        
-        {/* Seller Dashboard */}
-        <Stack.Screen
-          name="seller-dashboard"
-          options={{
-            headerShown: false,
-          }}
-        />
-        
-        {/* Contractor Dashboard */}
-        <Stack.Screen
-          name="contractor-dashboard"
-          options={{
-            headerShown: false,
-          }}
-        />
+        <Stack.Screen name="(tabs)" />
+
+        {/* Extra Screens (NO HEADER) */}
+        <Stack.Screen name="AddressesScreen" />
+        <Stack.Screen name="product/[id]" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="checkout" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="products" />
+        <Stack.Screen name="seller-dashboard" />
+        <Stack.Screen name="contractor-dashboard" />
       </Stack>
     </CartProvider>
   );
