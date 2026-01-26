@@ -6,104 +6,19 @@ import generateToken from '../utils/generateToken.js';
 // @route   POST /api/contractor/auth/register
 // @access  Public
 export const registerContractor = async (req, res) => {
-    try {
-        const {
-            name,
-            email,
-            password,
-            phone,
-            companyName,
-            contractorType,
-            experience,
-            licenseNumber,
-            specialties,
-            teamSize,
-            address,
-            website,
-            projectsCompleted
-        } = req.body;
+  try {
+    const contractor = await Contractor.create(req.body);
 
-        // Validation
-        if (!name || !email || !password || !phone || !companyName || !contractorType || !licenseNumber) {
-            return res.status(400).json({
-                success: false,
-                message: 'Please provide all required fields'
-            });
-        }
-
-        // Check if contractor already exists
-        const contractorExists = await Contractor.findOne({ email });
-        if (contractorExists) {
-            return res.status(400).json({
-                success: false,
-                message: 'Contractor already exists with this email'
-            });
-        }
-
-        // Check if license number exists
-        const licenseExists = await Contractor.findOne({ licenseNumber });
-        if (licenseExists) {
-            return res.status(400).json({
-                success: false,
-                message: 'License number already registered'
-            });
-        }
-
-        // Create contractor
-        const contractor = await Contractor.create({
-            name,
-            email,
-            password,
-            phone,
-            companyName,
-            contractorType,
-            experience: parseInt(experience) || 1,
-            licenseNumber,
-            specialties: Array.isArray(specialties) ? specialties : [],
-            teamSize: teamSize || '1-5',
-            address: typeof address === 'string' ? { street: address } : address,
-            website,
-            projectsCompleted: parseInt(projectsCompleted) || 0,
-            verificationStatus: 'pending'
-        });
-
-        if (contractor) {
-            const token = generateToken(contractor._id, 'contractor');
-
-            res.status(201).json({
-                success: true,
-                message: 'Contractor registered successfully. Please wait for verification.',
-                token,
-                contractor: {
-                    _id: contractor._id,
-                    name: contractor.name,
-                    email: contractor.email,
-                    phone: contractor.phone,
-                    companyName: contractor.companyName,
-                    contractorType: contractor.contractorType,
-                    experience: contractor.experience,
-                    licenseNumber: contractor.licenseNumber,
-                    specialties: contractor.specialties,
-                    teamSize: contractor.teamSize,
-                    isVerified: contractor.isVerified,
-                    verificationStatus: contractor.verificationStatus,
-                    profileViews: contractor.profileViews
-                }
-            });
-        } else {
-            res.status(400).json({
-                success: false,
-                message: 'Invalid contractor data'
-            });
-        }
-    } catch (error) {
-        console.error('Contractor registration error:', error);
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Server error'
-        });
-    }
+    res.status(201).json({
+      success: true,
+      message: 'Contractor registered successfully. Awaiting admin verification.',
+      data: contractor
+    });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
 };
+
 
 // @desc    Login contractor
 // @route   POST /api/contractor/auth/login
