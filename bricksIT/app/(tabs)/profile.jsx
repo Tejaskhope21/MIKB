@@ -53,7 +53,7 @@ api.interceptors.request.use(async (config) => {
       config.headers.Authorization = `Bearer ${token}`;
     }
   } catch (error) {
-    console.log('Error getting token:', error);
+    // Silent error handling
   }
   return config;
 });
@@ -63,9 +63,7 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid
       await AsyncStorage.multiRemove(['token', 'userData']);
-      // You can trigger a navigation to login here if needed
     }
     return Promise.reject(error);
   }
@@ -75,18 +73,13 @@ api.interceptors.response.use(
 const authAPI = {
   getProfile: async () => {
     try {
-      console.log('Fetching profile from:', `${API_BASE_URL}/user/profile`);
       const response = await api.get('/user/profile');
       return response;
     } catch (error) {
-      console.log('Profile fetch error:', error.message);
-      
-      // Try alternative endpoints if first one fails
       try {
         const response = await api.get('/auth/profile');
         return response;
       } catch (secondError) {
-        console.log('Alternative profile fetch error:', secondError.message);
         throw error;
       }
     }
@@ -96,9 +89,8 @@ const authAPI = {
     try {
       await api.post('/auth/logout');
     } catch (error) {
-      console.log('Logout API error (ignoring):', error.message);
+      // Ignore logout API errors
     }
-    // Always clear local storage
     await AsyncStorage.multiRemove(['token', 'userData', 'cart', 'userRole', 'isLoggedIn']);
     return { success: true };
   },
@@ -107,12 +99,9 @@ const authAPI = {
 const ordersAPI = {
   fetchUserOrders: async () => {
     try {
-      console.log('Fetching orders from:', `${API_BASE_URL}/orders/my-orders`);
       const response = await api.get('/orders/my-orders');
       return response.data.orders || response.data || [];
     } catch (error) {
-      console.log('Orders fetch error:', error.message);
-      // Return empty array instead of throwing
       return [];
     }
   },
@@ -132,42 +121,30 @@ export default function ProfileScreen() {
   const checkloginAndLoadProfile = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
-      console.log('Token exists:', !!token);
 
       if (!token) {
-        console.log('No token found, redirecting to login');
         setTimeout(() => {
           router.replace('/(auth)/Login');
         }, 100);
         return;
       }
-
-      console.log('API Base URL:', API_BASE_URL);
       
-      // Fetch profile data
       const profileRes = await authAPI.getProfile();
-      console.log('Profile response:', profileRes?.data);
-      
       const userData = profileRes.data?.user || profileRes.data;
+      
       if (!userData) {
         throw new Error('No user data received');
       }
       
       setUser(userData);
 
-      // Fetch orders
       try {
         const userOrders = await ordersAPI.fetchUserOrders();
-        console.log('Orders fetched:', userOrders.length);
         setOrders(userOrders.slice(0, 5));
       } catch (orderError) {
-        console.log('Order fetch error (non-critical):', orderError.message);
         setOrders([]);
       }
     } catch (error) {
-      console.log('Profile Error:', error);
-      
-      // Clear invalid token
       await AsyncStorage.multiRemove(['token', 'userData']);
       
       Alert.alert(
@@ -185,20 +162,13 @@ export default function ProfileScreen() {
     }
   };
 
-  // Handle logout
   const handleLogout = async () => {
     try {
-      // Call logout API
       await authAPI.logout();
-      
-      // Reset state
       setUser(null);
       setOrders([]);
-      
-      // Hide modal
       setShowLogoutModal(false);
       
-      // Show success message
       Alert.alert(
         'Logged Out',
         'You have been successfully logged out.',
@@ -206,7 +176,6 @@ export default function ProfileScreen() {
           {
             text: 'OK',
             onPress: () => {
-              // Navigate to login after logout
               router.replace('/(auth)/Login');
             }
           }
@@ -214,19 +183,16 @@ export default function ProfileScreen() {
       );
       
     } catch (error) {
-      console.log('Logout error:', error);
       Alert.alert('Error', 'Failed to logout. Please try again.');
       setShowLogoutModal(false);
     }
   };
 
-  // Menu Items
   const menuItems = [
     {
       icon: 'cart-outline',
       label: 'My Orders',
       onPress: () => router.push('/OrdersScreen'),
-    
     },
     {
       icon: 'location-outline',
@@ -251,7 +217,6 @@ export default function ProfileScreen() {
     },
   ];
 
-  // 🔄 LOADING
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -261,11 +226,9 @@ export default function ProfileScreen() {
     );
   }
 
-  // Guest View (No user/token)
   if (!user) {
     return (
       <ScrollView style={styles.container}>
-        {/* Guest Header */}
         <View style={styles.header}>
           <View style={styles.guestHeader}>
             <View style={styles.avatarContainer}>
@@ -282,10 +245,9 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* App Info */}
         <View style={styles.appInfo}>
           <Text style={styles.appVersion}>BricksIT v1.0.0</Text>
-          <Text style={styles.appCopyright}>© 2024 BricksIT. All rights reserved.</Text>
+          <Text style={styles.appCopyright}>© 2026 BricksIT. All rights reserved.</Text>
           {__DEV__ && (
             <Text style={styles.apiInfo}>API: {API_BASE_URL}</Text>
           )}
@@ -294,10 +256,8 @@ export default function ProfileScreen() {
     );
   }
 
-  // User View (Logged in)
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* HEADER */}
       <View style={styles.header}>
         <View style={styles.avatarContainer}>
           <Text style={styles.avatarText}>
@@ -319,7 +279,6 @@ export default function ProfileScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* MENU ITEMS */}
       <View style={styles.menuSection}>
         <Text style={styles.sectionTitle}></Text>
         <View style={styles.menuCard}>
@@ -368,16 +327,12 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {/* APP INFO */}
       <View style={styles.appInfo}>
         <Text style={styles.appVersion}>BricksIT v1.0.0</Text>
-        <Text style={styles.appCopyright}>© 2024 BricksIT. All rights reserved.</Text>
-        {__DEV__ && (
-          <Text style={styles.apiInfo}>API: {API_BASE_URL}</Text>
-        )}
+        <Text style={styles.appCopyright}>© 2026 BricksIT. All rights reserved.</Text>
+      
       </View>
 
-      {/* Logout Confirmation Modal */}
       <Modal
         transparent={true}
         visible={showLogoutModal}
@@ -526,48 +481,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  // Stats Section
-  statsSection: {
-    marginTop: -30,
-    paddingHorizontal: 16,
-    marginBottom: 24,
-  },
-  statsCard: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  statCard: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#f8f0f0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  statValue: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#800000',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '500',
-  },
-  // Menu Section
   menuSection: {
     paddingHorizontal: 16,
     marginBottom: 24,
@@ -657,7 +570,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
-  // Modal Styles
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',

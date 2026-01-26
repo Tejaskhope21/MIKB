@@ -383,7 +383,7 @@ export default function SettingsScreen() {
           
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Last Updated</Text>
-            <Text style={styles.infoValue}>Jan 2024</Text>
+            <Text style={styles.infoValue}>Jan 2026</Text>
           </View>
         </View>
 
