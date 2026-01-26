@@ -12,17 +12,18 @@ import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import AdminCategories from "./pages/AdminCategories";
 
-// Additional pages you might need
-// import Products from "./pages/Products";
-// import Orders from "./pages/Orders";
-// import Payouts from "./pages/Payouts";
-// import Inventory from "./pages/Inventory";
+// Add these imports
+import ContractorsList from "./pages/ContractorsList";
+import ContractorDetails from "./pages/ContractorDetails";
 
 function App() {
   const isAuthenticated = () => {
-    const token = localStorage.getItem("adminToken");
+    const token = localStorage.getItem("adminToken") || localStorage.getItem("token");
     const userType = localStorage.getItem("userType");
-    return token && userType === "admin";
+    const userRole = localStorage.getItem("userRole");
+    
+    // Check for admin token or user with admin role
+    return (token && userType === "admin") || (token && userRole === "admin");
   };
 
   return (
@@ -47,12 +48,19 @@ function App() {
           <Route path="seller-analytics" element={<SellerAnalytics />} />
           <Route path="users" element={<Users />} />
           <Route path="category" element={<AdminCategories />} />
+          
+          {/* Add Contractors Routes */}
+          <Route path="contractors" element={<ContractorsList />} />
+          <Route path="contractors/:id" element={<ContractorDetails />} />
+          
+          <Route path="reports" element={<Reports />} />
+          <Route path="settings" element={<Settings />} />
+          
+          {/* Future routes - comment out for now */}
           {/* <Route path="products" element={<Products />} /> */}
           {/* <Route path="orders" element={<Orders />} /> */}
           {/* <Route path="payouts" element={<Payouts />} /> */}
           {/* <Route path="inventory" element={<Inventory />} /> */}
-          <Route path="reports" element={<Reports />} />
-          <Route path="settings" element={<Settings />} />
         </Route>
 
         {/* Default route - redirect to admin login */}
