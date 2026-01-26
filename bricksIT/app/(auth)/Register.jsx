@@ -12,23 +12,30 @@ import {
   Platform,
   SafeAreaView,
   Modal,
+  Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = 'https://bricks-backend-qyea.onrender.com/api';
+const { width } = Dimensions.get('window');
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState('user');
+  const [activeTab, setActiveTab] = useState('contractor'); // Default to contractor
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [specialtiesModal, setSpecialtiesModal] = useState(false);
+  const [teamSizeModal, setTeamSizeModal] = useState(false);
+  const [contractorTypeModal, setContractorTypeModal] = useState(false);
+  const [businessTypeModal, setBusinessTypeModal] = useState(false);
 
+  // Contractor data options
   const contractorSpecialties = [
     'Residential Construction',
     'Commercial Construction',
@@ -40,6 +47,28 @@ export default function RegisterScreen() {
     'Interior Design',
     'Landscaping',
     'Project Management'
+  ];
+
+  const teamSizeOptions = [
+    { label: '1-5 People', value: '1-5' },
+    { label: '5-20 People', value: '5-20' },
+    { label: '20-50 People', value: '20-50' },
+    { label: '50+ People', value: '50+' }
+  ];
+
+  const contractorTypeOptions = [
+    'General Contractor',
+    'Specialty Contractor',
+    'Subcontractor',
+    'Builder',
+    'Civil Engineer'
+  ];
+
+  const businessTypeOptions = [
+    'Manufacturer',
+    'Distributor',
+    'Retailer',
+    'Wholesaler'
   ];
 
   const [userForm, setUserForm] = useState({
@@ -106,6 +135,21 @@ export default function RegisterScreen() {
     }));
   };
 
+  const selectTeamSize = (size) => {
+    handleContractorChange('teamSize', size);
+    setTeamSizeModal(false);
+  };
+
+  const selectContractorType = (type) => {
+    handleContractorChange('contractorType', type);
+    setContractorTypeModal(false);
+  };
+
+  const selectBusinessType = (type) => {
+    handleSellerChange('businessType', type);
+    setBusinessTypeModal(false);
+  };
+
   const validateForm = () => {
     if (!termsAccepted) {
       return 'Please accept the Terms & Conditions';
@@ -153,105 +197,6 @@ export default function RegisterScreen() {
     return null;
   };
 
-  const registerUser = async () => {
-    try {
-      const response = await axios.post(`${API_URL}/auth/user/register`, {
-        name: userForm.name,
-        email: userForm.email,
-        password: userForm.password,
-        phone: userForm.phone || '',
-      }, {
-        timeout: 15000,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      return {
-        success: true,
-        data: response.data,
-        message: 'User registered successfully!'
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.response?.data?.message || 'User registration failed. Please try again.'
-      };
-    }
-  };
-
-  const registerSeller = async () => {
-    try {
-      const response = await axios.post(`${API_URL}/auth/seller/register`, {
-        name: sellerForm.name,
-        email: sellerForm.email,
-        password: sellerForm.password,
-        businessName: sellerForm.businessName,
-        businessType: sellerForm.businessType,
-        gstNumber: sellerForm.gstNumber,
-        contactNumber: sellerForm.contactNumber,
-        businessAddress: sellerForm.businessAddress,
-        bankDetails: {
-          accountNumber: sellerForm.bankAccountNumber,
-          accountName: sellerForm.bankAccountName,
-          ifscCode: sellerForm.bankIFSC,
-        },
-      }, {
-        timeout: 15000,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      return {
-        success: true,
-        data: response.data,
-        message: 'Seller registration submitted successfully!'
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.response?.data?.message || 'Seller registration failed. Please try again.'
-      };
-    }
-  };
-
-  const registerContractor = async () => {
-    try {
-      const response = await axios.post(`${API_URL}/contractor/auth/register`, {
-        name: contractorForm.name,
-        email: contractorForm.email,
-        password: contractorForm.password,
-        phone: contractorForm.phone,
-        companyName: contractorForm.companyName,
-        contractorType: contractorForm.contractorType,
-        experience: parseInt(contractorForm.experience),
-        licenseNumber: contractorForm.licenseNumber,
-        address: contractorForm.address,
-        specialties: contractorForm.specialties,
-        projectsCompleted: parseInt(contractorForm.projectsCompleted) || 0,
-        teamSize: contractorForm.teamSize,
-        website: contractorForm.website || '',
-      }, {
-        timeout: 15000,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      return {
-        success: true,
-        data: response.data,
-        message: 'Contractor registered successfully!'
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.response?.data?.message || 'Contractor registration failed. Please try again.'
-      };
-    }
-  };
-
   const handleRegister = async () => {
     setLoading(true);
     setError('');
@@ -265,38 +210,138 @@ export default function RegisterScreen() {
     }
 
     try {
-      let result;
-      
-      switch (activeTab) {
-        case 'user':
-          result = await registerUser();
-          break;
-        case 'seller':
-          result = await registerSeller();
-          break;
-        case 'contractor':
-          result = await registerContractor();
-          break;
-        default:
-          throw new Error('Invalid user type');
+      let endpoint;
+      let payload;
+
+      if (activeTab === 'contractor') {
+        endpoint = `${API_URL}/contractor/auth/register`;
+        payload = {
+          name: contractorForm.name,
+          email: contractorForm.email,
+          password: contractorForm.password,
+          phone: contractorForm.phone,
+          companyName: contractorForm.companyName,
+          contractorType: contractorForm.contractorType,
+          experience: parseInt(contractorForm.experience),
+          licenseNumber: contractorForm.licenseNumber,
+          address: contractorForm.address,
+          specialties: contractorForm.specialties,
+          projectsCompleted: parseInt(contractorForm.projectsCompleted) || 0,
+          teamSize: contractorForm.teamSize,
+          website: contractorForm.website || '',
+        };
+      } else if (activeTab === 'seller') {
+        endpoint = `${API_URL}/auth/seller/register`;
+        payload = {
+          name: sellerForm.name,
+          email: sellerForm.email,
+          password: sellerForm.password,
+          businessName: sellerForm.businessName,
+          businessType: sellerForm.businessType,
+          gstNumber: sellerForm.gstNumber,
+          contactNumber: sellerForm.contactNumber,
+          businessAddress: sellerForm.businessAddress,
+          bankAccountNumber: sellerForm.bankAccountNumber,
+          bankAccountName: sellerForm.bankAccountName,
+          bankIFSC: sellerForm.bankIFSC,
+        };
+      } else {
+        endpoint = `${API_URL}/auth/user/register`;
+        payload = {
+          name: userForm.name,
+          email: userForm.email,
+          password: userForm.password,
+          phone: userForm.phone || '',
+        };
       }
 
-      if (result.success) {
-        setSuccess(result.message);
-        
-        setTimeout(() => {
-          router.push('/login');
-        }, 2000);
+      console.log('Sending registration request to:', endpoint);
+      console.log('Payload:', JSON.stringify(payload, null, 2));
+
+      const response = await axios.post(endpoint, payload, {
+        timeout: 15000,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('Registration response:', response.data);
+
+      if (response.data.success) {
+        let successMessage = response.data.message || 'Registration successful!';
+
+        if (activeTab === 'contractor') {
+          successMessage = "Contractor registered successfully! 🎉\nYour profile is under review. We'll notify you via email once approved.";
+          
+          // Store token and user data using AsyncStorage
+          const token = response.data.token;
+          const userData = response.data.contractor;
+          
+          try {
+            await AsyncStorage.setItem('token', token);
+            await AsyncStorage.setItem('userRole', 'contractor');
+            await AsyncStorage.setItem('userData', JSON.stringify(userData));
+            console.log('User data saved to AsyncStorage');
+          } catch (storageError) {
+            console.error('Error saving to AsyncStorage:', storageError);
+          }
+
+          setTimeout(() => {
+            router.push('/portfolio/');
+          }, 2500);
+        } else if (activeTab === 'seller') {
+          successMessage = "Seller registration submitted! Awaiting admin approval.";
+          setTimeout(() => router.push('/login'), 3500);
+        } else {
+          // For regular users
+          const token = response.data.token;
+          const userData = response.data.user;
+          
+          try {
+            await AsyncStorage.setItem('token', token);
+            await AsyncStorage.setItem('userRole', 'user');
+            await AsyncStorage.setItem('userData', JSON.stringify(userData));
+          } catch (storageError) {
+            console.error('Error saving to AsyncStorage:', storageError);
+          }
+
+          setTimeout(() => {
+            router.push('/(tabs)/');
+          }, 2500);
+        }
+
+        setSuccess(successMessage);
       } else {
-        setError(result.message);
+        setError(response.data.message || 'Registration failed');
       }
     } catch (err) {
+      console.error('Registration error details:', {
+        message: err.message,
+        code: err.code,
+        response: err.response?.data,
+        status: err.response?.status,
+        config: {
+          url: err.config?.url,
+          data: err.config?.data
+        }
+      });
+      
       let errorMessage = 'An unexpected error occurred. Please try again.';
       
-      if (err.message.includes('Network Error')) {
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+        // Log detailed error for debugging
+        console.log('Server error details:', err.response.data);
+      } else if (err.response?.data?.errors) {
+        // Handle validation errors
+        const errors = err.response.data.errors;
+        errorMessage = Object.values(errors).flat().join(', ');
+      } else if (err.message.includes('Network Error')) {
         errorMessage = 'Network error. Please check your internet connection.';
       } else if (err.code === 'ECONNABORTED') {
         errorMessage = 'Request timeout. Please try again.';
+      } else if (err.response?.status === 400) {
+        errorMessage = 'Invalid data submitted. Please check your information.';
       }
       
       setError(errorMessage);
@@ -305,6 +350,7 @@ export default function RegisterScreen() {
     }
   };
 
+  // Render functions remain the same...
   const renderUserForm = () => (
     <View style={styles.formSection}>
       <Text style={styles.sectionTitle}>User Information</Text>
@@ -467,13 +513,16 @@ export default function RegisterScreen() {
       <View style={styles.inputRow}>
         <View style={styles.inputContainer}>
           <Text style={styles.inputLabel}>Business Type *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Manufacturer/Distributor"
-            value={sellerForm.businessType}
-            onChangeText={(text) => handleSellerChange('businessType', text)}
-            editable={!loading}
-          />
+          <TouchableOpacity
+            style={styles.selectInput}
+            onPress={() => setBusinessTypeModal(true)}
+            disabled={loading}
+          >
+            <Text style={sellerForm.businessType ? styles.selectInputText : styles.selectInputPlaceholder}>
+              {sellerForm.businessType || 'Select Type'}
+            </Text>
+            <Icon name="chevron-down" size={20} color="#666" />
+          </TouchableOpacity>
         </View>
         
         <View style={styles.inputContainer}>
@@ -617,6 +666,7 @@ export default function RegisterScreen() {
             />
           </TouchableOpacity>
         </View>
+        <Text style={styles.helperText}>Password must be at least 6 characters long</Text>
       </View>
 
       <View style={styles.inputRow}>
@@ -635,13 +685,16 @@ export default function RegisterScreen() {
         
         <View style={styles.inputContainer}>
           <Text style={styles.inputLabel}>Contractor Type *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="General/Specialty"
-            value={contractorForm.contractorType}
-            onChangeText={(text) => handleContractorChange('contractorType', text)}
-            editable={!loading}
-          />
+          <TouchableOpacity
+            style={styles.selectInput}
+            onPress={() => setContractorTypeModal(true)}
+            disabled={loading}
+          >
+            <Text style={contractorForm.contractorType ? styles.selectInputText : styles.selectInputPlaceholder}>
+              {contractorForm.contractorType || 'Select Type'}
+            </Text>
+            <Icon name="chevron-down" size={20} color="#666" />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -675,13 +728,16 @@ export default function RegisterScreen() {
           <Text style={styles.inputLabel}>
             <Icon name="people" size={16} color="#666" /> Team Size *
           </Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Select size"
-            value={contractorForm.teamSize}
-            onChangeText={(text) => handleContractorChange('teamSize', text)}
-            editable={!loading}
-          />
+          <TouchableOpacity
+            style={styles.selectInput}
+            onPress={() => setTeamSizeModal(true)}
+            disabled={loading}
+          >
+            <Text style={contractorForm.teamSize ? styles.selectInputText : styles.selectInputPlaceholder}>
+              {contractorForm.teamSize ? teamSizeOptions.find(opt => opt.value === contractorForm.teamSize)?.label : 'Select Size'}
+            </Text>
+            <Icon name="chevron-down" size={20} color="#666" />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -692,7 +748,7 @@ export default function RegisterScreen() {
           onPress={() => setSpecialtiesModal(true)}
           disabled={loading}
         >
-          <Text style={styles.specialtiesButtonText}>
+          <Text style={contractorForm.specialties.length > 0 ? styles.specialtiesButtonText : styles.specialtiesButtonPlaceholder}>
             {contractorForm.specialties.length > 0 
               ? `${contractorForm.specialties.length} specialties selected`
               : 'Select specialties'}
@@ -762,8 +818,11 @@ export default function RegisterScreen() {
           {/* Header with #800000 background */}
           <View style={styles.header}>
             <View style={styles.headerContent}>
-              <Text style={styles.headerTitle}>Create Account</Text>
-              <Text style={styles.headerSubtitle}>Join BricksIT today</Text>
+              <View style={styles.logoContainer}>
+                <Icon name="cube" size={40} color="#fff" />
+              </View>
+              <Text style={styles.headerTitle}>Join BricksIT</Text>
+              <Text style={styles.headerSubtitle}>Choose your account type to get started</Text>
             </View>
           </View>
 
@@ -780,6 +839,15 @@ export default function RegisterScreen() {
                   onPress={() => handleTabChange(role)}
                   disabled={loading}
                 >
+                  <Icon 
+                    name={
+                      role === 'user' ? 'person' : 
+                      role === 'seller' ? 'storefront' : 'construct'
+                    } 
+                    size={20} 
+                    color={activeTab === role ? '#fff' : '#666'} 
+                    style={styles.tabIcon}
+                  />
                   <Text
                     style={[
                       styles.tabText,
@@ -852,7 +920,7 @@ export default function RegisterScreen() {
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
                 <Text style={styles.registerButtonText}>
-                  Create Account
+                  Create {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Account
                 </Text>
               )}
             </TouchableOpacity>
@@ -868,12 +936,12 @@ export default function RegisterScreen() {
 
           {/* Footer */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>© 2025 BricksIT. All rights reserved.</Text>
+            <Text style={styles.footerText}>© 2024 BricksIT. All rights reserved.</Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Specialties Modal for Contractor */}
+      {/* Modals remain the same... */}
       <Modal
         visible={specialtiesModal}
         transparent={true}
@@ -928,6 +996,132 @@ export default function RegisterScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Team Size Modal */}
+      <Modal
+        visible={teamSizeModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setTeamSizeModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Team Size</Text>
+              <TouchableOpacity onPress={() => setTeamSizeModal(false)}>
+                <Icon name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.modalBody}>
+              {teamSizeOptions.map((option, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.optionItem,
+                    contractorForm.teamSize === option.value && styles.optionItemSelected,
+                  ]}
+                  onPress={() => selectTeamSize(option.value)}
+                >
+                  <Text style={[
+                    styles.optionText,
+                    contractorForm.teamSize === option.value && styles.optionTextSelected,
+                  ]}>
+                    {option.label}
+                  </Text>
+                  {contractorForm.teamSize === option.value && (
+                    <Icon name="checkmark" size={20} color="#800000" />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Contractor Type Modal */}
+      <Modal
+        visible={contractorTypeModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setContractorTypeModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Contractor Type</Text>
+              <TouchableOpacity onPress={() => setContractorTypeModal(false)}>
+                <Icon name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.modalBody}>
+              {contractorTypeOptions.map((option, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.optionItem,
+                    contractorForm.contractorType === option && styles.optionItemSelected,
+                  ]}
+                  onPress={() => selectContractorType(option)}
+                >
+                  <Text style={[
+                    styles.optionText,
+                    contractorForm.contractorType === option && styles.optionTextSelected,
+                  ]}>
+                    {option}
+                  </Text>
+                  {contractorForm.contractorType === option && (
+                    <Icon name="checkmark" size={20} color="#800000" />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Business Type Modal for Seller */}
+      <Modal
+        visible={businessTypeModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setBusinessTypeModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Business Type</Text>
+              <TouchableOpacity onPress={() => setBusinessTypeModal(false)}>
+                <Icon name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.modalBody}>
+              {businessTypeOptions.map((option, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.optionItem,
+                    sellerForm.businessType === option && styles.optionItemSelected,
+                  ]}
+                  onPress={() => selectBusinessType(option)}
+                >
+                  <Text style={[
+                    styles.optionText,
+                    sellerForm.businessType === option && styles.optionTextSelected,
+                  ]}>
+                    {option}
+                  </Text>
+                  {sellerForm.businessType === option && (
+                    <Icon name="checkmark" size={20} color="#800000" />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -949,13 +1143,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
-    marginBottom: 30,
+    marginBottom: 20,
   },
   headerContent: {
     alignItems: 'center',
   },
+  logoContainer: {
+    width: 70,
+    height: 70,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 35,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
   headerTitle: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#fff',
     marginBottom: 8,
@@ -968,7 +1171,7 @@ const styles = StyleSheet.create({
   },
   tabsContainer: {
     marginHorizontal: 24,
-    marginBottom: 24,
+    marginBottom: 20,
   },
   tabsInner: {
     backgroundColor: '#fff',
@@ -977,21 +1180,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 3,
   },
   tab: {
     flex: 1,
     alignItems: 'center',
     paddingVertical: 12,
     borderRadius: 8,
+    flexDirection: 'row',
+    justifyContent: 'center',
   },
   activeTab: {
     backgroundColor: '#800000',
   },
+  tabIcon: {
+    marginRight: 6,
+  },
   tabText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#6b7280',
   },
@@ -1003,7 +1211,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#fecaca',
     borderRadius: 12,
-    marginBottom: 20,
+    marginBottom: 16,
     marginHorizontal: 24,
     padding: 16,
   },
@@ -1023,7 +1231,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#a7f3d0',
     borderRadius: 12,
-    marginBottom: 20,
+    marginBottom: 16,
     marginHorizontal: 24,
     padding: 16,
   },
@@ -1060,12 +1268,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   inputRow: {
-    flexDirection: 'row',
+    flexDirection: width > 768 ? 'row' : 'column',
     gap: 16,
   },
   inputContainer: {
     flex: 1,
     marginBottom: 16,
+    minWidth: width > 768 ? 'auto' : '100%',
   },
   inputLabel: {
     fontSize: 14,
@@ -1086,6 +1295,25 @@ const styles = StyleSheet.create({
     color: '#111827',
     backgroundColor: '#fff',
   },
+  selectInput: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  selectInputText: {
+    fontSize: 16,
+    color: '#111827',
+  },
+  selectInputPlaceholder: {
+    fontSize: 16,
+    color: '#9ca3af',
+  },
   passwordContainer: {
     position: 'relative',
   },
@@ -1099,7 +1327,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   textArea: {
-    height: 80,
+    minHeight: 80,
     textAlignVertical: 'top',
   },
   uppercaseInput: {
@@ -1124,6 +1352,10 @@ const styles = StyleSheet.create({
   specialtiesButtonText: {
     fontSize: 16,
     color: '#111827',
+  },
+  specialtiesButtonPlaceholder: {
+    fontSize: 16,
+    color: '#9ca3af',
   },
   termsContainer: {
     marginTop: 20,
@@ -1164,6 +1396,11 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     marginBottom: 20,
+    shadowColor: '#800000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   disabledButton: {
     opacity: 0.7,
@@ -1208,6 +1445,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 16,
     width: '100%',
+    maxWidth: 500,
     maxHeight: '80%',
     overflow: 'hidden',
   },
@@ -1251,6 +1489,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#3b82f6',
   },
   specialtyText: {
     fontSize: 16,
@@ -1259,6 +1498,29 @@ const styles = StyleSheet.create({
   },
   specialtyTextSelected: {
     color: '#1e40af',
+    fontWeight: '500',
+  },
+  optionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  optionItemSelected: {
+    backgroundColor: '#fef2f2',
+    borderColor: '#800000',
+  },
+  optionText: {
+    fontSize: 16,
+    color: '#374151',
+  },
+  optionTextSelected: {
+    color: '#800000',
     fontWeight: '500',
   },
   modalFooter: {

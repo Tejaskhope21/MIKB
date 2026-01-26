@@ -11,7 +11,6 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   SafeAreaView,
-  Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
@@ -50,6 +49,8 @@ export default function Login() {
         endpoint = `${API_URL}/contractor/auth/login`;
       }
 
+      console.log('Login endpoint:', endpoint);
+
       const response = await axios.post(endpoint, {
         email,
         password,
@@ -59,6 +60,8 @@ export default function Login() {
           'Content-Type': 'application/json',
         },
       });
+
+      console.log('Login response:', response.data);
 
       const token = response.data.token;
       const userData =
@@ -78,26 +81,59 @@ export default function Login() {
         ['loginTime', new Date().toISOString()],
       ]);
 
+      console.log('User data saved to AsyncStorage:', { role, token: token ? 'present' : 'missing' });
+
       Alert.alert('Success', 'Login successful');
 
+      // Redirect based on role
       if (role === 'seller') {
-        router.replace('/(tabs)/seller-dashboard');
+        router.replace('/(seller)/dashboard');
       } else if (role === 'contractor') {
-        router.replace('/(tabs)/contractor-dashboard');
+        // Updated route to contractor portfolio
+        router.replace('/portfolio/');
       } else {
         router.replace('/(tabs)');
       }
     } catch (err) {
+      console.error('Login error details:', {
+        message: err.message,
+        code: err.code,
+        response: err.response?.data,
+        status: err.response?.status,
+        config: {
+          url: err.config?.url,
+        }
+      });
+      
       let errorMessage = 'Unable to login. Please try again.';
       
       if (err.response) {
         errorMessage = err.response.data?.message || `Server error: ${err.response.status}`;
+        
+        // Handle specific error cases
+        if (err.response.status === 401) {
+          errorMessage = 'Invalid email or password';
+        } else if (err.response.status === 400) {
+          errorMessage = 'Invalid login data. Please check your credentials.';
+        } else if (err.response.status === 404) {
+          errorMessage = 'Account not found. Please check your email.';
+        } else if (err.response.status === 403) {
+          if (role === 'contractor') {
+            errorMessage = 'Contractor account is pending approval';
+          } else if (role === 'seller') {
+            errorMessage = 'Seller account is pending approval';
+          } else {
+            errorMessage = 'Account not approved yet';
+          }
+        }
       } else if (err.request) {
         errorMessage = 'No response from server. Check your connection.';
       } else if (err.code === 'ECONNABORTED') {
         errorMessage = 'Request timeout. Server might be busy.';
       } else if (err.message.includes('Network Error')) {
         errorMessage = 'Network error. Check your internet connection.';
+      } else if (err.message === 'Invalid server response') {
+        errorMessage = 'Invalid server response. Please try again.';
       }
       
       setError(errorMessage);
@@ -132,6 +168,9 @@ export default function Login() {
           {/* Header with #800000 background */}
           <View style={styles.header}>
             <View style={styles.headerContent}>
+              <View style={styles.logoContainer}>
+                <Icon name="cube" size={40} color="#fff" />
+              </View>
               <Text style={styles.headerTitle}>Welcome Back</Text>
               <Text style={styles.headerSubtitle}>Sign in to your account</Text>
             </View>
@@ -151,6 +190,15 @@ export default function Login() {
                   onPress={() => setRole(r)}
                   disabled={loading}
                 >
+                  <Icon 
+                    name={
+                      r === 'user' ? 'person' : 
+                      r === 'seller' ? 'storefront' : 'construct'
+                    } 
+                    size={18} 
+                    color={role === r ? '#fff' : '#666'} 
+                    style={styles.tabIcon}
+                  />
                   <Text style={[
                     styles.tabText,
                     role === r && styles.activeTabText
@@ -171,7 +219,10 @@ export default function Login() {
 
             {/* Email Input */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email Address</Text>
+              <Text style={styles.label}>
+                <Icon name="mail" size={16} color="#666" style={{marginRight: 6}} />
+                Email Address
+              </Text>
               <TextInput
                 style={[styles.input, loading && styles.disabledInput]}
                 placeholder="Enter your email"
@@ -186,7 +237,10 @@ export default function Login() {
 
             {/* Password Input */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Password</Text>
+              <Text style={styles.label}>
+                <Icon name="lock-closed" size={16} color="#666" style={{marginRight: 6}} />
+                Password
+              </Text>
               <View style={styles.passwordContainer}>
                 <TextInput
                   style={[styles.input, styles.passwordInput, loading && styles.disabledInput]}
@@ -246,7 +300,7 @@ export default function Login() {
 
           {/* Footer */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>© 2025 BricksIT. All rights reserved.</Text>
+            <Text style={styles.footerText}>© 2024 BricksIT. All rights reserved.</Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -275,6 +329,15 @@ const styles = StyleSheet.create({
   },
   headerContent: {
     alignItems: 'center',
+  },
+  logoContainer: {
+    width: 70,
+    height: 70,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 35,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
   },
   headerTitle: {
     fontSize: 32,
@@ -309,12 +372,17 @@ const styles = StyleSheet.create({
   tab: {
     flex: 1,
     paddingVertical: 12,
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
     alignItems: 'center',
     borderRadius: 8,
+    flexDirection: 'row',
+    justifyContent: 'center',
   },
   activeTab: {
     backgroundColor: '#800000',
+  },
+  tabIcon: {
+    marginRight: 6,
   },
   tabText: {
     fontSize: 14,
@@ -348,6 +416,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#374151',
     marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   input: {
     borderWidth: 1,
@@ -390,6 +460,11 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     marginBottom: 24,
+    shadowColor: '#800000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   disabledButton: {
     opacity: 0.7,

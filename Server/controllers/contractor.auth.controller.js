@@ -103,151 +103,155 @@ export const loginContractor = async (req, res) => {
     }
 };
 
-// @desc    Get contractor profile
-// @route   GET /api/contractor/auth/profile
-// @access  Private (Contractor only)
+
+/* =====================================================
+   @desc    Get contractor profile
+   @route   GET /api/contractor/auth/profile
+   @access  Private (Contractor)
+===================================================== */
 export const getContractorProfile = async (req, res) => {
-    try {
-        const contractor = await Contractor.findById(req.user.id)
-            .select('-password -resetPasswordToken -resetPasswordExpire');
+  try {
+    const contractor = await Contractor.findByIdAndUpdate(
+      req.user.id,
+      { $inc: { profileViews: 1 } }, // atomic increment
+      { new: true }
+    ).select('-password -resetPasswordToken -resetPasswordExpire');
 
-        if (!contractor) {
-            return res.status(404).json({
-                success: false,
-                message: 'Contractor not found'
-            });
-        }
-
-        // Increment profile views
-        contractor.profileViews += 1;
-        await contractor.save();
-
-        res.json({
-            success: true,
-            contractor
-        });
-    } catch (error) {
-        console.error('Get contractor profile error:', error);
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Server error'
-        });
+    if (!contractor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Contractor not found',
+      });
     }
+
+    res.status(200).json({
+      success: true,
+      data: contractor,
+    });
+  } catch (error) {
+    console.error('Get contractor profile error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+    });
+  }
 };
 
-// @desc    Update contractor profile
-// @route   PUT /api/contractor/auth/profile
-// @access  Private (Contractor only)
+/* =====================================================
+   @desc    Update contractor profile
+   @route   PUT /api/contractor/auth/profile
+   @access  Private (Contractor)
+===================================================== */
 export const updateContractorProfile = async (req, res) => {
-    try {
-        const contractor = await Contractor.findById(req.user.id);
+  try {
+    const allowedUpdates = [
+      'name',
+      'phone',
+      'companyName',
+      'contractorType',
+      'experience',
+      'specialties',
+      'teamSize',
+      'address',
+      'website',
+      'gstNumber',
+      'bankDetails',
+      'verificationDocuments',
+    ];
 
-        if (!contractor) {
-            return res.status(404).json({
-                success: false,
-                message: 'Contractor not found'
-            });
-        }
+    const updates = {};
 
-        // Update fields
-        const allowedUpdates = [
-            'name', 'phone', 'companyName', 'contractorType',
-            'experience', 'specialties', 'teamSize', 'address',
-            'website', 'gstNumber', 'bankDetails', 'verificationDocuments'
-        ];
+    allowedUpdates.forEach((field) => {
+      if (req.body[field] !== undefined) {
+        updates[field] = req.body[field];
+      }
+    });
 
-        allowedUpdates.forEach(field => {
-            if (req.body[field] !== undefined) {
-                contractor[field] = req.body[field];
-            }
-        });
-
-        // Handle specialties array
-        if (req.body.specialties && Array.isArray(req.body.specialties)) {
-            contractor.specialties = req.body.specialties;
-        }
-
-        // Update verification status if documents are uploaded
-        if (req.body.verificationDocuments) {
-            contractor.verificationStatus = 'under_review';
-        }
-
-        const updatedContractor = await contractor.save();
-
-        res.json({
-            success: true,
-            message: 'Profile updated successfully',
-            contractor: {
-                _id: updatedContractor._id,
-                name: updatedContractor.name,
-                email: updatedContractor.email,
-                phone: updatedContractor.phone,
-                companyName: updatedContractor.companyName,
-                contractorType: updatedContractor.contractorType,
-                experience: updatedContractor.experience,
-                specialties: updatedContractor.specialties,
-                teamSize: updatedContractor.teamSize,
-                address: updatedContractor.address,
-                website: updatedContractor.website,
-                isVerified: updatedContractor.isVerified,
-                verificationStatus: updatedContractor.verificationStatus,
-                profileViews: updatedContractor.profileViews
-            }
-        });
-    } catch (error) {
-        console.error('Update contractor profile error:', error);
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Server error'
-        });
+    // If documents uploaded → set verification to review
+    if (req.body.verificationDocuments) {
+      updates.verificationStatus = 'under_review';
+      updates.isVerified = false;
     }
+
+    const contractor = await Contractor.findByIdAndUpdate(
+      req.user.id,
+      { $set: updates },
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!contractor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Contractor not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: contractor,
+    });
+  } catch (error) {
+    console.error('Update contractor profile error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Server error',
+    });
+  }
 };
 
-// @desc    Update contractor password
-// @route   PUT /api/contractor/auth/password
-// @access  Private (Contractor only)
+/* =====================================================
+   @desc    Update contractor password
+   @route   PUT /api/contractor/auth/password
+   @access  Private (Contractor)
+===================================================== */
 export const updateContractorPassword = async (req, res) => {
-    try {
-        const { currentPassword, newPassword } = req.body;
+  try {
+    const { currentPassword, newPassword } = req.body;
 
-        if (!currentPassword || !newPassword) {
-            return res.status(400).json({
-                success: false,
-                message: 'Please provide current and new password'
-            });
-        }
-
-        const contractor = await Contractor.findById(req.user.id).select('+password');
-
-        if (!contractor) {
-            return res.status(404).json({
-                success: false,
-                message: 'Contractor not found'
-            });
-        }
-
-        // Check current password
-        const isPasswordMatch = await contractor.matchPassword(currentPassword);
-        if (!isPasswordMatch) {
-            return res.status(401).json({
-                success: false,
-                message: 'Current password is incorrect'
-            });
-        }
-
-        // Update password
-        contractor.password = newPassword;
-        await contractor.save();
-
-        res.json({
-            success: true,
-            message: 'Password updated successfully'
-        });
-    } catch (error) {
-        console.error('Update password error:', error);
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Server error'
-        });
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current and new password are required',
+      });
     }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 8 characters',
+      });
+    }
+
+    const contractor = await Contractor.findById(req.user.id).select('+password');
+
+    if (!contractor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Contractor not found',
+      });
+    }
+
+    const isMatch = await contractor.matchPassword(currentPassword);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: 'Current password is incorrect',
+      });
+    }
+
+    contractor.password = newPassword;
+    await contractor.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Password updated successfully',
+    });
+  } catch (error) {
+    console.error('Update password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+    });
+  }
 };
