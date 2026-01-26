@@ -1,4 +1,3 @@
-// app/orders/index.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -130,7 +129,7 @@ export default function OrdersScreen() {
       pending:    { bg: '#FEF3C7', text: '#D97706', icon: 'time-outline',           label: 'Pending' },
       paid:       { bg: '#EDE9FE', text: '#7C3AED', icon: 'card-outline',          label: 'Paid' },
       shipped:    { bg: '#DBEAFE', text: '#2563EB', icon: 'car-outline',           label: 'Shipped' },
-      delivered:  { bg: '#D1FAE5', text: '#059669', icon: 'checkmark-circle',      label: 'Delivered' }, // Fixed icon
+      delivered:  { bg: '#D1FAE5', text: '#059669', icon: 'checkmark-circle',      label: 'Delivered' },
       cancelled:  { bg: '#FEE2E2', text: '#DC2626', icon: 'close-circle',          label: 'Cancelled' },
     };
     return map[status?.toLowerCase()] || map.pending;
@@ -189,8 +188,6 @@ Thank you for shopping with us!
         {
           text: 'Copy to Clipboard',
           onPress: () => {
-            // Uncomment when you add expo-clipboard
-            // Clipboard.setStringAsync(invoiceDetails);
             Alert.alert('Copied', 'Invoice text copied to clipboard! (expo-clipboard required)');
           },
         },
@@ -270,6 +267,18 @@ Thank you for shopping with us!
   if (loading && !refreshing) {
     return (
       <SafeAreaView style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.backButton} 
+            onPress={() => router.back()}
+          >
+            <Icon name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>My Orders</Text>
+          <View style={styles.headerRight} />
+        </View>
+        
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#800000" />
           <Text style={styles.loadingText}>Loading orders...</Text>
@@ -281,6 +290,18 @@ Thank you for shopping with us!
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#800000" />
+      
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => router.back()}
+        >
+          <Icon name="arrow-back" size={24} color="#fff" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>My Orders</Text>
+        <View style={styles.headerRight} />
+      </View>
 
       <ScrollView
         refreshControl={
@@ -291,6 +312,7 @@ Thank you for shopping with us!
             tintColor="#800000"
           />
         }
+        style={styles.content}
       >
         <View style={styles.searchContainer}>
           <View style={styles.searchBar}>
@@ -418,11 +440,46 @@ Thank you for shopping with us!
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText: { marginTop: 16, color: '#800000', fontSize: 16 },
-
-  searchContainer: { padding: 16, paddingTop: 24 },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#F9FAFB' 
+  },
+  header: {
+    backgroundColor: '#800000',
+    padding: 16,
+    paddingTop: isIOS ? 16 : 16 + StatusBar.currentHeight,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  backButton: {
+    padding: 4,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  headerRight: {
+    width: 40,
+  },
+  content: {
+    flex: 1,
+  },
+  centered: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center' 
+  },
+  loadingText: { 
+    marginTop: 16, 
+    color: '#800000', 
+    fontSize: 16 
+  },
+  searchContainer: { 
+    padding: 16, 
+    paddingTop: 24 
+  },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -433,9 +490,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     height: 48,
   },
-  searchInput: { flex: 1, fontSize: 16 },
-
-  filterScroll: { paddingHorizontal: 16, paddingVertical: 8 },
+  searchInput: { 
+    flex: 1, 
+    fontSize: 16 
+  },
+  filterScroll: { 
+    paddingHorizontal: 16, 
+    paddingVertical: 8 
+  },
   filterChip: {
     paddingHorizontal: 18,
     paddingVertical: 8,
@@ -445,8 +507,10 @@ const styles = StyleSheet.create({
     borderColor: '#D1D5DB',
     marginRight: 12,
   },
-  filterText: { fontWeight: '500', color: '#4B5563' },
-
+  filterText: { 
+    fontWeight: '500', 
+    color: '#4B5563' 
+  },
   orderCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
@@ -454,30 +518,88 @@ const styles = StyleSheet.create({
     marginTop: 12,
     borderWidth: 1,
     borderColor: '#F3F4F6',
+    marginHorizontal: 16,
+    marginBottom: 12,
   },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  orderIdLabel: { fontSize: 12, color: '#6B7280' },
-  orderId: { fontSize: 16, fontWeight: '600' },
-  statusBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
-  statusText: { marginLeft: 4, fontSize: 12, fontWeight: '600' },
-
-  productName: { fontSize: 16, fontWeight: '600', marginBottom: 8, color: '#111827' },
-
-  dateRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  dateLabel: { fontSize: 12, color: '#6B7280', marginRight: 8 },
-  dateValue: { fontSize: 14 },
-
-  divider: { height: 1, backgroundColor: '#F3F4F6', marginVertical: 12 },
-
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-  summaryLabel: { fontSize: 12, color: '#6B7280' },
-  summaryValue: { fontSize: 16, fontWeight: '700' },
-  paymentText: { fontSize: 14, fontWeight: '600' },
-
-  itemsCount: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-  itemsLabel: { fontSize: 12, color: '#6B7280' },
-  itemsValue: { fontSize: 14, fontWeight: '500' },
-
+  cardHeader: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    marginBottom: 8 
+  },
+  orderIdLabel: { 
+    fontSize: 12, 
+    color: '#6B7280' 
+  },
+  orderId: { 
+    fontSize: 16, 
+    fontWeight: '600' 
+  },
+  statusBadge: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    paddingHorizontal: 10, 
+    paddingVertical: 6, 
+    borderRadius: 8 
+  },
+  statusText: { 
+    marginLeft: 4, 
+    fontSize: 12, 
+    fontWeight: '600' 
+  },
+  productName: { 
+    fontSize: 16, 
+    fontWeight: '600', 
+    marginBottom: 8, 
+    color: '#111827' 
+  },
+  dateRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginBottom: 12 
+  },
+  dateLabel: { 
+    fontSize: 12, 
+    color: '#6B7280', 
+    marginRight: 8 
+  },
+  dateValue: { 
+    fontSize: 14 
+  },
+  divider: { 
+    height: 1, 
+    backgroundColor: '#F3F4F6', 
+    marginVertical: 12 
+  },
+  summaryRow: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    marginBottom: 12 
+  },
+  summaryLabel: { 
+    fontSize: 12, 
+    color: '#6B7280' 
+  },
+  summaryValue: { 
+    fontSize: 16, 
+    fontWeight: '700' 
+  },
+  paymentText: { 
+    fontSize: 14, 
+    fontWeight: '600' 
+  },
+  itemsCount: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    marginBottom: 12 
+  },
+  itemsLabel: { 
+    fontSize: 12, 
+    color: '#6B7280' 
+  },
+  itemsValue: { 
+    fontSize: 14, 
+    fontWeight: '500' 
+  },
   viewDetailsButton: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -486,13 +608,25 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#F3F4F6',
   },
-  viewDetailsText: { color: '#800000', fontWeight: '600' },
-
-  empty: { alignItems: 'center', paddingVertical: 100 },
-  emptyText: { marginTop: 16, fontSize: 16, color: '#6B7280' },
-
-  // ── Modal ────────────────────────────────────────
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  viewDetailsText: { 
+    color: '#800000', 
+    fontWeight: '600' 
+  },
+  empty: { 
+    alignItems: 'center', 
+    paddingVertical: 100 
+  },
+  emptyText: { 
+    marginTop: 16, 
+    fontSize: 16, 
+    color: '#6B7280' 
+  },
+  // Modal Styles
+  modalOverlay: { 
+    flex: 1, 
+    backgroundColor: 'rgba(0,0,0,0.5)', 
+    justifyContent: 'flex-end' 
+  },
   modalContainer: {
     backgroundColor: '#ffffff',
     borderTopLeftRadius: 24,
@@ -500,7 +634,14 @@ const styles = StyleSheet.create({
     maxHeight: height * 0.88,
     minHeight: 400,
   },
-  modalHandle: { width: 40, height: 5, backgroundColor: '#D1D5DB', borderRadius: 3, alignSelf: 'center', marginVertical: 12 },
+  modalHandle: { 
+    width: 40, 
+    height: 5, 
+    backgroundColor: '#D1D5DB', 
+    borderRadius: 3, 
+    alignSelf: 'center', 
+    marginVertical: 12 
+  },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -509,13 +650,28 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
-  modalBack: { flexDirection: 'row', alignItems: 'center' },
-  modalTitle: { fontSize: 18, fontWeight: '700' },
-
-  section: { padding: 20, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
-  sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 6 },
-  dateText: { color: '#6B7280', fontSize: 14 },
-
+  modalBack: { 
+    flexDirection: 'row', 
+    alignItems: 'center' 
+  },
+  modalTitle: { 
+    fontSize: 18, 
+    fontWeight: '700' 
+  },
+  section: { 
+    padding: 20, 
+    borderBottomWidth: 1, 
+    borderBottomColor: '#F3F4F6' 
+  },
+  sectionTitle: { 
+    fontSize: 16, 
+    fontWeight: '700', 
+    marginBottom: 6 
+  },
+  dateText: { 
+    color: '#6B7280', 
+    fontSize: 14 
+  },
   itemRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -524,12 +680,24 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 8,
   },
-  itemName: { fontSize: 14, fontWeight: '500' },
-  itemQty: { fontSize: 13, color: '#6B7280', marginTop: 2 },
-  itemAmount: { fontSize: 15, fontWeight: '600' },
-
-  address: { fontSize: 14, lineHeight: 22, color: '#374151' },
-
+  itemName: { 
+    fontSize: 14, 
+    fontWeight: '500' 
+  },
+  itemQty: { 
+    fontSize: 13, 
+    color: '#6B7280', 
+    marginTop: 2 
+  },
+  itemAmount: { 
+    fontSize: 15, 
+    fontWeight: '600' 
+  },
+  address: { 
+    fontSize: 14, 
+    lineHeight: 22, 
+    color: '#374151' 
+  },
   totalSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -539,9 +707,15 @@ const styles = StyleSheet.create({
     margin: 20,
     borderRadius: 12,
   },
-  totalLabel: { fontSize: 16, fontWeight: '600' },
-  totalValue: { fontSize: 20, fontWeight: '700', color: '#800000' },
-
+  totalLabel: { 
+    fontSize: 16, 
+    fontWeight: '600' 
+  },
+  totalValue: { 
+    fontSize: 20, 
+    fontWeight: '700', 
+    color: '#800000' 
+  },
   downloadInvoiceButton: {
     flexDirection: 'row',
     alignItems: 'center',

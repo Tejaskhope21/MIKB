@@ -1,4 +1,3 @@
-// app/(tabs)/Addresses/AddressesScreen.jsx
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -17,16 +16,8 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
-/* =========================
-   DYNAMIC API BASE URL
-========================= */
-const getApiBaseUrl = () => {
-  return 'https://bricks-backend-qyea.onrender.com/api';
-};
+const API_BASE_URL = 'https://bricks-backend-qyea.onrender.com/api';
 
-const API_BASE_URL = getApiBaseUrl();
-
-// Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
@@ -36,7 +27,6 @@ const api = axios.create({
   },
 });
 
-// Request interceptor
 api.interceptors.request.use(async (config) => {
   try {
     const token = await AsyncStorage.getItem('token');
@@ -128,7 +118,6 @@ const AddressScreen = () => {
       setLoading(true);
       const data = await addressesAPI.fetchUserAddresses();
       
-      // If no addresses from API, use sample data
       if (data.length === 0) {
         setAddresses(getSampleAddresses());
       } else {
@@ -136,14 +125,12 @@ const AddressScreen = () => {
       }
     } catch (error) {
       console.error('Fetch addresses failed:', error);
-      // Use sample data for testing
       setAddresses(getSampleAddresses());
     } finally {
       setLoading(false);
     }
   };
 
-  // Sample data for testing
   const getSampleAddresses = () => {
     return [
       {
@@ -205,7 +192,6 @@ const AddressScreen = () => {
   const handleSubmit = async () => {
     if (submitting) return;
 
-    // Validation
     if (
       !formData.fullName.trim() ||
       !formData.phone.trim() ||
@@ -253,7 +239,6 @@ const AddressScreen = () => {
     try {
       const result = await addressesAPI.setDefaultAddress(id);
       if (result.success) {
-        // Update local state
         setAddresses(prev => 
           prev.map(addr => ({
             ...addr,
@@ -376,15 +361,27 @@ const AddressScreen = () => {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#800000" />
-        <Text style={styles.loadingText}>Loading addresses...</Text>
-      </View>
+      <SafeAreaView style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <Icon name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>My Addresses</Text>
+          <View style={styles.headerRight} />
+        </View>
+        
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#800000" />
+          <Text style={styles.loadingText}>Loading addresses...</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Icon name="arrow-back" size={24} color="#fff" />
@@ -587,20 +584,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8f9fa',
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f8f9fa',
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#666',
-  },
   header: {
     backgroundColor: '#800000',
     padding: 16,
+    paddingTop: 45,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -619,6 +606,17 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#666',
   },
   addAddressBtn: {
     flexDirection: 'row',
