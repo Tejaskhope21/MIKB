@@ -32,7 +32,7 @@ const ContractorDashboardPage = () => {
         { id: 1, name: 'Residential Villa Construction', client: 'Mr. Rajesh Sharma', status: 'active', progress: 75, budget: '₹45 Lakh', dueDate: '15 Mar 2025' },
         { id: 2, name: 'Commercial Office Complex', client: 'ABC Corporation', status: 'planning', progress: 20, budget: '₹1.2 Crore', dueDate: '30 Jun 2025' },
         { id: 3, name: 'Luxury Apartment Renovation', client: 'Mrs. Priya Patel', status: 'active', progress: 90, budget: '₹12 Lakh', dueDate: '28 Feb 2025' },
-        { id: 4, name: 'Industrial Factory Shed', client: 'XYZ Industries Ltd.', status: 'completed', progress: 100, budget: '₹85 Lakh', dueDate: '15 Jan 2025' },
+        { id: 4, name: 'Industrial Factory Shed', client: 'XYZ Industries Ltd.', status: 'completed', progress: 100, budget: '₹85 Lakh', dueDate: '15 Jan 2026' },
     ];
 
     const upcomingTasks = [

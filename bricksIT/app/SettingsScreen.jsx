@@ -1,4 +1,3 @@
-// app/(tabs)/SettingsScreen.jsx - FIXED VERSION
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -38,7 +37,6 @@ export default function SettingsScreen() {
     try {
       setLoading(true);
       
-      // Try to load from AsyncStorage first for faster display
       try {
         const storedData = await AsyncStorage.getItem('userData');
         if (storedData) {
@@ -54,15 +52,12 @@ export default function SettingsScreen() {
         console.warn('Storage load warning:', storageError);
       }
 
-      // Try to get fresh data from API
       const res = await authAPI.getProfile();
-      console.log('Profile API Response:', res); // Debug log
+      console.log('Profile API Response:', res);
       
-      // Handle different possible response structures
       let userData = null;
       
       if (res && typeof res === 'object') {
-        // Check different possible response structures
         if (res.data && res.data.user) {
           userData = res.data.user;
         } else if (res.user) {
@@ -72,7 +67,6 @@ export default function SettingsScreen() {
         } else if (res.success && res.data) {
           userData = res.data.user || res.data;
         } else {
-          // Use the response itself as user data
           userData = res;
         }
       }
@@ -85,17 +79,14 @@ export default function SettingsScreen() {
           phone: userData.phone || '',
         });
         
-        // Save to AsyncStorage
         try {
           await AsyncStorage.setItem('userData', JSON.stringify(userData));
         } catch (storageError) {
           console.warn('Storage save warning:', storageError);
         }
       } else {
-        // No user data found in response
         console.warn('No user data found in API response');
         if (!user) {
-          // Only show alert if we don't have cached data
           Alert.alert(
             'Info',
             'Could not load profile data. Please try again later.',
@@ -106,7 +97,6 @@ export default function SettingsScreen() {
     } catch (err) {
       console.error('PROFILE LOAD ERROR', err);
       
-      // If API fails and we don't have cached data, show error
       if (!user) {
         Alert.alert(
           'Connection Error',
@@ -130,7 +120,6 @@ export default function SettingsScreen() {
       return;
     }
 
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(editFormData.email)) {
       Alert.alert('Error', 'Please enter a valid email address');
@@ -141,13 +130,11 @@ export default function SettingsScreen() {
 
     try {
       const res = await authAPI.updateProfile(editFormData);
-      console.log('Update Profile API Response:', res); // Debug log
+      console.log('Update Profile API Response:', res);
       
-      // Handle different possible response structures
       let updatedUser = null;
       
       if (res && typeof res === 'object') {
-        // Check different possible response structures
         if (res.data && res.data.user) {
           updatedUser = res.data.user;
         } else if (res.user) {
@@ -157,7 +144,6 @@ export default function SettingsScreen() {
         } else if (res.success && res.data) {
           updatedUser = res.data.user || res.data;
         } else {
-          // Use the response itself as user data
           updatedUser = res;
         }
       }
@@ -165,7 +151,6 @@ export default function SettingsScreen() {
       if (updatedUser) {
         setUser(updatedUser);
         
-        // Update AsyncStorage
         try {
           await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
         } catch (storageError) {
@@ -180,7 +165,6 @@ export default function SettingsScreen() {
           [{ text: 'OK' }]
         );
       } else {
-        // No user data returned
         Alert.alert(
           'Error',
           'Profile update completed but no data was returned.',
@@ -192,7 +176,6 @@ export default function SettingsScreen() {
       
       let errorMessage = 'Failed to update profile. Please try again.';
       
-      // Extract error message from response if available
       if (err.response) {
         if (err.response.data && err.response.data.message) {
           errorMessage = err.response.data.message;
@@ -224,10 +207,7 @@ export default function SettingsScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              // Clear storage
               await AsyncStorage.multiRemove(['token', 'userData']);
-              
-              // Navigate to login
               router.replace('/(auth)/Login');
             } catch (err) {
               console.error('LOGOUT ERROR:', err);
@@ -241,15 +221,41 @@ export default function SettingsScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#800000" />
-        <Text style={styles.loadingText}>Loading profile...</Text>
-      </View>
+      <SafeAreaView style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.backButton} 
+            onPress={() => router.back()}
+          >
+            <Icon name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Settings</Text>
+          <View style={styles.headerRight} />
+        </View>
+        
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#800000" />
+          <Text style={styles.loadingText}>Loading profile...</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => router.back()}
+        >
+          <Icon name="arrow-back" size={24} color="#fff" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Settings</Text>
+        <View style={styles.headerRight} />
+      </View>
+
       <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollView}>
         {/* Profile Header */}
         <View style={styles.profileHeader}>
@@ -320,6 +326,47 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Menu Options */}
+        <View style={[styles.card, styles.menuCard]}>
+          <TouchableOpacity style={styles.menuItem}>
+            <View style={styles.menuItemLeft}>
+              <Icon name="notifications-outline" size={22} color="#666" />
+              <Text style={styles.menuItemText}>Notifications</Text>
+            </View>
+            <Icon name="chevron-forward" size={20} color="#999" />
+          </TouchableOpacity>
+          
+          <View style={styles.separator} />
+          
+          <TouchableOpacity style={styles.menuItem}>
+            <View style={styles.menuItemLeft}>
+              <Icon name="lock-closed-outline" size={22} color="#666" />
+              <Text style={styles.menuItemText}>Privacy & Security</Text>
+            </View>
+            <Icon name="chevron-forward" size={20} color="#999" />
+          </TouchableOpacity>
+          
+          <View style={styles.separator} />
+          
+          <TouchableOpacity style={styles.menuItem}>
+            <View style={styles.menuItemLeft}>
+              <Icon name="help-circle-outline" size={22} color="#666" />
+              <Text style={styles.menuItemText}>Help & Support</Text>
+            </View>
+            <Icon name="chevron-forward" size={20} color="#999" />
+          </TouchableOpacity>
+          
+          <View style={styles.separator} />
+          
+          <TouchableOpacity style={styles.menuItem}>
+            <View style={styles.menuItemLeft}>
+              <Icon name="document-text-outline" size={22} color="#666" />
+              <Text style={styles.menuItemText}>Terms & Conditions</Text>
+            </View>
+            <Icon name="chevron-forward" size={20} color="#999" />
+          </TouchableOpacity>
+        </View>
+
         {/* App Info Card */}
         <View style={[styles.card, styles.appInfoCard]}>
           <View style={styles.cardHeader}>
@@ -336,7 +383,7 @@ export default function SettingsScreen() {
           
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Last Updated</Text>
-            <Text style={styles.infoValue}>Jan 2024</Text>
+            <Text style={styles.infoValue}>Jan 2026</Text>
           </View>
         </View>
 
@@ -446,6 +493,25 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  header: {
+    backgroundColor: '#800000',
+    padding: 16,
+    paddingTop:45,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  backButton: {
+    padding: 4,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  headerRight: {
+    width: 40,
+  },
   scrollView: {
     flex: 1,
   },
@@ -546,6 +612,10 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
+  menuCard: {
+    padding: 0,
+    overflow: 'hidden',
+  },
   appInfoCard: {
     marginBottom: 20,
   },
@@ -583,7 +653,23 @@ const styles = StyleSheet.create({
   separator: {
     height: 1,
     backgroundColor: '#f0f0f0',
-    marginVertical: 4,
+    marginVertical: 0,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+  },
+  menuItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  menuItemText: {
+    fontSize: 16,
+    color: '#333',
+    marginLeft: 12,
   },
   editProfileBtn: {
     flexDirection: 'row',
