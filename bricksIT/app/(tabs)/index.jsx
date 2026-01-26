@@ -22,7 +22,7 @@ import hero2 from '../../assets/images/b3.jpg';
 import hero3 from '../../assets/images/b4.jpg';
 
 // Import logo
-import logoImage from '../../assets/newlogo1.png';
+import logoImage from '../../assets/images/logo2.png';
 
 // Import API functions
 import {
@@ -718,9 +718,9 @@ const styles = StyleSheet.create({
     height: 40,
   },
   logo: {
-    width: 100,
+    width: 120,
     height: 90,
-    maxWidth: 100,
+    maxWidth: 120,
   },
   navbarTitle: {
     fontSize: 24,
