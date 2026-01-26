@@ -8,6 +8,7 @@ import {
     Image,
     Alert,
     ActivityIndicator,
+    StatusBar,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -82,8 +83,24 @@ export default function CartScreen() {
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <Text style={styles.headerTitle}>My Cart</Text>
+            <StatusBar backgroundColor="#800000" barStyle="light-content" />
+            
+            {/* New Header with #800000 background */}
+            <View style={styles.newHeader}>
+                <TouchableOpacity 
+                    style={styles.backButton}
+                    onPress={() => router.back()}
+                >
+                    <Ionicons name="arrow-back" size={24} color="#fff" />
+                </TouchableOpacity>
+                
+                <View style={styles.headerCenter}>
+                    <Text style={styles.newHeaderTitle}>My Cart</Text>
+                    {cartItems.length > 0 && (
+                        <Text style={styles.itemCount}>{getCartCount()} items</Text>
+                    )}
+                </View>
+                
                 {cartItems.length > 0 && (
                     <TouchableOpacity
                         onPress={() => {
@@ -100,8 +117,9 @@ export default function CartScreen() {
                                 ]
                             );
                         }}
+                        style={styles.clearAllButton}
                     >
-                        <Text style={styles.clearButton}>Clear All</Text>
+                        <Ionicons name="trash-outline" size={20} color="#fff" />
                     </TouchableOpacity>
                 )}
             </View>
@@ -229,30 +247,38 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    header: {
+    // New Header Styles
+    newHeader: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 16,
-        backgroundColor: '#fff',
-        borderBottomWidth: 1,
-        borderBottomColor: '#eee',
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
+        justifyContent: 'space-between',
+        backgroundColor: '#800000',
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        paddingTop: 50, // Extra padding for status bar
     },
-    headerTitle: {
+    backButton: {
+        padding: 4,
+    },
+    headerCenter: {
+        flex: 1,
+        alignItems: 'center',
+        marginHorizontal: 12,
+    },
+    newHeaderTitle: {
         fontSize: 20,
         fontWeight: 'bold',
-        color: '#333',
+        color: '#fff',
     },
-    clearButton: {
-        color: '#ff4444',
-        fontSize: 14,
-        fontWeight: '500',
+    itemCount: {
+        fontSize: 12,
+        color: 'rgba(255, 255, 255, 0.8)',
+        marginTop: 2,
     },
+    clearAllButton: {
+        padding: 4,
+    },
+    // Rest of the styles remain the same
     emptyContainer: {
         flex: 1,
         justifyContent: 'center',

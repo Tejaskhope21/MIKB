@@ -12,30 +12,30 @@ import {
   Dimensions,
   Platform,
   StatusBar,
+  Image,
 } from 'react-native';
 import axios from 'axios';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
+const CARD_MARGIN = 8;
+const CARD_WIDTH = (width - (CARD_MARGIN * 3)) / 2;
 
 const PRIMARY_COLOR = 'rgb(128, 0, 0)';
 const SECONDARY_COLOR = '#F8F0F0';
 
-// Constants for AsyncStorage keys
 const STORAGE_KEYS = {
   CONTRACTORS_CACHE: '@contractors_cache',
   CACHE_TIMESTAMP: '@contractors_cache_timestamp',
   SEARCH_HISTORY: '@contractors_search_history',
 };
 
-// Cache duration in milliseconds (30 minutes)
 const CACHE_DURATION = 30 * 60 * 1000;
 
 const API_BASE = 'https://bricks-backend-qyea.onrender.com/api';
 
-// Create axios instance
 const createApiInstance = () => {
   const instance = axios.create({
     baseURL: API_BASE,
@@ -66,8 +66,10 @@ const ContractorsListScreen = () => {
   const searchTimeoutRef = useRef(null);
   const suggestionTimeoutRef = useRef(null);
   const api = useRef(createApiInstance());
+  
+  // Add a key for FlatList to force fresh render
+  const flatListKey = useRef(`flatlist-${Date.now()}`);
 
-  // ================= ASYNCSTORAGE FUNCTIONS =================
   const saveToCache = async (data, searchQuery = '') => {
     try {
       const cacheData = {
@@ -79,9 +81,8 @@ const ContractorsListScreen = () => {
         STORAGE_KEYS.CONTRACTORS_CACHE, 
         JSON.stringify(cacheData)
       );
-      console.log('Data saved to cache');
     } catch (error) {
-      console.error('Error saving to cache:', error);
+      console.error('Error saving to cache');
     }
   };
 
@@ -91,22 +92,18 @@ const ContractorsListScreen = () => {
       if (cached) {
         const { data, timestamp, searchQuery } = JSON.parse(cached);
         
-        // Check if cache is still valid
         const isCacheValid = Date.now() - timestamp < CACHE_DURATION;
         
         if (isCacheValid) {
-          console.log('Loading from cache');
           setIsUsingCache(true);
           return { data, searchQuery };
         } else {
-          console.log('Cache expired');
-          // Clear expired cache
           await AsyncStorage.removeItem(STORAGE_KEYS.CONTRACTORS_CACHE);
         }
       }
       return null;
     } catch (error) {
-      console.error('Error loading from cache:', error);
+      console.error('Error loading from cache');
       return null;
     }
   };
@@ -118,13 +115,8 @@ const ContractorsListScreen = () => {
       const history = await AsyncStorage.getItem(STORAGE_KEYS.SEARCH_HISTORY);
       let historyArray = history ? JSON.parse(history) : [];
       
-      // Remove if already exists
       historyArray = historyArray.filter(item => item !== query);
-      
-      // Add to beginning
       historyArray.unshift(query);
-      
-      // Keep only last 10 searches
       historyArray = historyArray.slice(0, 10);
       
       await AsyncStorage.setItem(
@@ -133,7 +125,7 @@ const ContractorsListScreen = () => {
       );
       setSearchHistory(historyArray);
     } catch (error) {
-      console.error('Error saving search history:', error);
+      console.error('Error saving search history');
     }
   };
 
@@ -144,7 +136,7 @@ const ContractorsListScreen = () => {
         setSearchHistory(JSON.parse(history));
       }
     } catch (error) {
-      console.error('Error loading search history:', error);
+      console.error('Error loading search history');
     }
   };
 
@@ -153,11 +145,10 @@ const ContractorsListScreen = () => {
       await AsyncStorage.removeItem(STORAGE_KEYS.SEARCH_HISTORY);
       setSearchHistory([]);
     } catch (error) {
-      console.error('Error clearing search history:', error);
+      console.error('Error clearing search history');
     }
   };
 
-  // ================= FETCH CONTRACTORS =================
   const fetchContractors = async (loadMore = false, searchText = search) => {
     if (loadMore && !hasMore) return;
 
@@ -168,15 +159,12 @@ const ContractorsListScreen = () => {
     setIsUsingCache(false);
 
     try {
-      console.log('Fetching contractors...');
-      
-      // Try to load from cache first if not searching and not loading more
       if (!loadMore && !searchText.trim()) {
         const cached = await loadFromCache();
         if (cached) {
           setContractors(cached.data);
           setPage(1);
-          setHasMore(false); // Cache doesn't support pagination
+          setHasMore(false);
           setLoading(false);
           setRefreshing(false);
           return;
@@ -190,10 +178,7 @@ const ContractorsListScreen = () => {
         saveSearchHistory(searchText.trim());
       }
 
-      console.log('Request URL:', url);
-      
       const res = await api.current.get(url);
-      console.log('Contractors API Response status:', res.status);
       
       const newContractors = res.data.contractors || res.data || [];
 
@@ -204,7 +189,6 @@ const ContractorsListScreen = () => {
         setContractors(newContractors);
         setPage(1);
         
-        // Save to cache if not searching
         if (!searchText.trim()) {
           saveToCache(newContractors);
         }
@@ -219,9 +203,6 @@ const ContractorsListScreen = () => {
       setApiStatus('connected');
       
     } catch (err) {
-      console.error('Contractor fetch error:', err.message);
-      
-      // Try to load from cache on error
       if (!loadMore && !searchText.trim()) {
         const cached = await loadFromCache();
         if (cached) {
@@ -248,9 +229,7 @@ const ContractorsListScreen = () => {
       setError(errorMessage);
       setApiStatus('disconnected');
       
-      // Show demo data in development
       if (__DEV__ && contractors.length === 0 && !loadMore) {
-        console.log('Showing demo data');
         const demoData = getDemoData();
         setContractors(demoData);
         setHasMore(false);
@@ -263,7 +242,6 @@ const ContractorsListScreen = () => {
     }
   };
 
-  // Demo data for development
   const getDemoData = () => [
     {
       _id: '1',
@@ -317,10 +295,8 @@ const ContractorsListScreen = () => {
     },
   ];
 
-  // ================= FETCH SUGGESTIONS =================
   const fetchSuggestions = async (text) => {
     if (!text.trim()) {
-      // Show search history when search is empty
       if (searchHistory.length > 0) {
         setSuggestions(searchHistory.map(item => ({ type: 'history', value: item })));
       } else {
@@ -334,7 +310,6 @@ const ContractorsListScreen = () => {
         `/contractor-search/contractor-suggestions?q=${encodeURIComponent(text)}`
       );
       
-      // Combine search history with API suggestions
       const apiSuggestions = res.data || [];
       const historySuggestions = searchHistory
         .filter(item => item.toLowerCase().includes(text.toLowerCase()))
@@ -345,10 +320,8 @@ const ContractorsListScreen = () => {
         ...apiSuggestions.map(item => ({ type: 'api', value: item }))
       ];
       
-      setSuggestions(combined.slice(0, 10)); // Limit to 10 suggestions
+      setSuggestions(combined.slice(0, 10));
     } catch (err) {
-      console.error('Suggestion error:', err);
-      // Fallback to search history
       const filteredHistory = searchHistory
         .filter(item => item.toLowerCase().includes(text.toLowerCase()))
         .map(item => ({ type: 'history', value: item }));
@@ -357,12 +330,10 @@ const ContractorsListScreen = () => {
   };
 
   useEffect(() => {
-    // Load search history on mount
     loadSearchHistory();
     fetchContractors();
   }, []);
 
-  // ================= SEARCH HANDLER =================
   const handleSearchChange = (text) => {
     setSearch(text);
 
@@ -402,7 +373,6 @@ const ContractorsListScreen = () => {
 
   const onRefresh = () => {
     setRefreshing(true);
-    // Clear cache on refresh
     AsyncStorage.removeItem(STORAGE_KEYS.CONTRACTORS_CACHE).then(() => {
       setIsUsingCache(false);
       fetchContractors();
@@ -422,7 +392,6 @@ const ContractorsListScreen = () => {
     });
   };
 
-  // ================= RENDER HEADER =================
   const renderHeader = () => (
     <View style={styles.header}>
       <View style={styles.headerContent}>
@@ -434,9 +403,6 @@ const ContractorsListScreen = () => {
         </TouchableOpacity>
         <View style={styles.headerTextContainer}>
           <Text style={styles.headerTitle}>Find Trusted Contractors</Text>
-          <Text style={styles.headerSubtitle}>
-            Browse verified professionals for your next project
-          </Text>
         </View>
         <View style={[styles.apiStatusBadge, isUsingCache && styles.cacheBadge]}>
           <Text style={styles.apiStatusText}>
@@ -447,49 +413,47 @@ const ContractorsListScreen = () => {
     </View>
   );
 
-  // ================= RENDER ITEM =================
   const renderContractorItem = ({ item }) => (
     <TouchableOpacity
-      style={styles.contractorCard}
+      style={styles.gridItem}
       onPress={() => handleContractorPress(item)}
       activeOpacity={0.7}
     >
-      {isUsingCache && (
-        <View style={styles.cacheIndicator}>
-          <Icon name="wifi-off" size={12} color="#666" />
-          <Text style={styles.cacheIndicatorText}>Offline</Text>
-        </View>
-      )}
-      <View style={styles.cardHeader}>
+      <View style={styles.cardContainer}>
+        {isUsingCache && (
+          <View style={styles.cacheIndicator}>
+            <Icon name="wifi-off" size={10} color="#666" />
+            <Text style={styles.cacheIndicatorText}>Offline</Text>
+          </View>
+        )}
+
         <View style={styles.companyLogo}>
           <Text style={styles.logoText}>
             {item.companyName?.charAt(0)?.toUpperCase() || 'C'}
           </Text>
         </View>
-        
+
         <View style={styles.companyInfo}>
-          <View style={styles.companyNameRow}>
-            <Text style={styles.companyName} numberOfLines={1}>
-              {item.companyName || 'Contractor'}
-            </Text>
+          <Text style={styles.companyName} numberOfLines={1}>
+            {item.companyName || 'Contractor'}
+          </Text>
+          
+          <View style={styles.badgeContainer}>
             {item.isVerified && (
               <View style={styles.verifiedBadge}>
-                <Icon name="verified" size={14} color="#10B981" />
+                <Icon name="verified" size={12} color="#10B981" />
                 <Text style={styles.verifiedText}>Verified</Text>
               </View>
             )}
           </View>
-          <Text style={styles.description} numberOfLines={1}>
-            {item.contractorType || 'Professional contractor'}
-          </Text>
         </View>
-      </View>
 
-      <View style={styles.cardDivider} />
+        <Text style={styles.contractorType} numberOfLines={1}>
+          {item.contractorType || 'Professional contractor'}
+        </Text>
 
-      <View style={styles.cardDetails}>
         <View style={styles.detailRow}>
-          <Icon name="location-on" size={14} color="#666" />
+          <Icon name="location-on" size={12} color="#666" />
           <Text style={styles.detailText} numberOfLines={1}>
             {item.address?.city && item.address?.state
               ? `${item.address.city}, ${item.address.state}`
@@ -498,17 +462,17 @@ const ContractorsListScreen = () => {
         </View>
 
         <View style={styles.detailRow}>
-          <Icon name="work" size={14} color="#666" />
+          <Icon name="work" size={12} color="#666" />
           <Text style={styles.detailText}>
-            {item.experience || 0} years experience
+            {item.experience || 0} years
           </Text>
         </View>
 
         {item.portfolio && item.portfolio.length > 0 && (
           <View style={styles.portfolioRow}>
-            <Icon name="photo-library" size={14} color={PRIMARY_COLOR} />
+            <Icon name="photo-library" size={12} color={PRIMARY_COLOR} />
             <Text style={styles.portfolioText}>
-              {item.portfolio.length} portfolio projects
+              {item.portfolio.length} projects
             </Text>
           </View>
         )}
@@ -516,7 +480,6 @@ const ContractorsListScreen = () => {
     </TouchableOpacity>
   );
 
-  // ================= RENDER ERROR =================
   const renderError = () => (
     <View style={styles.errorContainer}>
       <Icon name="wifi-off" size={60} color="#dc3545" />
@@ -527,7 +490,7 @@ const ContractorsListScreen = () => {
         <Text style={styles.troubleshootTitle}>Troubleshooting:</Text>
         <Text style={styles.troubleshootText}>• Check your internet connection</Text>
         <Text style={styles.troubleshootText}>• Disable VPN if using one</Text>
-        <Text style={troubleshootText}>• Try switching between WiFi and mobile data</Text>
+        <Text style={styles.troubleshootText}>• Try switching between WiFi and mobile data</Text>
       </View>
       
       <TouchableOpacity
@@ -546,7 +509,6 @@ const ContractorsListScreen = () => {
     </View>
   );
 
-  // ================= RENDER SUGGESTION ITEM =================
   const renderSuggestionItem = (item, index) => (
     <TouchableOpacity
       key={index}
@@ -570,7 +532,6 @@ const ContractorsListScreen = () => {
     </TouchableOpacity>
   );
 
-  // ================= RENDER LOADING =================
   if (loading && contractors.length === 0) {
     return (
       <SafeAreaView style={styles.container}>
@@ -590,7 +551,6 @@ const ContractorsListScreen = () => {
       <StatusBar backgroundColor={PRIMARY_COLOR} barStyle="light-content" />
       {renderHeader()}
       
-      {/* SEARCH BAR */}
       <View style={styles.searchContainer}>
         <Icon name="search" size={20} color="#666" style={styles.searchIcon} />
         <TextInput
@@ -609,7 +569,6 @@ const ContractorsListScreen = () => {
         ) : null}
       </View>
 
-      {/* SUGGESTIONS */}
       {suggestions.length > 0 && (
         <View style={styles.suggestionBox}>
           {search.trim() === '' && searchHistory.length > 0 && (
@@ -624,16 +583,17 @@ const ContractorsListScreen = () => {
         </View>
       )}
 
-      {/* ERROR MESSAGE */}
       {error && !loading && contractors.length === 0 && renderError()}
 
-      {/* CONTRACTOR LIST */}
       {!error && (
         <FlatList
+          key={flatListKey.current} // Add unique key to force fresh render
           data={contractors}
           keyExtractor={(item) => item._id || Math.random().toString()}
           renderItem={renderContractorItem}
-          contentContainerStyle={styles.listContent}
+          numColumns={2}
+          columnWrapperStyle={styles.columnWrapper}
+          contentContainerStyle={styles.gridContent}
           onEndReached={!isUsingCache ? loadMore : undefined}
           onEndReachedThreshold={0.3}
           refreshControl={
@@ -693,8 +653,8 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: PRIMARY_COLOR,
-    paddingTop: 10,
-    paddingBottom: 20,
+    paddingTop: 50,
+    paddingBottom: 40,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
     elevation: 4,
@@ -747,7 +707,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginHorizontal: 20,
-    marginTop: -10,
+    marginTop: 40,
     marginBottom: 15,
     paddingHorizontal: 15,
     height: 50,
@@ -829,51 +789,57 @@ const styles = StyleSheet.create({
     color: '#999',
     marginLeft: 8,
   },
-  listContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 30,
+  columnWrapper: {
+    justifyContent: 'space-between',
+    paddingHorizontal: CARD_MARGIN,
+    marginBottom: CARD_MARGIN,
   },
-  contractorCard: {
+  gridContent: {
+    paddingBottom: 30,
+    paddingTop: 10,
+  },
+  gridItem: {
+    width: CARD_WIDTH,
+  },
+  cardContainer: {
     backgroundColor: '#FFF',
-    borderRadius: 16,
-    marginBottom: 15,
-    padding: 18,
-    elevation: 3,
+    borderRadius: 12,
+    padding: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    height: 220,
     position: 'relative',
   },
   cacheIndicator: {
     position: 'absolute',
-    top: 10,
-    right: 10,
+    top: 8,
+    right: 8,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 193, 7, 0.1)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 10,
+    zIndex: 1,
   },
   cacheIndicatorText: {
-    fontSize: 10,
+    fontSize: 9,
     color: '#666',
-    marginLeft: 4,
+    marginLeft: 3,
     fontWeight: '500',
   },
-  cardHeader: {
-    flexDirection: 'row',
-    marginBottom: 12,
-  },
   companyLogo: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: PRIMARY_COLOR,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 15,
+    marginBottom: 10,
+    alignSelf: 'center',
   },
   logoText: {
     fontSize: 20,
@@ -881,67 +847,62 @@ const styles = StyleSheet.create({
     color: '#FFF',
   },
   companyInfo: {
-    flex: 1,
-  },
-  companyNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 6,
   },
   companyName: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: '700',
     color: '#222',
     flex: 1,
+  },
+  badgeContainer: {
+    marginLeft: 4,
   },
   verifiedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginLeft: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
   },
   verifiedText: {
-    fontSize: 10,
+    fontSize: 9,
     color: '#10B981',
     fontWeight: '600',
-    marginLeft: 4,
+    marginLeft: 2,
   },
-  description: {
-    fontSize: 14,
+  contractorType: {
+    fontSize: 12,
     color: '#666',
+    marginBottom: 8,
+    textAlign: 'center',
   },
-  cardDivider: {
-    height: 1,
-    backgroundColor: '#F0F0F0',
-    marginVertical: 12,
-  },
-  cardDetails: {},
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 6,
   },
   detailText: {
-    fontSize: 14,
+    fontSize: 11,
     color: '#555',
-    marginLeft: 8,
+    marginLeft: 6,
     flex: 1,
   },
   portfolioRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
-    paddingTop: 8,
+    marginTop: 4,
+    paddingTop: 6,
     borderTopWidth: 1,
     borderTopColor: '#F0F0F0',
   },
   portfolioText: {
-    fontSize: 13,
+    fontSize: 11,
     color: PRIMARY_COLOR,
-    marginLeft: 8,
+    marginLeft: 6,
     fontWeight: '500',
   },
   loadingContainer: {

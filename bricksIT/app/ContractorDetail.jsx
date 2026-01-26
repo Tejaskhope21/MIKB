@@ -7,10 +7,10 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   SafeAreaView,
-  Linking,
   Alert,
   Image,
   Dimensions,
+  Linking,
 } from 'react-native';
 import axios from 'axios';
 import { useRoute, useNavigation } from '@react-navigation/native';
@@ -20,6 +20,42 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 const API_BASE = 'https://bricks-backend-qyea.onrender.com/api/contractor';
 const { width } = Dimensions.get('window');
 
+// Your company's static contact details
+const COMPANY_CONTACT = {
+  phone: '+91-1234567890',
+  email: 'info@brickscompany.com',
+  website: 'www.brickscompany.com',
+  address: '123 Construction Street, Mumbai, Maharashtra 400001',
+  companyName: 'Bricks Construction Services',
+  supportHours: 'Mon-Sat: 9 AM - 6 PM',
+  whatsapp: '+91-1234567890',
+};
+
+// Helper function to get complete image URL
+const getImageUrl = (imagePath) => {
+  if (!imagePath) return null;
+  
+  // If it's already a full URL
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    return imagePath;
+  }
+  
+  // If it's a relative path, construct full URL
+  // You may need to adjust this based on your backend setup
+  if (imagePath.startsWith('/')) {
+    return `https://bricks-backend-qyea.onrender.com${imagePath}`;
+  }
+  
+  // Default fallback
+  return imagePath;
+};
+
+// Fallback images
+const FALLBACK_IMAGES = {
+  profile: 'https://via.placeholder.com/100/e0e0e0/333333?text=LOGO',
+  portfolio: 'https://via.placeholder.com/300x200/e0e0e0/333333?text=PROJECT'
+};
+
 const ContractorDetail = () => {
   const route = useRoute();
   const navigation = useNavigation();
@@ -28,9 +64,9 @@ const ContractorDetail = () => {
   const [contractor, setContractor] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [imageError, setImageError] = useState({});
 
-  // Primary color
-  const PRIMARY_COLOR = 'rgb(128, 0, 0)'; // Maroon color
+  const PRIMARY_COLOR = 'rgb(128, 0, 0)';
   const LIGHT_PRIMARY = 'rgba(128, 0, 0, 0.1)';
 
   useEffect(() => {
@@ -43,9 +79,21 @@ const ContractorDetail = () => {
     const fetchContractor = async () => {
       try {
         const response = await axios.get(`${API_BASE}/${id}`);
-        setContractor(response.data.data);
+        const contractorData = response.data.data;
+        
+        // Process portfolio images
+        if (contractorData.portfolio && contractorData.portfolio.length > 0) {
+          contractorData.portfolio = contractorData.portfolio.map(project => ({
+            ...project,
+            // Ensure image URLs are complete
+            images: project.images?.map(img => getImageUrl(img)) || []
+          }));
+        }
+        
+        setContractor(contractorData);
       } catch (err) {
-        setError(err.response?.data?.message || 'Contractor not found.');
+        console.error('Error fetching contractor:', err);
+        setError(err.response?.data?.message || 'Contractor not found. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -54,43 +102,121 @@ const ContractorDetail = () => {
     fetchContractor();
   }, [id]);
 
-  const formatPhoneNumber = (phone) => {
-    if (!phone) return 'Not available';
-    const cleaned = phone.replace(/\D/g, '');
-    if (cleaned.length === 10) {
-      return cleaned.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
-    }
-    return phone;
+  const handleImageError = (type, index = null) => {
+    const key = index !== null ? `${type}_${index}` : type;
+    setImageError(prev => ({ ...prev, [key]: true }));
   };
 
-  const handleCall = (phoneNumber) => {
-    if (!phoneNumber) {
-      Alert.alert('No phone number available');
-      return;
-    }
-    Linking.openURL(`tel:${phoneNumber}`);
+  const handleCall = () => {
+    const phoneNumber = COMPANY_CONTACT.phone.replace(/[^0-9+]/g, '');
+    Linking.openURL(`tel:${phoneNumber}`).catch(() => {
+      Alert.alert('Error', 'Unable to make call');
+    });
   };
 
-  const handleEmail = (email) => {
-    if (!email) {
-      Alert.alert('No email available');
-      return;
-    }
-    Linking.openURL(`mailto:${email}`);
+  const handleEmail = () => {
+    Linking.openURL(`mailto:${COMPANY_CONTACT.email}`).catch(() => {
+      Alert.alert('Error', 'Unable to open email');
+    });
   };
 
-  const handleWebsite = (website) => {
-    if (!website) {
-      Alert.alert('No website available');
-      return;
+  const handleWebsite = () => {
+    let url = COMPANY_CONTACT.website;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = `https://${url}`;
     }
+    Linking.openURL(url).catch(() => {
+      Alert.alert('Error', 'Unable to open website');
+    });
+  };
+
+  const handleWhatsApp = () => {
+    const whatsappNumber = COMPANY_CONTACT.whatsapp.replace(/[^0-9+]/g, '');
+    const message = `Hello Bricks Team, I'm interested in contractor: ${contractor?.companyName}`;
+    Linking.openURL(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`).catch(() => {
+      Alert.alert('Error', 'WhatsApp is not installed');
+    });
+  };
+
+  const handleContractorWebsite = (website) => {
+    if (!website) return;
+    
     let url = website;
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       url = `https://${url}`;
     }
     Linking.openURL(url).catch(() => {
-      Alert.alert('Unable to open website');
+      Alert.alert('Error', 'Unable to open website');
     });
+  };
+
+  const renderProjectCard = (project, index) => {
+    const hasImages = project.images && project.images.length > 0;
+    const imageKey = `portfolio_${index}`;
+    const imageUrl = hasImages ? getImageUrl(project.images[0]) : FALLBACK_IMAGES.portfolio;
+
+    return (
+      <View key={index} style={styles.portfolioItem}>
+        {hasImages && !imageError[imageKey] ? (
+          <Image 
+            source={{ uri: imageUrl }}
+            style={styles.projectImage}
+            resizeMode="cover"
+            onError={() => handleImageError('portfolio', index)}
+          />
+        ) : (
+          <View style={styles.projectImagePlaceholder}>
+            <Icon name="photo-library" size={40} color={PRIMARY_COLOR} />
+            <Text style={styles.projectImageText}>Project Image</Text>
+          </View>
+        )}
+        
+        <View style={styles.projectInfo}>
+          <Text style={styles.projectTitle} numberOfLines={2}>
+            {project.title || 'Project'}
+          </Text>
+          <Text style={styles.projectCategory}>
+            {project.category || 'Construction'}
+          </Text>
+          
+          <View style={styles.projectMeta}>
+            <View style={styles.metaItem}>
+              <Icon name="calendar-today" size={12} color="#64748B" />
+              <Text style={styles.metaText}>
+                {project.year || '2024'}
+              </Text>
+            </View>
+            
+            <View style={styles.metaItem}>
+              <Icon name="location-on" size={12} color="#64748B" />
+              <Text style={styles.metaText} numberOfLines={1}>
+                {project.location || 'Location'}
+              </Text>
+            </View>
+          </View>
+          
+          <View style={styles.projectStatusContainer}>
+            <View style={[
+              styles.projectStatus,
+              { 
+                backgroundColor: project.status === 'completed' ? '#10B981' : 
+                               project.status === 'ongoing' ? '#3B82F6' : '#F59E0B' 
+              }
+            ]}>
+              <Text style={styles.projectStatusText}>
+                {project.status ? project.status.charAt(0).toUpperCase() + project.status.slice(1) : 'Planned'}
+              </Text>
+            </View>
+            
+            {project.budget && (
+              <Text style={styles.projectBudget}>
+                ₹{project.budget.toLocaleString()}
+              </Text>
+            )}
+          </View>
+        </View>
+      </View>
+    );
   };
 
   if (loading) {
@@ -116,6 +242,8 @@ const ContractorDetail = () => {
     );
   }
 
+  const profileImageUrl = contractor.profileImage ? getImageUrl(contractor.profileImage) : null;
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -136,15 +264,18 @@ const ContractorDetail = () => {
           <View style={styles.profileSection}>
             {/* Profile Image */}
             <View style={styles.profileImageContainer}>
-              {contractor.profileImage ? (
+              {profileImageUrl && !imageError.profile ? (
                 <Image 
-                  source={{ uri: contractor.profileImage }} 
+                  source={{ uri: profileImageUrl }}
                   style={styles.profileImage}
                   resizeMode="cover"
+                  onError={() => handleImageError('profile')}
                 />
               ) : (
                 <View style={[styles.profileImagePlaceholder, { backgroundColor: LIGHT_PRIMARY }]}>
-                  <Icon name="business" size={40} color={PRIMARY_COLOR} />
+                  <Text style={styles.profileInitial}>
+                    {contractor.companyName?.charAt(0)?.toUpperCase() || 'C'}
+                  </Text>
                 </View>
               )}
             </View>
@@ -152,61 +283,96 @@ const ContractorDetail = () => {
             {/* Company Name and Type */}
             <View style={styles.companyInfo}>
               <Text style={styles.companyName} numberOfLines={2}>
-                {contractor.companyName}
+                {contractor.companyName || 'Construction Company'}
               </Text>
-              <Text style={styles.contractorName}>{contractor.name}</Text>
+              <Text style={styles.contractorName}>
+                {contractor.name || 'Professional Contractor'}
+              </Text>
               
               <View style={[styles.contractorTypeBadge, { backgroundColor: LIGHT_PRIMARY }]}>
                 <Text style={[styles.contractorTypeText, { color: PRIMARY_COLOR }]}>
-                  {contractor.contractorType}
+                  {contractor.contractorType || 'General Contractor'}
                 </Text>
               </View>
             </View>
           </View>
 
-          {/* Contact Information */}
+          {/* Company Contact Information (YOUR COMPANY'S CONTACT) */}
           <View style={styles.contactSection}>
-            {contractor.phone && (
+            <View style={[styles.contactCard, { backgroundColor: LIGHT_PRIMARY }]}>
+              <Text style={[styles.contactCardTitle, { color: PRIMARY_COLOR }]}>
+                Contact via Bricks Platform
+              </Text>
+              <Text style={styles.contactCardSubtitle}>
+                All inquiries will be routed through our secure platform
+              </Text>
+              
               <TouchableOpacity 
                 style={styles.contactItem}
-                onPress={() => handleCall(contractor.phone)}
+                onPress={handleCall}
               >
-                <View style={[styles.contactIcon, { backgroundColor: LIGHT_PRIMARY }]}>
+                <View style={[styles.contactIcon, { backgroundColor: 'rgba(255, 255, 255, 0.9)' }]}>
                   <Icon name="phone" size={20} color={PRIMARY_COLOR} />
                 </View>
                 <View style={styles.contactDetails}>
                   <Text style={styles.contactLabel}>Phone Number</Text>
                   <Text style={[styles.contactValue, { color: PRIMARY_COLOR }]}>
-                    {formatPhoneNumber(contractor.phone)}
+                    {COMPANY_CONTACT.phone}
                   </Text>
                 </View>
               </TouchableOpacity>
-            )}
 
-            {contractor.email && (
               <TouchableOpacity 
                 style={styles.contactItem}
-                onPress={() => handleEmail(contractor.email)}
+                onPress={handleEmail}
               >
-                <View style={[styles.contactIcon, { backgroundColor: LIGHT_PRIMARY }]}>
+                <View style={[styles.contactIcon, { backgroundColor: 'rgba(255, 255, 255, 0.9)' }]}>
                   <Icon name="email" size={20} color={PRIMARY_COLOR} />
                 </View>
                 <View style={styles.contactDetails}>
                   <Text style={styles.contactLabel}>Email</Text>
                   <Text style={[styles.contactValue, { color: PRIMARY_COLOR }]}>
-                    {contractor.email}
+                    {COMPANY_CONTACT.email}
                   </Text>
                 </View>
               </TouchableOpacity>
-            )}
 
+              <TouchableOpacity 
+                style={styles.contactItem}
+                onPress={handleWhatsApp}
+              >
+                <View style={[styles.contactIcon, { backgroundColor: 'rgba(255, 255, 255, 0.9)' }]}>
+                  <Icon name="chat" size={20} color={PRIMARY_COLOR} />
+                </View>
+                <View style={styles.contactDetails}>
+                  <Text style={styles.contactLabel}>WhatsApp</Text>
+                  <Text style={[styles.contactValue, { color: PRIMARY_COLOR }]}>
+                    {COMPANY_CONTACT.whatsapp}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              <View style={styles.contactItem}>
+                <View style={[styles.contactIcon, { backgroundColor: 'rgba(255, 255, 255, 0.9)' }]}>
+                  <Icon name="access-time" size={20} color={PRIMARY_COLOR} />
+                </View>
+                <View style={styles.contactDetails}>
+                  <Text style={styles.contactLabel}>Support Hours</Text>
+                  <Text style={styles.contactValue}>
+                    {COMPANY_CONTACT.supportHours}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Contractor's Location (Only public info) */}
             {contractor.address && (contractor.address.city || contractor.address.state) && (
               <View style={styles.contactItem}>
                 <View style={[styles.contactIcon, { backgroundColor: LIGHT_PRIMARY }]}>
                   <Icon name="location-on" size={20} color={PRIMARY_COLOR} />
                 </View>
                 <View style={styles.contactDetails}>
-                  <Text style={styles.contactLabel}>Location</Text>
+                  <Text style={styles.contactLabel}>Service Area</Text>
                   <Text style={styles.contactValue}>
                     {contractor.address.city && contractor.address.state
                       ? `${contractor.address.city}, ${contractor.address.state}`
@@ -302,7 +468,7 @@ const ContractorDetail = () => {
               </View>
             )}
 
-            {/* Portfolio Summary */}
+            {/* Portfolio Section */}
             {contractor.portfolio && contractor.portfolio.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
@@ -315,24 +481,9 @@ const ContractorDetail = () => {
                   style={styles.portfolioScroll}
                   contentContainerStyle={styles.portfolioContainer}
                 >
-                  {contractor.portfolio.slice(0, 3).map((project, index) => (
-                    <View key={index} style={styles.portfolioItem}>
-                      <Text style={styles.projectTitle} numberOfLines={1}>
-                        {project.title}
-                      </Text>
-                      <Text style={styles.projectCategory}>{project.category}</Text>
-                      <View style={styles.projectFooter}>
-                        <Text style={styles.projectYear}>{project.year}</Text>
-                        <View style={[styles.projectStatus, { 
-                          backgroundColor: project.status === 'Completed' ? '#10B981' : '#F59E0B' 
-                        }]}>
-                          <Text style={styles.projectStatusText}>{project.status}</Text>
-                        </View>
-                      </View>
-                    </View>
-                  ))}
+                  {contractor.portfolio.slice(0, 5).map((project, index) => renderProjectCard(project, index))}
                 </ScrollView>
-                {contractor.portfolio.length > 3 && (
+                {contractor.portfolio.length > 5 && (
                   <TouchableOpacity style={styles.viewAllButton}>
                     <Text style={[styles.viewAllText, { color: PRIMARY_COLOR }]}>
                       View all {contractor.portfolio.length} projects
@@ -351,13 +502,13 @@ const ContractorDetail = () => {
                 {contractor.website && (
                   <TouchableOpacity 
                     style={styles.infoCard}
-                    onPress={() => handleWebsite(contractor.website)}
+                    onPress={() => handleContractorWebsite(contractor.website)}
                   >
                     <Icon name="language" size={20} color={PRIMARY_COLOR} />
                     <View style={styles.infoContent}>
                       <Text style={styles.infoLabel}>Website</Text>
                       <Text style={[styles.infoValue, { color: PRIMARY_COLOR }]} numberOfLines={1}>
-                        {contractor.website.replace(/^https?:\/\//, '')}
+                        {contractor.website.replace(/^https?:\/\//, '').replace(/^www\./, '')}
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -376,17 +527,11 @@ const ContractorDetail = () => {
                 )}
               </View>
 
-              {/* Banking Information */}
+              {/* Banking Information (Public info only) */}
               {contractor.bankDetails && (
                 <View style={[styles.bankingCard, { backgroundColor: LIGHT_PRIMARY, borderColor: PRIMARY_COLOR }]}>
-                  <Text style={[styles.bankingTitle, { color: PRIMARY_COLOR }]}>Banking Information</Text>
+                  <Text style={[styles.bankingTitle, { color: PRIMARY_COLOR }]}>Banking Information (Verified)</Text>
                   <View style={styles.bankingGrid}>
-                    {contractor.bankDetails.accountName && (
-                      <View style={styles.bankingItem}>
-                        <Text style={styles.bankingLabel}>Account Name</Text>
-                        <Text style={styles.bankingValue}>{contractor.bankDetails.accountName}</Text>
-                      </View>
-                    )}
                     {contractor.bankDetails.bankName && (
                       <View style={styles.bankingItem}>
                         <Text style={styles.bankingLabel}>Bank Name</Text>
@@ -399,15 +544,49 @@ const ContractorDetail = () => {
                         <Text style={[styles.bankingValue, styles.monoText]}>{contractor.bankDetails.ifscCode}</Text>
                       </View>
                     )}
-                    {contractor.bankDetails.upiId && (
-                      <View style={styles.bankingItem}>
-                        <Text style={styles.bankingLabel}>UPI ID</Text>
-                        <Text style={[styles.bankingValue, styles.monoText]}>{contractor.bankDetails.upiId}</Text>
-                      </View>
-                    )}
                   </View>
                 </View>
               )}
+            </View>
+
+            {/* Ratings & Reviews */}
+            {contractor.ratings && contractor.ratings.count > 0 && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Icon name="star" size={22} color={PRIMARY_COLOR} />
+                  <Text style={styles.sectionTitle}>Ratings & Reviews</Text>
+                </View>
+                <View style={styles.ratingsContainer}>
+                  <View style={styles.ratingOverview}>
+                    <Text style={styles.ratingNumber}>{contractor.ratings.average?.toFixed(1) || '0.0'}</Text>
+                    <View style={styles.ratingStars}>
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Icon
+                          key={star}
+                          name={star <= (contractor.ratings.average || 0) ? "star" : "star-border"}
+                          size={24}
+                          color="#FFD700"
+                        />
+                      ))}
+                    </View>
+                    <Text style={styles.ratingCount}>{contractor.ratings.count || 0} reviews</Text>
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {/* Your Company Info Footer */}
+            <View style={[styles.companyFooter, { backgroundColor: LIGHT_PRIMARY }]}>
+              <Icon name="business" size={30} color={PRIMARY_COLOR} />
+              <Text style={[styles.companyFooterTitle, { color: PRIMARY_COLOR }]}>
+                {COMPANY_CONTACT.companyName}
+              </Text>
+              <Text style={styles.companyFooterText}>
+                All contractor communications are managed through our secure platform to ensure quality and safety.
+              </Text>
+              <Text style={styles.companyFooterAddress}>
+                {COMPANY_CONTACT.address}
+              </Text>
             </View>
           </View>
         </View>
@@ -475,6 +654,8 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
+    borderWidth: 3,
+    borderColor: 'rgba(128, 0, 0, 0.2)',
   },
   profileImagePlaceholder: {
     width: 100,
@@ -482,6 +663,13 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 3,
+    borderColor: 'rgba(128, 0, 0, 0.2)',
+  },
+  profileInitial: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: 'rgb(128, 0, 0)',
   },
   companyInfo: {
     alignItems: 'center',
@@ -510,10 +698,25 @@ const styles = StyleSheet.create({
   contactSection: {
     marginBottom: 24,
   },
+  contactCard: {
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  contactCardTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  contactCardSubtitle: {
+    fontSize: 14,
+    color: '#64748B',
+    marginBottom: 16,
+  },
   contactItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   contactIcon: {
     width: 40,
@@ -638,14 +841,38 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   portfolioItem: {
-    width: width * 0.6,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    padding: 16,
+    width: width * 0.7,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
     marginRight: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+    overflow: 'hidden',
+  },
+  projectImage: {
+    width: '100%',
+    height: 150,
+  },
+  projectImagePlaceholder: {
+    width: '100%',
+    height: 150,
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  projectImageText: {
+    marginTop: 8,
+    fontSize: 12,
+    color: '#64748B',
+  },
+  projectInfo: {
+    padding: 12,
   },
   projectTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600',
     color: '#1E293B',
     marginBottom: 4,
@@ -653,26 +880,41 @@ const styles = StyleSheet.create({
   projectCategory: {
     fontSize: 13,
     color: '#64748B',
-    marginBottom: 12,
+    marginBottom: 8,
   },
-  projectFooter: {
+  projectMeta: {
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  metaText: {
+    fontSize: 12,
+    color: '#64748B',
+    marginLeft: 4,
+  },
+  projectStatusContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  projectYear: {
-    fontSize: 12,
-    color: '#94A3B8',
-  },
   projectStatus: {
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: 4,
     borderRadius: 12,
   },
   projectStatusText: {
     fontSize: 11,
     color: '#FFFFFF',
     fontWeight: '600',
+  },
+  projectBudget: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#10B981',
   },
   viewAllButton: {
     flexDirection: 'row',
@@ -747,6 +989,53 @@ const styles = StyleSheet.create({
   },
   monoText: {
     fontFamily: 'monospace',
+  },
+  ratingsContainer: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 16,
+  },
+  ratingOverview: {
+    alignItems: 'center',
+  },
+  ratingNumber: {
+    fontSize: 48,
+    fontWeight: 'bold',
+    color: '#1E293B',
+  },
+  ratingStars: {
+    flexDirection: 'row',
+    marginVertical: 8,
+  },
+  ratingCount: {
+    fontSize: 14,
+    color: '#64748B',
+  },
+  companyFooter: {
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  companyFooterTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 12,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  companyFooterText: {
+    fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
+    marginBottom: 12,
+    lineHeight: 20,
+  },
+  companyFooterAddress: {
+    fontSize: 13,
+    color: '#64748B',
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   errorContainer: {
     flex: 1,
