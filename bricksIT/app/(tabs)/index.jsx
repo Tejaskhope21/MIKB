@@ -17,9 +17,9 @@ import { Ionicons } from '@expo/vector-icons';
 import Banner from '../../components/Banner/Banner';
 
 // Import local images directly
-import hero1 from '../../assets/images/b2.jpg';
-import hero2 from '../../assets/images/b3.jpg';
-import hero3 from '../../assets/images/b4.jpg';
+import hero1 from '../../assets/BannerImages/hero1.png';
+import hero2 from '../../assets/BannerImages/hero2.png';
+import hero3 from '../../assets/BannerImages/hero3.png';
 
 // Import logo
 import logoImage from '../../assets/images/logo2.png';
