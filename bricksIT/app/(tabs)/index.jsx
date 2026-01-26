@@ -29,6 +29,7 @@ import {
   fetchAllCategories,
   formatPrice,
   getProductImage,
+  fetchAllProducts, // Add this import
 } from '../../services/api';
 import {
   fetchHotDeals,
@@ -366,6 +367,78 @@ const TrendingProductCard = memo(({ item, onPress, index }) => {
 });
 
 /* =========================
+   PRODUCT CARD COMPONENT
+========================= */
+const ProductCard = memo(({ item, onPress }) => {
+  const [imageError, setImageError] = useState(false);
+
+  const discount = item.discount || 
+    (item.originalPrice && item.price ? 
+      Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100) : 0);
+
+  return (
+    <TouchableOpacity 
+      style={styles.productCard}
+      onPress={() => onPress(item)}
+      activeOpacity={0.8}
+    >
+      <View style={styles.productImageContainer}>
+        <Image
+          source={{ 
+            uri: !imageError ? (item.image || getProductImage(item.images)) : 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400'
+          }}
+          style={styles.productImage}
+          resizeMode="cover"
+          onError={() => setImageError(true)}
+        />
+        
+        {/* Discount Badge */}
+        {discount > 0 && (
+          <View style={styles.productDiscountBadge}>
+            <Text style={styles.productDiscountText}>{discount}% OFF</Text>
+          </View>
+        )}
+      </View>
+
+      <View style={styles.productInfo}>
+        <Text style={styles.productBrand} numberOfLines={1}>
+          {item.brand || 'Brand'}
+        </Text>
+        <Text style={styles.productName} numberOfLines={2}>
+          {item.name || 'Product Name'}
+        </Text>
+
+        <View style={styles.productPriceRow}>
+          <Text style={styles.productPrice}>
+            {formatPrice(item.price || 0)}
+          </Text>
+          {item.originalPrice > item.price && (
+            <Text style={styles.productOriginal}>
+              {formatPrice(item.originalPrice)}
+            </Text>
+          )}
+        </View>
+
+        {/* Stock Status */}
+        <View style={styles.stockContainer}>
+          {item.inStock !== false ? (
+            <>
+              <Ionicons name="checkmark-circle" size={12} color="#28a745" />
+              <Text style={styles.inStockText}>In Stock</Text>
+            </>
+          ) : (
+            <>
+              <Ionicons name="close-circle" size={12} color="#dc3545" />
+              <Text style={styles.outOfStockText}>Out of Stock</Text>
+            </>
+          )}
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+});
+
+/* =========================
    HOME SCREEN
 ========================= */
 const HomeScreen = () => {
@@ -373,6 +446,7 @@ const HomeScreen = () => {
   const [categories, setCategories] = useState([]);
   const [hotDeals, setHotDeals] = useState([]);
   const [trendingProducts, setTrendingProducts] = useState([]);
+  const [allProducts, setAllProducts] = useState([]); // New state for all products
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -381,10 +455,11 @@ const HomeScreen = () => {
       setLoading(true);
 
       // Fetch all data in parallel
-      const [categoriesData, hotDealsData, trendingData] = await Promise.all([
+      const [categoriesData, hotDealsData, trendingData, productsData] = await Promise.all([
         fetchAllCategories(),
-        fetchHotDeals(12), // Fetch 12 hot deals
-        fetchTrendingProducts(8), // Fetch 8 trending products
+        fetchHotDeals(12),
+        fetchTrendingProducts(8),
+        fetchAllProducts(8), // Fetch 8 products for home screen
       ]);
 
       // Process categories
@@ -436,12 +511,32 @@ const HomeScreen = () => {
         setTrendingProducts(processedTrending);
       }
 
+      // Process all products
+      if (productsData && Array.isArray(productsData)) {
+        const processedProducts = productsData.map(product => ({
+          id: product.id || product._id,
+          _id: product._id || product.id,
+          name: product.name,
+          brand: product.brand || '',
+          price: Number(product.price) || 0,
+          originalPrice: Number(product.originalPrice || 0),
+          discount: product.discount || 0,
+          image: product.image || getProductImage(product.images),
+          images: product.images || [],
+          inStock: product.inStock !== false,
+          description: product.description || '',
+          category: product.category,
+        }));
+        setAllProducts(processedProducts);
+      }
+
     } catch (error) {
       console.error('Error loading home data:', error);
       // Only set empty arrays on error
       setCategories([]);
       setHotDeals([]);
       setTrendingProducts([]);
+      setAllProducts([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -485,6 +580,15 @@ const HomeScreen = () => {
     });
   };
 
+  const handleProductPress = (product) => {
+    router.push({
+      pathname: '/productDetails/[id]',
+      params: { 
+        id: product.id,
+      },
+    });
+  };
+
   const handleCategoryPress = (category) => {
     router.push({
       pathname: '/categories/[id]',
@@ -493,6 +597,10 @@ const HomeScreen = () => {
         name: category.name 
       }
     });
+  };
+
+  const handleViewAllProducts = () => {
+    router.push('/all-products');
   };
 
   if (loading && !refreshing) {
@@ -657,7 +765,33 @@ const HomeScreen = () => {
           </View>
         )}
 
-        {/* 7. ACTION BUTTONS SECTION */}
+        {/* 7. ALL PRODUCTS SECTION - NEW SECTION */}
+        {allProducts.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>All Products</Text>
+              <TouchableOpacity
+                onPress={handleViewAllProducts}
+                style={styles.seeAllButton}
+              >
+              </TouchableOpacity>
+            </View>
+            
+            <Text style={styles.sectionSubtitle}>Browse our complete collection</Text>
+
+            <View style={styles.productsGrid}>
+              {allProducts.slice(0, 4).map((item) => (
+                <ProductCard 
+                  key={item.id} 
+                  item={item} 
+                  onPress={handleProductPress} 
+                />
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* 8. ACTION BUTTONS SECTION */}
         <View style={styles.actionSection}>
           <View style={styles.actionButtonsContainer}>
             <TouchableOpacity
@@ -1041,7 +1175,83 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   
-  // 7. ACTION BUTTONS SECTION
+  // 7. ALL PRODUCTS STYLES
+  productsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+  },
+  productCard: {
+    width: '48%',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
+    overflow: 'hidden',
+  },
+  productImageContainer: {
+    position: 'relative',
+    height: 140,
+  },
+  productImage: {
+    width: '100%',
+    height: '100%',
+  },
+  productDiscountBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#800000',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  productDiscountText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  productInfo: {
+    padding: 12,
+  },
+  productBrand: {
+    fontSize: 11,
+    color: '#666',
+    marginBottom: 4,
+    fontWeight: '500',
+  },
+  productName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1a1a1a',
+    marginBottom: 8,
+    lineHeight: 18,
+  },
+  productPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  productPrice: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#800000',
+    marginRight: 6,
+  },
+  productOriginal: {
+    fontSize: 12,
+    color: '#999',
+    textDecorationLine: 'line-through',
+  },
+  
+  // 8. ACTION BUTTONS SECTION
   actionSection: {
     backgroundColor: '#fff',
     marginVertical: 8,

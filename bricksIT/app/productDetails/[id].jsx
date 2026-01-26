@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import {
   Alert,
   Linking,
   Platform,
+  Animated,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -28,7 +29,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import ProductCard from '../../components/Products/ProductCard';
 import { useCart } from '../../context/CartContext';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 const API_BASE_URL = 'https://bricks-backend-qyea.onrender.com';
 
 export default function ProductDetailsScreen() {
@@ -50,6 +51,14 @@ export default function ProductDetailsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [zoomImage, setZoomImage] = useState(false);
+  
+  // Animation for bottom buttons
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const translateY = scrollY.interpolate({
+    inputRange: [0, 50],
+    outputRange: [0, 100],
+    extrapolate: 'clamp',
+  });
 
   // Fetch product data
   useEffect(() => {
@@ -244,7 +253,6 @@ export default function ProductDetailsScreen() {
             <View style={styles.skeletonTitle} />
             <View style={styles.skeletonPrice} />
             <View style={styles.skeletonDescription} />
-            <View style={styles.skeletonButton} />
           </View>
         </View>
       </ScrollView>
@@ -288,11 +296,10 @@ export default function ProductDetailsScreen() {
   const stockQuantity = product.inventory?.stock || 0;
   const discount = product.discount || 0;
   const hasDiscount = discount > 0;
-
   const totalPrice = (product.price * quantity).toLocaleString();
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar backgroundColor="#800000" barStyle="light-content" />
 
       {/* Header */}
@@ -302,7 +309,7 @@ export default function ProductDetailsScreen() {
         </TouchableOpacity>
 
         <Text style={styles.headerTitle} numberOfLines={1}>
-          Product Details
+          {product.name.length > 25 ? product.name.substring(0, 25) + '...' : product.name}
         </Text>
 
         <View style={styles.headerActions}>
@@ -313,13 +320,18 @@ export default function ProductDetailsScreen() {
               color={isWishlisted ? "#ff4757" : "#fff"}
             />
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleShare} style={styles.headerIcon}>
+          <TouchableOpacity onPress={() => setShowShareModal(true)} style={styles.headerIcon}>
             <Ionicons name="share-social-outline" size={24} color="#fff" />
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView
+      <Animated.ScrollView
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -328,41 +340,8 @@ export default function ProductDetailsScreen() {
           />
         }
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
       >
-        {/* Breadcrumb */}
-        <View style={styles.breadcrumb}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={styles.breadcrumbContent}>
-              <TouchableOpacity onPress={() => router.push('/')}>
-                <Text style={styles.breadcrumbItem}>Home</Text>
-              </TouchableOpacity>
-              <Text style={styles.breadcrumbSeparator}>›</Text>
-
-              <TouchableOpacity onPress={() => router.push('/products')}>
-                <Text style={styles.breadcrumbItem}>Products</Text>
-              </TouchableOpacity>
-
-              {category && (
-                <>
-                  <Text style={styles.breadcrumbSeparator}>›</Text>
-                  <TouchableOpacity
-                    onPress={() =>
-                      router.push(`/categories/${category._id}?name=${category.name}`)
-                    }
-                  >
-                    <Text style={styles.breadcrumbItem}>{category.name}</Text>
-                  </TouchableOpacity>
-                </>
-              )}
-
-              <Text style={styles.breadcrumbSeparator}>›</Text>
-              <Text style={[styles.breadcrumbItem, styles.breadcrumbCurrent]}>
-                {product.name}
-              </Text>
-            </View>
-          </ScrollView>
-        </View>
-
         {/* Product Images */}
         <View style={styles.imageSection}>
           {/* Main Image */}
@@ -472,11 +451,29 @@ export default function ProductDetailsScreen() {
                   <Text style={styles.originalPrice}>
                     ₹{product.originalPrice.toLocaleString()}
                   </Text>
-                  <Text style={styles.saveText}>Save {discount}%</Text>
+                  <View style={styles.discountContainer}>
+                    <Text style={styles.saveText}>{discount}% off</Text>
+                  </View>
                 </>
               )}
             </View>
             <Text style={styles.unitText}>per {product.unitType || 'piece'}</Text>
+          </View>
+
+          {/* Delivery Info */}
+          <View style={styles.deliveryInfo}>
+            <View style={styles.deliveryItem}>
+              <Ionicons name="location-outline" size={20} color="#800000" />
+              <Text style={styles.deliveryText}>
+                Deliver to <Text style={styles.deliveryHighlight}>Your Location</Text>
+              </Text>
+            </View>
+            <View style={styles.deliveryItem}>
+              <Ionicons name="time-outline" size={20} color="#800000" />
+              <Text style={styles.deliveryText}>
+                Delivery by {product.deliveryTime || '3-7 hours'}
+              </Text>
+            </View>
           </View>
 
           {/* Quick Stats */}
@@ -486,70 +483,141 @@ export default function ProductDetailsScreen() {
               <Text style={styles.statValue}>{minOrder} {product.unitType || 'pcs'}</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Delivery</Text>
-              <Text style={styles.statValue}>{product.deliveryTime || '2-5 days'}</Text>
-            </View>
-            <View style={styles.statItem}>
               <Text style={styles.statLabel}>Quality</Text>
               <Text style={styles.statValue}>{product.grade || 'Premium'}</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>MOQ</Text>
-              <Text style={styles.statValue}>{minOrder} units</Text>
+              <Text style={styles.statLabel}>Material</Text>
+              <Text style={styles.statValue}>{product.materialType || 'Standard'}</Text>
             </View>
           </View>
 
-          {/* Quantity Selector */}
-          <View style={styles.quantitySection}>
-            <Text style={styles.quantityLabel}>Quantity</Text>
-            <View style={styles.quantityControls}>
-              <View style={styles.quantityButtons}>
+          {/* Quantity Selector - Now inside the bottom bar */}
+          
+          {/* Product Details Tabs */}
+          <View style={styles.tabsContainer}>
+            {/* Tab Navigation */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.tabNavigation}
+            >
+              {[
+                { id: 'overview', label: 'Overview', icon: 'information-circle-outline' },
+                { id: 'specifications', label: 'Specifications', icon: 'stats-chart-outline' },
+                { id: 'features', label: 'Features', icon: 'star-outline' },
+                { id: 'applications', label: 'Applications', icon: 'grid-outline' },
+              ].map((tab) => (
                 <TouchableOpacity
-                  onPress={() => setQuantity(Math.max(minOrder, quantity - 1))}
-                  disabled={quantity <= minOrder || !isInStock}
-                  style={[styles.quantityButton, (quantity <= minOrder || !isInStock) && styles.quantityButtonDisabled]}
+                  key={tab.id}
+                  onPress={() => setActiveTab(tab.id)}
+                  style={[styles.tabButton, activeTab === tab.id && styles.tabButtonActive]}
                 >
-                  <Text style={styles.quantityButtonText}>−</Text>
+                  <Ionicons
+                    name={tab.icon}
+                    size={20}
+                    color={activeTab === tab.id ? '#800000' : '#64748b'}
+                  />
+                  <Text style={[
+                    styles.tabButtonText,
+                    activeTab === tab.id && styles.tabButtonTextActive
+                  ]}>
+                    {tab.label}
+                  </Text>
                 </TouchableOpacity>
+              ))}
+            </ScrollView>
 
-                <View style={styles.quantityDisplay}>
-                  <Text style={styles.quantityValue}>{quantity}</Text>
+            {/* Tab Content */}
+            <View style={styles.tabContent}>
+              {activeTab === 'overview' && (
+                <View style={styles.overviewContent}>
+                  <Text style={styles.tabTitle}>Product Overview</Text>
+                  <Text style={styles.description}>
+                    {product.description || 'No description available.'}
+                  </Text>
+
+                  <View style={styles.overviewFeatures}>
+                    {product.warranty && (
+                      <View style={styles.featureCard}>
+                        <View style={[styles.featureIcon, { backgroundColor: '#dbeafe' }]}>
+                          <MaterialCommunityIcons name="shield-check" size={24} color="#3b82f6" />
+                        </View>
+                        <Text style={styles.featureTitle}>Warranty</Text>
+                        <Text style={styles.featureText}>{product.warranty}</Text>
+                      </View>
+                    )}
+
+                    <View style={styles.featureCard}>
+                      <View style={[styles.featureIcon, { backgroundColor: '#d1fae5' }]}>
+                        <Feather name="clock" size={24} color="#10b981" />
+                      </View>
+                      <Text style={styles.featureTitle}>Lead Time</Text>
+                      <Text style={styles.featureText}>
+                        {product.leadTime || 'Standard lead time applies'}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
+              )}
 
-                <TouchableOpacity
-                  onPress={() => setQuantity(Math.min(stockQuantity, quantity + 1))}
-                  disabled={!isInStock || quantity >= stockQuantity}
-                  style={[styles.quantityButton, (!isInStock || quantity >= stockQuantity) && styles.quantityButtonDisabled]}
-                >
-                  <Text style={styles.quantityButtonText}>+</Text>
-                </TouchableOpacity>
-              </View>
+              {activeTab === 'specifications' && (
+                <View style={styles.specsContent}>
+                  <Text style={styles.tabTitle}>Technical Specifications</Text>
+                  <View style={styles.specsList}>
+                    {[
+                      ['Material', product.materialType || 'N/A'],
+                      ['Grade', product.grade || 'N/A'],
+                      ['Brand', product.brand || 'N/A'],
+                      ['Unit Type', product.unitType || 'Piece'],
+                      ['Color', product.color || 'N/A'],
+                      ['Size', product.size || 'N/A'],
+                      ['Weight', product.weight || 'N/A'],
+                    ].map(([key, value], index) => (
+                      <View key={index} style={styles.specItem}>
+                        <Text style={styles.specKey}>{key}</Text>
+                        <Text style={styles.specValue}>
+                          {typeof value === 'boolean' ? (value ? 'Yes' : 'No') : value}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
 
-              <Text style={styles.quantityTotal}>
-                Total: <Text style={styles.quantityTotalBold}>₹{totalPrice}</Text>
-              </Text>
+              {activeTab === 'features' && (
+                <View style={styles.featuresContent}>
+                  <Text style={styles.tabTitle}>Key Features</Text>
+                  <View style={styles.featuresList}>
+                    {(product.features || []).map((feature, index) => (
+                      <View key={index} style={styles.featureItem}>
+                        <View style={styles.featureIconSmall}>
+                          <Ionicons name="checkmark" size={16} color="#10b981" />
+                        </View>
+                        <Text style={styles.featureTextItem}>{feature}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {activeTab === 'applications' && (
+                <View style={styles.applicationsContent}>
+                  <Text style={styles.tabTitle}>Applications</Text>
+                  <View style={styles.applicationsGrid}>
+                    {(product.application || []).map((app, index) => (
+                      <View key={index} style={styles.applicationCard}>
+                        <View style={styles.applicationDot} />
+                        <Text style={styles.applicationTitle}>{app}</Text>
+                        <Text style={styles.applicationDescription}>
+                          Ideal for commercial and industrial use
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
             </View>
-          </View>
-
-          {/* Action Buttons */}
-          <View style={styles.actionButtons}>
-            <TouchableOpacity
-              onPress={handleAddToCart}
-              disabled={!isInStock}
-              style={[styles.addToCartButton, !isInStock && styles.buttonDisabled]}
-            >
-              <Ionicons name="cart-outline" size={24} color="#fff" />
-              <Text style={styles.addToCartText}>Add to Cart</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={handleBuyNow}
-              disabled={!isInStock}
-              style={[styles.buyNowButton, !isInStock && styles.buttonDisabled]}
-            >
-              <Ionicons name="flash-outline" size={24} color="#fff" />
-              <Text style={styles.buyNowText}>Buy Now</Text>
-            </TouchableOpacity>
           </View>
 
           {/* Trust Badges */}
@@ -565,136 +633,8 @@ export default function ProductDetailsScreen() {
             <View style={styles.trustBadge}>
               <Feather name="truck" size={24} color="#10b981" />
               <View style={styles.trustBadgeContent}>
-                <Text style={styles.trustBadgeTitle}>Free Shipping</Text>
-                <Text style={styles.trustBadgeSubtitle}>Over ₹10,000</Text>
               </View>
             </View>
-          </View>
-        </View>
-
-        {/* Product Details Tabs */}
-        <View style={styles.tabsContainer}>
-          {/* Tab Navigation */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.tabNavigation}
-          >
-            {[
-              { id: 'overview', label: 'Overview', icon: 'information-circle-outline' },
-              { id: 'specifications', label: 'Specifications', icon: 'stats-chart-outline' },
-              { id: 'features', label: 'Features', icon: 'star-outline' },
-              { id: 'applications', label: 'Applications', icon: 'grid-outline' },
-            ].map((tab) => (
-              <TouchableOpacity
-                key={tab.id}
-                onPress={() => setActiveTab(tab.id)}
-                style={[styles.tabButton, activeTab === tab.id && styles.tabButtonActive]}
-              >
-                <Ionicons
-                  name={tab.icon}
-                  size={20}
-                  color={activeTab === tab.id ? '#800000' : '#64748b'}
-                />
-                <Text style={[
-                  styles.tabButtonText,
-                  activeTab === tab.id && styles.tabButtonTextActive
-                ]}>
-                  {tab.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-
-          {/* Tab Content */}
-          <View style={styles.tabContent}>
-            {activeTab === 'overview' && (
-              <View style={styles.overviewContent}>
-                <Text style={styles.tabTitle}>Product Overview</Text>
-                <Text style={styles.description}>
-                  {product.description || 'No description available.'}
-                </Text>
-
-                <View style={styles.overviewFeatures}>
-                  {product.warranty && (
-                    <View style={styles.featureCard}>
-                      <View style={[styles.featureIcon, { backgroundColor: '#dbeafe' }]}>
-                        <MaterialCommunityIcons name="shield-check" size={24} color="#3b82f6" />
-                      </View>
-                      <Text style={styles.featureTitle}>Warranty</Text>
-                      <Text style={styles.featureText}>{product.warranty}</Text>
-                    </View>
-                  )}
-
-                  <View style={styles.featureCard}>
-                    <View style={[styles.featureIcon, { backgroundColor: '#d1fae5' }]}>
-                      <Feather name="clock" size={24} color="#10b981" />
-                    </View>
-                    <Text style={styles.featureTitle}>Lead Time</Text>
-                    <Text style={styles.featureText}>
-                      {product.leadTime || 'Standard lead time applies'}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            )}
-
-            {activeTab === 'specifications' && (
-              <View style={styles.specsContent}>
-                <Text style={styles.tabTitle}>Technical Specifications</Text>
-                <View style={styles.specsList}>
-                  {[
-                    ['Material', product.materialType || 'N/A'],
-                    ['Grade', product.grade || 'N/A'],
-                    ['Brand', product.brand || 'N/A'],
-                    ['Unit Type', product.unitType || 'Piece'],
-                    ['Color', product.color || 'N/A'],
-                    ['Size', product.size || 'N/A'],
-                    ['Weight', product.weight || 'N/A'],
-                  ].map(([key, value], index) => (
-                    <View key={index} style={styles.specItem}>
-                      <Text style={styles.specKey}>{key}</Text>
-                      <Text style={styles.specValue}>
-                        {typeof value === 'boolean' ? (value ? 'Yes' : 'No') : value}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
-
-            {activeTab === 'features' && (
-              <View style={styles.featuresContent}>
-                <Text style={styles.tabTitle}>Key Features</Text>
-                <View style={styles.featuresList}>
-                  {(product.features || []).map((feature, index) => (
-                    <View key={index} style={styles.featureItem}>
-                      <View style={styles.featureIconSmall}>
-                        <Ionicons name="checkmark" size={16} color="#10b981" />
-                      </View>
-                      <Text style={styles.featureTextItem}>{feature}</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
-
-            {activeTab === 'applications' && (
-              <View style={styles.applicationsContent}>
-                <Text style={styles.tabTitle}>Applications</Text>
-                <View style={styles.applicationsGrid}>
-                  {(product.application || []).map((app, index) => (
-                    <View key={index} style={styles.applicationCard}>
-                      <View style={styles.applicationDot} />
-                      <Text style={styles.applicationTitle}>{app}</Text>
-                      <Text style={styles.applicationDescription}>
-                        Ideal for commercial and industrial use
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
           </View>
         </View>
 
@@ -746,7 +686,72 @@ export default function ProductDetailsScreen() {
             )}
           </View>
         )}
-      </ScrollView>
+
+        {/* Bottom Spacer for fixed buttons */}
+        <View style={{ height: 100 }} />
+      </Animated.ScrollView>
+
+      {/* Fixed Bottom Action Bar - Like Flipkart */}
+      <Animated.View 
+        style={[
+          styles.bottomBar,
+          { transform: [{ translateY }] }
+        ]}
+      >
+        {/* Quantity Selector in Bottom Bar */}
+        <View style={styles.bottomQuantitySection}>
+          <Text style={styles.quantityLabel}>Quantity:</Text>
+          <View style={styles.quantityButtons}>
+            <TouchableOpacity
+              onPress={() => setQuantity(Math.max(minOrder, quantity - 1))}
+              disabled={quantity <= minOrder || !isInStock}
+              style={[styles.quantityButton, (quantity <= minOrder || !isInStock) && styles.quantityButtonDisabled]}
+            >
+              <Text style={styles.quantityButtonText}>−</Text>
+            </TouchableOpacity>
+
+            <View style={styles.quantityDisplay}>
+              <Text style={styles.quantityValue}>{quantity}</Text>
+            </View>
+
+            <TouchableOpacity
+              onPress={() => setQuantity(Math.min(stockQuantity, quantity + 1))}
+              disabled={!isInStock || quantity >= stockQuantity}
+              style={[styles.quantityButton, (!isInStock || quantity >= stockQuantity) && styles.quantityButtonDisabled]}
+            >
+              <Text style={styles.quantityButtonText}>+</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <Text style={styles.bottomTotalPrice}>₹{totalPrice}</Text>
+        </View>
+
+        {/* Action Buttons */}
+        <View style={styles.bottomActionButtons}>
+          <TouchableOpacity
+            onPress={handleAddToCart}
+            disabled={!isInStock}
+            style={[styles.bottomAddToCartButton, !isInStock && styles.buttonDisabled]}
+          >
+            <Ionicons name="cart-outline" size={24} color="#fff" />
+            <View style={styles.buttonTextContainer}>
+              <Text style={styles.bottomButtonText}>ADD TO CART</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={handleBuyNow}
+            disabled={!isInStock}
+            style={[styles.bottomBuyNowButton, !isInStock && styles.buttonDisabled]}
+          >
+            <Ionicons name="flash-outline" size={24} color="#fff" />
+            <View style={styles.buttonTextContainer}>
+              <Text style={styles.bottomButtonText}>BUY NOW</Text>
+              <Text style={styles.bottomButtonSubtext}>Secure Payment</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
 
       {/* Share Modal */}
       <Modal
@@ -760,7 +765,10 @@ export default function ProductDetailsScreen() {
             <Text style={styles.modalTitle}>Share Product</Text>
 
             <TouchableOpacity
-              onPress={handleShare}
+              onPress={() => {
+                handleShare();
+                setShowShareModal(false);
+              }}
               style={styles.shareOption}
             >
               <Text style={styles.shareOptionText}>Share via...</Text>
@@ -768,7 +776,6 @@ export default function ProductDetailsScreen() {
 
             <TouchableOpacity
               onPress={() => {
-                // Implement copy link functionality
                 Alert.alert('Copied', 'Link copied to clipboard!');
                 setShowShareModal(false);
               }}
@@ -786,7 +793,7 @@ export default function ProductDetailsScreen() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -794,6 +801,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8fafc',
+  },
+  scrollContent: {
+    paddingBottom: 100, // Space for bottom bar
   },
 
   // Header
@@ -803,6 +813,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 14,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 16 : 16,
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -818,7 +829,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     color: '#fff',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     marginLeft: 8,
   },
@@ -830,33 +841,6 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-
-  // Breadcrumb
-  breadcrumb: {
-    backgroundColor: '#fff',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-  },
-  breadcrumbContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'nowrap',
-  },
-  breadcrumbItem: {
-    fontSize: 14,
-    color: '#64748b',
-    marginHorizontal: 4,
-  },
-  breadcrumbCurrent: {
-    color: '#1e293b',
-    fontWeight: '500',
-  },
-  breadcrumbSeparator: {
-    color: '#94a3b8',
-    marginHorizontal: 4,
   },
 
   // Image Section
@@ -956,11 +940,11 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   productTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#1e293b',
     marginBottom: 12,
-    lineHeight: 32,
+    lineHeight: 30,
   },
   stockContainer: {
     flexDirection: 'row',
@@ -1015,14 +999,42 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
     textDecorationLine: 'line-through',
   },
+  discountContainer: {
+    backgroundColor: '#dc2626',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
   saveText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
-    color: '#059669',
+    color: '#fff',
   },
   unitText: {
     fontSize: 14,
     color: '#64748b',
+  },
+  deliveryInfo: {
+    backgroundColor: '#f0f9ff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#bae6fd',
+  },
+  deliveryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 8,
+  },
+  deliveryText: {
+    fontSize: 14,
+    color: '#475569',
+  },
+  deliveryHighlight: {
+    color: '#800000',
+    fontWeight: '600',
   },
   statsGrid: {
     flexDirection: 'row',
@@ -1032,9 +1044,9 @@ const styles = StyleSheet.create({
   },
   statItem: {
     flex: 1,
-    minWidth: '45%',
+    minWidth: '30%',
     backgroundColor: '#f8fafc',
-    padding: 16,
+    padding: 12,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#e2e8f0',
@@ -1045,23 +1057,45 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   statValue: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#1e293b',
   },
-  quantitySection: {
-    marginBottom: 20,
+
+  // Bottom Fixed Action Bar
+  bottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
+    padding: 22,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  quantityLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1e293b',
-    marginBottom: 12,
-  },
-  quantityControls: {
+  bottomQuantitySection: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+  },
+  quantityLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#475569',
+  },
+  bottomTotalPrice: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#800000',
   },
   quantityButtons: {
     flexDirection: 'row',
@@ -1072,8 +1106,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   quantityButton: {
-    width: 44,
-    height: 44,
+    width: 36,
+    height: 36,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#f1f5f9',
@@ -1087,8 +1121,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   quantityDisplay: {
-    width: 60,
-    height: 44,
+    width: 48,
+    height: 36,
     justifyContent: 'center',
     alignItems: 'center',
     borderLeftWidth: 1,
@@ -1097,90 +1131,58 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   quantityValue: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: '#1e293b',
   },
-  quantityTotal: {
-    fontSize: 16,
-    color: '#475569',
-  },
-  quantityTotalBold: {
-    fontWeight: 'bold',
-    color: '#1e293b',
-  },
-  actionButtons: {
+  bottomActionButtons: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: 20,
   },
-  addToCartButton: {
+  bottomAddToCartButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     backgroundColor: '#800000',
-    paddingVertical: 16,
-    borderRadius: 12,
+    paddingVertical: 14,
+    borderRadius: 8,
+    elevation: 2,
   },
-  buyNowButton: {
+  bottomBuyNowButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     backgroundColor: '#059669',
-    paddingVertical: 16,
-    borderRadius: 12,
+    paddingVertical: 14,
+    borderRadius: 8,
+    elevation: 2,
   },
   buttonDisabled: {
     opacity: 0.5,
   },
-  addToCartText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  buyNowText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  trustBadges: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  trustBadge: {
-    flex: 1,
-    flexDirection: 'row',
+  buttonTextContainer: {
     alignItems: 'center',
-    gap: 12,
-    backgroundColor: '#f8fafc',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
   },
-  trustBadgeContent: {
-    flex: 1,
-  },
-  trustBadgeTitle: {
+  bottomButtonText: {
+    color: '#fff',
     fontSize: 14,
-    fontWeight: '600',
-    color: '#1e293b',
-    marginBottom: 2,
+    fontWeight: 'bold',
   },
-  trustBadgeSubtitle: {
-    fontSize: 12,
-    color: '#64748b',
+  bottomButtonSubtext: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 11,
+    marginTop: 2,
   },
 
   // Tabs
   tabsContainer: {
     backgroundColor: '#fff',
     marginTop: 16,
-    marginHorizontal: 16,
+    marginHorizontal: 0,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#e2e8f0',
@@ -1215,14 +1217,14 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   tabTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#1e293b',
     marginBottom: 16,
   },
   description: {
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 15,
+    lineHeight: 22,
     color: '#475569',
     marginBottom: 24,
   },
@@ -1233,7 +1235,7 @@ const styles = StyleSheet.create({
   featureCard: {
     flex: 1,
     backgroundColor: '#f8fafc',
-    padding: 20,
+    padding: 16,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#e2e8f0',
@@ -1268,8 +1270,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
   },
@@ -1303,9 +1305,9 @@ const styles = StyleSheet.create({
   },
   featureTextItem: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
     color: '#475569',
-    lineHeight: 24,
+    lineHeight: 22,
   },
   applicationsGrid: {
     gap: 12,
@@ -1334,6 +1336,37 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#0c4a6e',
     lineHeight: 20,
+  },
+
+  // Trust Badges
+  trustBadges: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 20,
+  },
+  trustBadge: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#f8fafc',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  trustBadgeContent: {
+    flex: 1,
+  },
+  trustBadgeTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: 2,
+  },
+  trustBadgeSubtitle: {
+    fontSize: 12,
+    color: '#64748b',
   },
 
   // Related Products
@@ -1456,11 +1489,6 @@ const styles = StyleSheet.create({
     height: 100,
     backgroundColor: '#e2e8f0',
     borderRadius: 8,
-  },
-  skeletonButton: {
-    height: 56,
-    backgroundColor: '#e2e8f0',
-    borderRadius: 12,
   },
 
   // Error State
