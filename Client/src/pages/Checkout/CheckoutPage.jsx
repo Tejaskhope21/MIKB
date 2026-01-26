@@ -25,7 +25,11 @@ const CheckoutPage = () => {
     const [bankTransferDetails, setBankTransferDetails] = useState({
         transactionId: '',
         screenshot: null,
-        bankName: ''
+        bankName: '',
+        accountName: '',
+        accountNumber: '',
+        ifscCode: '',
+        upiId: ''
     });
 
     const [notes, setNotes] = useState('');
@@ -128,12 +132,14 @@ const CheckoutPage = () => {
                 address: selectedAddrObj.addressLine || selectedAddrObj.address || '',
                 city: selectedAddrObj.city || '',
                 state: selectedAddrObj.state || '',
-                pincode: selectedAddrObj.pincode || ''
+                pincode: selectedAddrObj.pincode || '',
+                fullName: selectedAddrObj.fullName || '',
+                phone: selectedAddrObj.phone || ''
             };
 
             const payload = {
                 items: cartItems.map(item => ({
-                    productId: item.id,  // Ensure this is Mongo _id string
+                    productId: item.id,
                     quantity: item.quantity
                 })),
                 shippingAddress,
@@ -145,11 +151,25 @@ const CheckoutPage = () => {
                 payload.paymentProof = {
                     transactionId: bankTransferDetails.transactionId,
                     screenshot: bankTransferDetails.screenshot,
-                    bankName: bankTransferDetails.bankName
+                    userBankDetails: {
+                        bankName: bankTransferDetails.bankName,
+                        accountName: bankTransferDetails.accountName,
+                        accountNumber: bankTransferDetails.accountNumber,
+                        ifscCode: bankTransferDetails.ifscCode,
+                        upiId: bankTransferDetails.upiId,
+                        transactionTime: new Date().toLocaleString('en-IN')
+                    },
+                    companyBankDetails: {
+                        accountName: "Tejas Khope",
+                        accountNumber: "970318210000861",
+                        ifscCode: "BKID0009703",
+                        upiId: "khopetejas6-1@oksbi",
+                        bankName: "Bank of India",
+                        branch: "Mumbai Main Branch"
+                    },
+                    amount: total
                 };
             }
-
-            console.log('Order payload:', payload);
 
             const res = await axios.post(`${API_URL}/orders`, payload, {
                 headers: { Authorization: `Bearer ${token}` }
@@ -166,13 +186,14 @@ const CheckoutPage = () => {
         }
     };
 
+    // Bank details for display
     const bankDetails = {
-        accountName: "BuilderSmart Solutions Pvt Ltd",
-        accountNumber: "123456789012",
-        ifscCode: "SBIN0001234",
-        bankName: "State Bank of India",
+        accountName: "Tejas Khope",
+        accountNumber: "970318210000861",
+        ifscCode: "BKID0009703",
+        bankName: "Bank of India",
         branch: "Mumbai Main Branch",
-        upiId: "buildersmart@sbi"
+        upiId: "khopetejas6-1@oksbi"
     };
 
     if (cartItems.length === 0) {
@@ -287,7 +308,7 @@ const CheckoutPage = () => {
                                 {paymentMethod === 'bank_transfer' && (
                                     <div className="mt-6 space-y-6">
                                         <div className="bg-blue-50 p-6 rounded-xl">
-                                            <h4 className="font-bold mb-4">Transfer Details</h4>
+                                            <h4 className="font-bold mb-4">Transfer to Company Account</h4>
                                             <div className="grid grid-cols-2 gap-4 text-sm">
                                                 <div><strong>Account Name:</strong> {bankDetails.accountName}</div>
                                                 <div><strong>Account No:</strong> {bankDetails.accountNumber}</div>
@@ -301,21 +322,53 @@ const CheckoutPage = () => {
                                             </p>
                                         </div>
 
-                                        <input
-                                            type="text"
-                                            placeholder="Transaction ID / UPI Reference *"
-                                            value={bankTransferDetails.transactionId}
-                                            onChange={e => setBankTransferDetails(prev => ({ ...prev, transactionId: e.target.value }))}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000]"
-                                        />
-
-                                        <input
-                                            type="text"
-                                            placeholder="Bank Name *"
-                                            value={bankTransferDetails.bankName}
-                                            onChange={e => setBankTransferDetails(prev => ({ ...prev, bankName: e.target.value }))}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000]"
-                                        />
+                                        <div className="space-y-4">
+                                            <h4 className="font-bold text-gray-800">Your Payment Details (Optional)</h4>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Transaction ID / UPI Reference *"
+                                                    value={bankTransferDetails.transactionId}
+                                                    onChange={e => setBankTransferDetails(prev => ({ ...prev, transactionId: e.target.value }))}
+                                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000]"
+                                                />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Your Bank Name *"
+                                                    value={bankTransferDetails.bankName}
+                                                    onChange={e => setBankTransferDetails(prev => ({ ...prev, bankName: e.target.value }))}
+                                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000]"
+                                                />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Your Account Name (Optional)"
+                                                    value={bankTransferDetails.accountName}
+                                                    onChange={e => setBankTransferDetails(prev => ({ ...prev, accountName: e.target.value }))}
+                                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000]"
+                                                />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Your Account Number (Optional)"
+                                                    value={bankTransferDetails.accountNumber}
+                                                    onChange={e => setBankTransferDetails(prev => ({ ...prev, accountNumber: e.target.value }))}
+                                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000]"
+                                                />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Your IFSC Code (Optional)"
+                                                    value={bankTransferDetails.ifscCode}
+                                                    onChange={e => setBankTransferDetails(prev => ({ ...prev, ifscCode: e.target.value }))}
+                                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000]"
+                                                />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Your UPI ID (Optional)"
+                                                    value={bankTransferDetails.upiId}
+                                                    onChange={e => setBankTransferDetails(prev => ({ ...prev, upiId: e.target.value }))}
+                                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000]"
+                                                />
+                                            </div>
+                                        </div>
 
                                         <div className="border-2 border-dashed border-gray-400 rounded-xl p-8 text-center">
                                             {bankTransferDetails.screenshot ? (
@@ -331,12 +384,12 @@ const CheckoutPage = () => {
                                             ) : (
                                                 <>
                                                     <Upload className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                                                    <p className="text-gray-600 mb-4">Upload payment proof</p>
+                                                    <p className="text-gray-600 mb-4">Upload payment proof (screenshot)</p>
                                                     <label className="cursor-pointer bg-[#800000] text-white px-6 py-3 rounded-lg hover:bg-[#900000]">
                                                         Choose File
                                                         <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
                                                     </label>
-                                                    <p className="text-xs text-gray-500 mt-3">Max 5MB</p>
+                                                    <p className="text-xs text-gray-500 mt-3">Max 5MB (PNG, JPG, JPEG)</p>
                                                 </>
                                             )}
                                         </div>
