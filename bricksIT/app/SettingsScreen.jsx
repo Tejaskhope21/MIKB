@@ -36,22 +36,9 @@ export default function SettingsScreen() {
 
   const loadProfile = async () => {
     try {
-      const res = await authAPI.getProfile();
-      if (res.success) {
-        const userData = res.data.user || res.data;
-        setUser(userData);
-        setEditFormData({
-          name: userData.name || '',
-          email: userData.email || '',
-          phone: userData.phone || '',
-        });
-        await AsyncStorage.setItem('userData', JSON.stringify(userData));
-      } else {
-        Alert.alert('Error', res.message || 'Failed to load profile');
-      }
-    } catch (err) {
-      console.error('PROFILE LOAD ERROR', err);
-      // Load from AsyncStorage if API fails
+      setLoading(true);
+      
+      // Try to load from AsyncStorage first for faster display
       try {
         const storedData = await AsyncStorage.getItem('userData');
         if (storedData) {
@@ -64,7 +51,68 @@ export default function SettingsScreen() {
           });
         }
       } catch (storageError) {
-        console.error('Storage error:', storageError);
+        console.warn('Storage load warning:', storageError);
+      }
+
+      // Try to get fresh data from API
+      const res = await authAPI.getProfile();
+      console.log('Profile API Response:', res); // Debug log
+      
+      // Handle different possible response structures
+      let userData = null;
+      
+      if (res && typeof res === 'object') {
+        // Check different possible response structures
+        if (res.data && res.data.user) {
+          userData = res.data.user;
+        } else if (res.user) {
+          userData = res.user;
+        } else if (res.data) {
+          userData = res.data;
+        } else if (res.success && res.data) {
+          userData = res.data.user || res.data;
+        } else {
+          // Use the response itself as user data
+          userData = res;
+        }
+      }
+      
+      if (userData) {
+        setUser(userData);
+        setEditFormData({
+          name: userData.name || '',
+          email: userData.email || '',
+          phone: userData.phone || '',
+        });
+        
+        // Save to AsyncStorage
+        try {
+          await AsyncStorage.setItem('userData', JSON.stringify(userData));
+        } catch (storageError) {
+          console.warn('Storage save warning:', storageError);
+        }
+      } else {
+        // No user data found in response
+        console.warn('No user data found in API response');
+        if (!user) {
+          // Only show alert if we don't have cached data
+          Alert.alert(
+            'Info',
+            'Could not load profile data. Please try again later.',
+            [{ text: 'OK' }]
+          );
+        }
+      }
+    } catch (err) {
+      console.error('PROFILE LOAD ERROR', err);
+      
+      // If API fails and we don't have cached data, show error
+      if (!user) {
+        Alert.alert(
+          'Connection Error',
+          'Failed to load profile. Using cached data if available.',
+          [{ text: 'OK' }]
+        );
       }
     } finally {
       setLoading(false);
@@ -72,8 +120,20 @@ export default function SettingsScreen() {
   };
 
   const handleSaveProfile = async () => {
-    if (!editFormData.name.trim() || !editFormData.email.trim()) {
-      Alert.alert('Error', 'Name and Email are required');
+    if (!editFormData.name.trim()) {
+      Alert.alert('Error', 'Name is required');
+      return;
+    }
+
+    if (!editFormData.email.trim()) {
+      Alert.alert('Error', 'Email is required');
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(editFormData.email)) {
+      Alert.alert('Error', 'Please enter a valid email address');
       return;
     }
 
@@ -81,22 +141,102 @@ export default function SettingsScreen() {
 
     try {
       const res = await authAPI.updateProfile(editFormData);
+      console.log('Update Profile API Response:', res); // Debug log
       
-      if (res.success) {
-        const updatedUser = res.data.user || res.data;
+      // Handle different possible response structures
+      let updatedUser = null;
+      
+      if (res && typeof res === 'object') {
+        // Check different possible response structures
+        if (res.data && res.data.user) {
+          updatedUser = res.data.user;
+        } else if (res.user) {
+          updatedUser = res.user;
+        } else if (res.data) {
+          updatedUser = res.data;
+        } else if (res.success && res.data) {
+          updatedUser = res.data.user || res.data;
+        } else {
+          // Use the response itself as user data
+          updatedUser = res;
+        }
+      }
+      
+      if (updatedUser) {
         setUser(updatedUser);
-        await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
+        
+        // Update AsyncStorage
+        try {
+          await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
+        } catch (storageError) {
+          console.warn('Storage update warning:', storageError);
+        }
+
         setEditModalVisible(false);
-        Alert.alert('Success', 'Profile updated successfully!');
+        
+        Alert.alert(
+          'Success', 
+          'Profile updated successfully!',
+          [{ text: 'OK' }]
+        );
       } else {
-        Alert.alert('Error', res.message || 'Failed to update profile');
+        // No user data returned
+        Alert.alert(
+          'Error',
+          'Profile update completed but no data was returned.',
+          [{ text: 'OK' }]
+        );
       }
     } catch (err) {
       console.error('PROFILE UPDATE ERROR', err);
-      Alert.alert('Error', 'Failed to update profile. Please try again.');
+      
+      let errorMessage = 'Failed to update profile. Please try again.';
+      
+      // Extract error message from response if available
+      if (err.response) {
+        if (err.response.data && err.response.data.message) {
+          errorMessage = err.response.data.message;
+        } else if (err.response.status === 401) {
+          errorMessage = 'Session expired. Please login again.';
+        } else if (err.response.status === 403) {
+          errorMessage = 'You do not have permission to update profile.';
+        } else if (err.response.status === 422) {
+          errorMessage = 'Invalid data provided. Please check your inputs.';
+        }
+      } else if (err.request) {
+        errorMessage = 'No response from server. Please check your connection.';
+      }
+      
+      Alert.alert('Error', errorMessage);
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleLogout = async () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Clear storage
+              await AsyncStorage.multiRemove(['token', 'userData']);
+              
+              // Navigate to login
+              router.replace('/(auth)/Login');
+            } catch (err) {
+              console.error('LOGOUT ERROR:', err);
+              Alert.alert('Error', 'Logout failed');
+            }
+          },
+        },
+      ]
+    );
   };
 
   if (loading) {
@@ -110,13 +250,13 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollView}>
         {/* Profile Header */}
         <View style={styles.profileHeader}>
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>
-                {user?.name?.charAt(0).toUpperCase() || 'U'}
+                {user?.name?.charAt(0)?.toUpperCase() || 'U'}
               </Text>
             </View>
             <TouchableOpacity 
@@ -128,7 +268,7 @@ export default function SettingsScreen() {
           </View>
           
           <Text style={styles.userName}>{user?.name || 'User'}</Text>
-          <Text style={styles.userEmail}>{user?.email || 'No email'}</Text>
+          <Text style={styles.userEmail}>{user?.email || 'user@example.com'}</Text>
           
           <View style={styles.userInfoRow}>
             <Icon name="call-outline" size={16} color="#666" />
@@ -200,6 +340,12 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {/* Logout Button */}
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+          <Icon name="log-out-outline" size={22} color="#ff4444" />
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
+
         <View style={styles.versionContainer}>
           <Text style={styles.versionText}>© 2024 BricksIT. All rights reserved.</Text>
         </View>
@@ -210,14 +356,14 @@ export default function SettingsScreen() {
         visible={editModalVisible}
         transparent={true}
         animationType="slide"
-        onRequestClose={() => setEditModalVisible(false)}
+        onRequestClose={() => !saving && setEditModalVisible(false)}
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Edit Profile</Text>
               <TouchableOpacity 
-                onPress={() => setEditModalVisible(false)}
+                onPress={() => !saving && setEditModalVisible(false)}
                 disabled={saving}
               >
                 <Icon name="close" size={24} color="#fff" />
@@ -234,6 +380,7 @@ export default function SettingsScreen() {
                   placeholder="Enter your full name"
                   placeholderTextColor="#999"
                   editable={!saving}
+                  autoCapitalize="words"
                 />
               </View>
 
@@ -247,6 +394,7 @@ export default function SettingsScreen() {
                   placeholderTextColor="#999"
                   keyboardType="email-address"
                   autoCapitalize="none"
+                  autoComplete="email"
                   editable={!saving}
                 />
               </View>
@@ -266,7 +414,7 @@ export default function SettingsScreen() {
 
               <View style={styles.modalActions}>
                 <TouchableOpacity
-                  style={styles.cancelBtn}
+                  style={[styles.cancelBtn, saving && styles.buttonDisabled]}
                   onPress={() => setEditModalVisible(false)}
                   disabled={saving}
                 >
@@ -293,11 +441,13 @@ export default function SettingsScreen() {
   );
 }
 
-// Styles remain the same as your original code, just copy them exactly
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  scrollView: {
+    flex: 1,
   },
   loadingContainer: {
     flex: 1,
@@ -450,6 +600,29 @@ const styles = StyleSheet.create({
     color: '#800000',
     marginLeft: 10,
   },
+  logoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    marginHorizontal: 16,
+    marginTop: 24,
+    padding: 18,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#ff4444',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  logoutText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ff4444',
+    marginLeft: 10,
+  },
   versionContainer: {
     alignItems: 'center',
     paddingVertical: 30,
@@ -520,6 +693,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginRight: 12,
     alignItems: 'center',
+  },
+  buttonDisabled: {
+    opacity: 0.5,
   },
   cancelBtnText: {
     color: '#666',

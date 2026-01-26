@@ -15,22 +15,42 @@ import {
 } from 'react-native';
 import axios from 'axios';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { useNavigation } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
 
 const { width } = Dimensions.get('window');
 
 const PRIMARY_COLOR = 'rgb(128, 0, 0)';
 const SECONDARY_COLOR = '#F8F0F0';
 
-const API_BASE = Platform.select({
-  ios: 'https://bricks-backend-qyea.onrender.com/api',
-  android: 'http://10.0.2.2:5000/api',
-  default: 'https://bricks-backend-qyea.onrender.com/api',
-});
+// Constants for AsyncStorage keys
+const STORAGE_KEYS = {
+  CONTRACTORS_CACHE: '@contractors_cache',
+  CACHE_TIMESTAMP: '@contractors_cache_timestamp',
+  SEARCH_HISTORY: '@contractors_search_history',
+};
+
+// Cache duration in milliseconds (30 minutes)
+const CACHE_DURATION = 30 * 60 * 1000;
+
+const API_BASE = 'https://bricks-backend-qyea.onrender.com/api';
+
+// Create axios instance
+const createApiInstance = () => {
+  const instance = axios.create({
+    baseURL: API_BASE,
+    timeout: 15000,
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+  });
+
+  return instance;
+};
 
 const ContractorsListScreen = () => {
-  const navigation = useNavigation();
-
+  const router = useRouter();
   const [contractors, setContractors] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -38,9 +58,104 @@ const ContractorsListScreen = () => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [error, setError] = useState(null);
+  const [apiStatus, setApiStatus] = useState('checking...');
+  const [isUsingCache, setIsUsingCache] = useState(false);
+  const [searchHistory, setSearchHistory] = useState([]);
 
   const searchTimeoutRef = useRef(null);
   const suggestionTimeoutRef = useRef(null);
+  const api = useRef(createApiInstance());
+
+  // ================= ASYNCSTORAGE FUNCTIONS =================
+  const saveToCache = async (data, searchQuery = '') => {
+    try {
+      const cacheData = {
+        data,
+        timestamp: Date.now(),
+        searchQuery,
+      };
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.CONTRACTORS_CACHE, 
+        JSON.stringify(cacheData)
+      );
+      console.log('Data saved to cache');
+    } catch (error) {
+      console.error('Error saving to cache:', error);
+    }
+  };
+
+  const loadFromCache = async () => {
+    try {
+      const cached = await AsyncStorage.getItem(STORAGE_KEYS.CONTRACTORS_CACHE);
+      if (cached) {
+        const { data, timestamp, searchQuery } = JSON.parse(cached);
+        
+        // Check if cache is still valid
+        const isCacheValid = Date.now() - timestamp < CACHE_DURATION;
+        
+        if (isCacheValid) {
+          console.log('Loading from cache');
+          setIsUsingCache(true);
+          return { data, searchQuery };
+        } else {
+          console.log('Cache expired');
+          // Clear expired cache
+          await AsyncStorage.removeItem(STORAGE_KEYS.CONTRACTORS_CACHE);
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error('Error loading from cache:', error);
+      return null;
+    }
+  };
+
+  const saveSearchHistory = async (query) => {
+    if (!query.trim()) return;
+    
+    try {
+      const history = await AsyncStorage.getItem(STORAGE_KEYS.SEARCH_HISTORY);
+      let historyArray = history ? JSON.parse(history) : [];
+      
+      // Remove if already exists
+      historyArray = historyArray.filter(item => item !== query);
+      
+      // Add to beginning
+      historyArray.unshift(query);
+      
+      // Keep only last 10 searches
+      historyArray = historyArray.slice(0, 10);
+      
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.SEARCH_HISTORY, 
+        JSON.stringify(historyArray)
+      );
+      setSearchHistory(historyArray);
+    } catch (error) {
+      console.error('Error saving search history:', error);
+    }
+  };
+
+  const loadSearchHistory = async () => {
+    try {
+      const history = await AsyncStorage.getItem(STORAGE_KEYS.SEARCH_HISTORY);
+      if (history) {
+        setSearchHistory(JSON.parse(history));
+      }
+    } catch (error) {
+      console.error('Error loading search history:', error);
+    }
+  };
+
+  const clearSearchHistory = async () => {
+    try {
+      await AsyncStorage.removeItem(STORAGE_KEYS.SEARCH_HISTORY);
+      setSearchHistory([]);
+    } catch (error) {
+      console.error('Error clearing search history:', error);
+    }
+  };
 
   // ================= FETCH CONTRACTORS =================
   const fetchContractors = async (loadMore = false, searchText = search) => {
@@ -48,16 +163,39 @@ const ContractorsListScreen = () => {
 
     const currentPage = loadMore ? page + 1 : 1;
     if (!loadMore) setLoading(true);
+    
+    setError(null);
+    setIsUsingCache(false);
 
     try {
-      let url = `${API_BASE}/contractor-search?page=${currentPage}&limit=10`;
+      console.log('Fetching contractors...');
+      
+      // Try to load from cache first if not searching and not loading more
+      if (!loadMore && !searchText.trim()) {
+        const cached = await loadFromCache();
+        if (cached) {
+          setContractors(cached.data);
+          setPage(1);
+          setHasMore(false); // Cache doesn't support pagination
+          setLoading(false);
+          setRefreshing(false);
+          return;
+        }
+      }
+
+      let url = `/contractor-search?page=${currentPage}&limit=10`;
 
       if (searchText.trim()) {
         url += `&q=${encodeURIComponent(searchText.trim())}`;
+        saveSearchHistory(searchText.trim());
       }
 
-      const res = await axios.get(url);
-      const newContractors = res.data.contractors || [];
+      console.log('Request URL:', url);
+      
+      const res = await api.current.get(url);
+      console.log('Contractors API Response status:', res.status);
+      
+      const newContractors = res.data.contractors || res.data || [];
 
       if (loadMore) {
         setContractors(prev => [...prev, ...newContractors]);
@@ -65,35 +203,162 @@ const ContractorsListScreen = () => {
       } else {
         setContractors(newContractors);
         setPage(1);
+        
+        // Save to cache if not searching
+        if (!searchText.trim()) {
+          saveToCache(newContractors);
+        }
       }
 
-      setHasMore(currentPage < res.data.pages);
+      if (res.data.pages !== undefined) {
+        setHasMore(currentPage < res.data.pages);
+      } else {
+        setHasMore(newContractors.length >= 10);
+      }
+      
+      setApiStatus('connected');
+      
     } catch (err) {
-      console.error('Contractor fetch error:', err);
+      console.error('Contractor fetch error:', err.message);
+      
+      // Try to load from cache on error
+      if (!loadMore && !searchText.trim()) {
+        const cached = await loadFromCache();
+        if (cached) {
+          setContractors(cached.data);
+          setPage(1);
+          setHasMore(false);
+          setApiStatus('using cached data');
+          setIsUsingCache(true);
+          setError('Using cached data. Check your internet connection.');
+          setLoading(false);
+          setRefreshing(false);
+          return;
+        }
+      }
+      
+      let errorMessage = err.message || 'Failed to load contractors';
+      
+      if (errorMessage.includes('Network Error') || errorMessage.includes('network')) {
+        errorMessage = 'Network error. Please check your internet connection.';
+      } else if (errorMessage.includes('timeout')) {
+        errorMessage = 'Request timeout. The server is taking too long to respond.';
+      }
+      
+      setError(errorMessage);
+      setApiStatus('disconnected');
+      
+      // Show demo data in development
+      if (__DEV__ && contractors.length === 0 && !loadMore) {
+        console.log('Showing demo data');
+        const demoData = getDemoData();
+        setContractors(demoData);
+        setHasMore(false);
+        setApiStatus('demo mode');
+        setIsUsingCache(true);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
+  // Demo data for development
+  const getDemoData = () => [
+    {
+      _id: '1',
+      companyName: 'Quality Builders Inc.',
+      contractorType: 'General Contractor',
+      address: { city: 'New York', state: 'NY' },
+      experience: 12,
+      portfolio: ['project1', 'project2', 'project3'],
+      isVerified: true,
+      description: 'Professional construction services'
+    },
+    {
+      _id: '2',
+      companyName: 'Elite Renovations LLC',
+      contractorType: 'Renovation Specialist',
+      address: { city: 'Los Angeles', state: 'CA' },
+      experience: 8,
+      portfolio: ['project1'],
+      isVerified: false,
+      description: 'Home renovation experts'
+    },
+    {
+      _id: '3',
+      companyName: 'Master Electricians Co.',
+      contractorType: 'Electrical Contractor',
+      address: { city: 'Chicago', state: 'IL' },
+      experience: 15,
+      portfolio: ['project1', 'project2', 'project3', 'project4'],
+      isVerified: true,
+      description: 'Licensed electrical services'
+    },
+    {
+      _id: '4',
+      companyName: 'Precision Plumbing',
+      contractorType: 'Plumbing Contractor',
+      address: { city: 'Houston', state: 'TX' },
+      experience: 10,
+      portfolio: ['project1', 'project2'],
+      isVerified: true,
+      description: '24/7 plumbing services'
+    },
+    {
+      _id: '5',
+      companyName: 'Modern Design Build',
+      contractorType: 'Design-Build Firm',
+      address: { city: 'Miami', state: 'FL' },
+      experience: 7,
+      portfolio: ['project1'],
+      isVerified: false,
+      description: 'Architectural design and construction'
+    },
+  ];
+
   // ================= FETCH SUGGESTIONS =================
   const fetchSuggestions = async (text) => {
     if (!text.trim()) {
-      setSuggestions([]);
+      // Show search history when search is empty
+      if (searchHistory.length > 0) {
+        setSuggestions(searchHistory.map(item => ({ type: 'history', value: item })));
+      } else {
+        setSuggestions([]);
+      }
       return;
     }
 
     try {
-      const res = await axios.get(
-        `${API_BASE}/contractor-search/contractor-suggestions?q=${encodeURIComponent(text)}`
+      const res = await api.current.get(
+        `/contractor-search/contractor-suggestions?q=${encodeURIComponent(text)}`
       );
-      setSuggestions(res.data || []);
+      
+      // Combine search history with API suggestions
+      const apiSuggestions = res.data || [];
+      const historySuggestions = searchHistory
+        .filter(item => item.toLowerCase().includes(text.toLowerCase()))
+        .map(item => ({ type: 'history', value: item }));
+      
+      const combined = [
+        ...historySuggestions,
+        ...apiSuggestions.map(item => ({ type: 'api', value: item }))
+      ];
+      
+      setSuggestions(combined.slice(0, 10)); // Limit to 10 suggestions
     } catch (err) {
       console.error('Suggestion error:', err);
+      // Fallback to search history
+      const filteredHistory = searchHistory
+        .filter(item => item.toLowerCase().includes(text.toLowerCase()))
+        .map(item => ({ type: 'history', value: item }));
+      setSuggestions(filteredHistory.slice(0, 5));
     }
   };
 
   useEffect(() => {
+    // Load search history on mount
+    loadSearchHistory();
     fetchContractors();
   }, []);
 
@@ -101,23 +366,32 @@ const ContractorsListScreen = () => {
   const handleSearchChange = (text) => {
     setSearch(text);
 
-    // debounce search
     clearTimeout(searchTimeoutRef.current);
     searchTimeoutRef.current = setTimeout(() => {
       fetchContractors(false, text);
     }, 500);
 
-    // debounce suggestions
     clearTimeout(suggestionTimeoutRef.current);
     suggestionTimeoutRef.current = setTimeout(() => {
       fetchSuggestions(text);
     }, 300);
   };
 
-  const handleSuggestionPress = (value) => {
-    setSearch(value);
+  const handleSuggestionPress = (suggestion) => {
+    setSearch(suggestion.value);
     setSuggestions([]);
-    fetchContractors(false, value);
+    fetchContractors(false, suggestion.value);
+  };
+
+  const handleHistoryClear = () => {
+    Alert.alert(
+      'Clear Search History',
+      'Are you sure you want to clear your search history?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Clear', onPress: clearSearchHistory, style: 'destructive' }
+      ]
+    );
   };
 
   const clearSearch = () => {
@@ -128,49 +402,80 @@ const ContractorsListScreen = () => {
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchContractors();
+    // Clear cache on refresh
+    AsyncStorage.removeItem(STORAGE_KEYS.CONTRACTORS_CACHE).then(() => {
+      setIsUsingCache(false);
+      fetchContractors();
+    });
   };
 
   const loadMore = () => {
-    if (!loading && hasMore) fetchContractors(true);
+    if (!loading && hasMore && !isUsingCache) {
+      fetchContractors(true);
+    }
+  };
+
+  const handleContractorPress = (contractor) => {
+    router.push({
+      pathname: '/ContractorDetail',
+      params: { id: contractor._id, name: contractor.companyName }
+    });
   };
 
   // ================= RENDER HEADER =================
   const renderHeader = () => (
     <View style={styles.header}>
       <View style={styles.headerContent}>
-        <Text style={styles.headerTitle}>Find Trusted Contractors</Text>
-        <Text style={styles.headerSubtitle}>
-          Browse verified professionals for your next project
-        </Text>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <Icon name="arrow-back" size={24} color="#FFF" />
+        </TouchableOpacity>
+        <View style={styles.headerTextContainer}>
+          <Text style={styles.headerTitle}>Find Trusted Contractors</Text>
+          <Text style={styles.headerSubtitle}>
+            Browse verified professionals for your next project
+          </Text>
+        </View>
+        <View style={[styles.apiStatusBadge, isUsingCache && styles.cacheBadge]}>
+          <Text style={styles.apiStatusText}>
+            {isUsingCache ? 'Cached' : apiStatus}
+          </Text>
+        </View>
       </View>
     </View>
   );
-
- 
 
   // ================= RENDER ITEM =================
   const renderContractorItem = ({ item }) => (
     <TouchableOpacity
       style={styles.contractorCard}
-      onPress={() => navigation.navigate('ContractorDetail', { id: item._id })}
+      onPress={() => handleContractorPress(item)}
       activeOpacity={0.7}
     >
+      {isUsingCache && (
+        <View style={styles.cacheIndicator}>
+          <Icon name="wifi-off" size={12} color="#666" />
+          <Text style={styles.cacheIndicatorText}>Offline</Text>
+        </View>
+      )}
       <View style={styles.cardHeader}>
         <View style={styles.companyLogo}>
           <Text style={styles.logoText}>
-            {item.companyName?.charAt(0) || 'C'}
+            {item.companyName?.charAt(0)?.toUpperCase() || 'C'}
           </Text>
         </View>
         
         <View style={styles.companyInfo}>
           <View style={styles.companyNameRow}>
             <Text style={styles.companyName} numberOfLines={1}>
-              {item.companyName}
+              {item.companyName || 'Contractor'}
             </Text>
             {item.isVerified && (
               <View style={styles.verifiedBadge}>
                 <Icon name="verified" size={14} color="#10B981" />
+                <Text style={styles.verifiedText}>Verified</Text>
               </View>
             )}
           </View>
@@ -199,8 +504,6 @@ const ContractorsListScreen = () => {
           </Text>
         </View>
 
-       
-
         {item.portfolio && item.portfolio.length > 0 && (
           <View style={styles.portfolioRow}>
             <Icon name="photo-library" size={14} color={PRIMARY_COLOR} />
@@ -213,6 +516,60 @@ const ContractorsListScreen = () => {
     </TouchableOpacity>
   );
 
+  // ================= RENDER ERROR =================
+  const renderError = () => (
+    <View style={styles.errorContainer}>
+      <Icon name="wifi-off" size={60} color="#dc3545" />
+      <Text style={styles.errorTitle}>Connection Error</Text>
+      <Text style={styles.errorText}>{error}</Text>
+      
+      <View style={styles.troubleshootBox}>
+        <Text style={styles.troubleshootTitle}>Troubleshooting:</Text>
+        <Text style={styles.troubleshootText}>• Check your internet connection</Text>
+        <Text style={styles.troubleshootText}>• Disable VPN if using one</Text>
+        <Text style={troubleshootText}>• Try switching between WiFi and mobile data</Text>
+      </View>
+      
+      <TouchableOpacity
+        style={styles.retryButton}
+        onPress={() => fetchContractors()}
+      >
+        <Icon name="refresh" size={20} color="#FFF" />
+        <Text style={styles.retryButtonText}>Retry Connection</Text>
+      </TouchableOpacity>
+      
+      {isUsingCache && (
+        <Text style={styles.cacheNotice}>
+          Currently showing cached data. New data will load when connected.
+        </Text>
+      )}
+    </View>
+  );
+
+  // ================= RENDER SUGGESTION ITEM =================
+  const renderSuggestionItem = (item, index) => (
+    <TouchableOpacity
+      key={index}
+      style={styles.suggestionItem}
+      onPress={() => handleSuggestionPress(item)}
+    >
+      <Icon 
+        name={item.type === 'history' ? 'history' : 'search'} 
+        size={16} 
+        color={item.type === 'history' ? PRIMARY_COLOR : '#666'} 
+      />
+      <Text style={[
+        styles.suggestionText,
+        item.type === 'history' && styles.historySuggestionText
+      ]}>
+        {item.value}
+      </Text>
+      {item.type === 'history' && (
+        <Text style={styles.suggestionTypeText}>Past search</Text>
+      )}
+    </TouchableOpacity>
+  );
+
   // ================= RENDER LOADING =================
   if (loading && contractors.length === 0) {
     return (
@@ -222,6 +579,7 @@ const ContractorsListScreen = () => {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={PRIMARY_COLOR} />
           <Text style={styles.loadingText}>Loading contractors...</Text>
+          <Text style={styles.apiInfo}>API Status: {apiStatus}</Text>
         </View>
       </SafeAreaView>
     );
@@ -245,7 +603,7 @@ const ContractorsListScreen = () => {
           onSubmitEditing={() => fetchContractors(false, search)}
         />
         {search ? (
-          <TouchableOpacity onPress={clearSearch}>
+          <TouchableOpacity onPress={clearSearch} style={styles.clearButton}>
             <Icon name="close" size={20} color="#666" />
           </TouchableOpacity>
         ) : null}
@@ -254,66 +612,76 @@ const ContractorsListScreen = () => {
       {/* SUGGESTIONS */}
       {suggestions.length > 0 && (
         <View style={styles.suggestionBox}>
-          {suggestions.map((item, index) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.suggestionItem}
-              onPress={() => handleSuggestionPress(item)}
-            >
-              <Icon name="search" size={16} color="#666" />
-              <Text style={styles.suggestionText}>{item}</Text>
-            </TouchableOpacity>
-          ))}
+          {search.trim() === '' && searchHistory.length > 0 && (
+            <View style={styles.suggestionHeader}>
+              <Text style={styles.suggestionHeaderText}>Recent Searches</Text>
+              <TouchableOpacity onPress={handleHistoryClear}>
+                <Text style={styles.clearHistoryText}>Clear</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          {suggestions.map(renderSuggestionItem)}
         </View>
       )}
 
+      {/* ERROR MESSAGE */}
+      {error && !loading && contractors.length === 0 && renderError()}
+
       {/* CONTRACTOR LIST */}
-      <FlatList
-        data={contractors}
-        keyExtractor={(item) => item._id}
-        renderItem={renderContractorItem}
-        contentContainerStyle={styles.listContent}
-        onEndReached={loadMore}
-        onEndReachedThreshold={0.3}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={[PRIMARY_COLOR]}
-            tintColor={PRIMARY_COLOR}
-          />
-        }
-        onScroll={() => setSuggestions([])}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Icon name="search-off" size={60} color="#CCC" />
-            <Text style={styles.emptyTitle}>No contractors found</Text>
-            <Text style={styles.emptyText}>
-              Try changing your search terms
-            </Text>
-            <TouchableOpacity
-              style={styles.clearFiltersButton}
-              onPress={clearSearch}
-            >
-              <Text style={styles.clearFiltersText}>Clear Search</Text>
-            </TouchableOpacity>
-          </View>
-        }
-        ListFooterComponent={
-          loading && contractors.length > 0 ? (
-            <View style={styles.footerLoader}>
-              <ActivityIndicator size="small" color={PRIMARY_COLOR} />
-            </View>
-          ) : hasMore && contractors.length > 0 ? (
-            <TouchableOpacity onPress={loadMore} style={styles.loadMoreButton}>
-              <Text style={styles.loadMoreText}>Load More</Text>
-            </TouchableOpacity>
-          ) : contractors.length > 0 ? (
-            <Text style={styles.endText}>No more contractors to load</Text>
-          ) : null
-        }
-      />
+      {!error && (
+        <FlatList
+          data={contractors}
+          keyExtractor={(item) => item._id || Math.random().toString()}
+          renderItem={renderContractorItem}
+          contentContainerStyle={styles.listContent}
+          onEndReached={!isUsingCache ? loadMore : undefined}
+          onEndReachedThreshold={0.3}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[PRIMARY_COLOR]}
+              tintColor={PRIMARY_COLOR}
+            />
+          }
+          onScroll={() => setSuggestions([])}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            !loading && !error && (
+              <View style={styles.emptyContainer}>
+                <Icon name="search-off" size={60} color="#CCC" />
+                <Text style={styles.emptyTitle}>No contractors found</Text>
+                <Text style={styles.emptyText}>
+                  {search.trim() 
+                    ? 'Try different search terms' 
+                    : 'Check your connection or pull to refresh'}
+                </Text>
+                <TouchableOpacity
+                  style={styles.clearFiltersButton}
+                  onPress={clearSearch}
+                >
+                  <Text style={styles.clearFiltersText}>Clear Search</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          }
+          ListFooterComponent={
+            loading && contractors.length > 0 ? (
+              <View style={styles.footerLoader}>
+                <ActivityIndicator size="small" color={PRIMARY_COLOR} />
+              </View>
+            ) : hasMore && contractors.length > 0 && !isUsingCache ? (
+              <TouchableOpacity onPress={loadMore} style={styles.loadMoreButton}>
+                <Text style={styles.loadMoreText}>Load More</Text>
+              </TouchableOpacity>
+            ) : contractors.length > 0 ? (
+              <Text style={styles.endText}>
+                {isUsingCache ? 'Cached data - pull to refresh' : 'No more contractors to load'}
+              </Text>
+            ) : null
+          }
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -338,20 +706,42 @@ const styles = StyleSheet.create({
   headerContent: {
     paddingHorizontal: 20,
     paddingTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  backButton: {
+    marginRight: 15,
+    padding: 4,
+  },
+  headerTextContainer: {
+    flex: 1,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: '700',
     color: '#FFF',
     marginBottom: 6,
-    textShadowColor: 'rgba(0, 0, 0, 0.2)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
   },
   headerSubtitle: {
     fontSize: 15,
     color: 'rgba(255, 255, 255, 0.9)',
     lineHeight: 20,
+  },
+  apiStatusBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    marginLeft: 10,
+  },
+  cacheBadge: {
+    backgroundColor: 'rgba(255, 193, 7, 0.3)',
+  },
+  apiStatusText: {
+    fontSize: 11,
+    color: '#FFF',
+    fontWeight: '600',
   },
   searchContainer: {
     flexDirection: 'row',
@@ -381,6 +771,9 @@ const styles = StyleSheet.create({
     color: '#333',
     height: '100%',
   },
+  clearButton: {
+    padding: 4,
+  },
   suggestionBox: {
     backgroundColor: '#FFF',
     marginHorizontal: 20,
@@ -394,6 +787,25 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     zIndex: 100,
+    maxHeight: 300,
+  },
+  suggestionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEE',
+  },
+  suggestionHeaderText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '600',
+  },
+  clearHistoryText: {
+    fontSize: 14,
+    color: PRIMARY_COLOR,
+    fontWeight: '500',
   },
   suggestionItem: {
     flexDirection: 'row',
@@ -403,9 +815,19 @@ const styles = StyleSheet.create({
     borderBottomColor: '#EEE',
   },
   suggestionText: {
+    flex: 1,
     marginLeft: 12,
     fontSize: 15,
     color: '#444',
+  },
+  historySuggestionText: {
+    color: PRIMARY_COLOR,
+    fontWeight: '500',
+  },
+  suggestionTypeText: {
+    fontSize: 12,
+    color: '#999',
+    marginLeft: 8,
   },
   listContent: {
     paddingHorizontal: 20,
@@ -421,6 +843,24 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
+    position: 'relative',
+  },
+  cacheIndicator: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 193, 7, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  cacheIndicatorText: {
+    fontSize: 10,
+    color: '#666',
+    marginLeft: 4,
+    fontWeight: '500',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -455,7 +895,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   verifiedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
     marginLeft: 8,
+  },
+  verifiedText: {
+    fontSize: 10,
+    color: '#10B981',
+    fontWeight: '600',
+    marginLeft: 4,
   },
   description: {
     fontSize: 14,
@@ -466,9 +918,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F0F0',
     marginVertical: 12,
   },
-  cardDetails: {
-    // Details container
-  },
+  cardDetails: {},
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -479,22 +929,6 @@ const styles = StyleSheet.create({
     color: '#555',
     marginLeft: 8,
     flex: 1,
-  },
-  starContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  ratingText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#222',
-    marginLeft: 8,
-  },
-  reviewText: {
-    fontSize: 13,
-    color: PRIMARY_COLOR,
-    marginLeft: 12,
-    fontWeight: '500',
   },
   portfolioRow: {
     flexDirection: 'row',
@@ -515,11 +949,81 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#F8F9FA',
+    padding: 20,
   },
   loadingText: {
     marginTop: 15,
     fontSize: 16,
     color: '#666',
+  },
+  apiInfo: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 10,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#dc3545',
+    marginTop: 20,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 30,
+    lineHeight: 22,
+  },
+  troubleshootBox: {
+    backgroundColor: 'rgba(220, 53, 69, 0.05)',
+    padding: 15,
+    borderRadius: 12,
+    marginBottom: 30,
+    width: '100%',
+  },
+  troubleshootTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#dc3545',
+    marginBottom: 10,
+  },
+  troubleshootText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 5,
+    lineHeight: 20,
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: PRIMARY_COLOR,
+    paddingHorizontal: 30,
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginBottom: 15,
+    width: '80%',
+    justifyContent: 'center',
+  },
+  retryButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 10,
+  },
+  cacheNotice: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 20,
+    fontStyle: 'italic',
   },
   emptyContainer: {
     alignItems: 'center',
@@ -545,6 +1049,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     backgroundColor: PRIMARY_COLOR,
     borderRadius: 12,
+    marginBottom: 15,
+    width: '80%',
+    alignItems: 'center',
   },
   clearFiltersText: {
     fontSize: 16,
