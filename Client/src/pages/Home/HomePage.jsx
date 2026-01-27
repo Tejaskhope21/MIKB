@@ -31,7 +31,7 @@ const HomePage = () => {
                     const imageUrl = firstImage
                         ? (firstImage.startsWith('http') || firstImage.startsWith('data:image')
                             ? firstImage
-                            : `http://localhost:5001/${firstImage.replace(/^\//, '')}`)
+                            : `https://bricks-backend-qyea.onrender.com/${firstImage.replace(/^\//, '')}`)
                         : "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=512&h=512&fit=crop";
 
                     return {

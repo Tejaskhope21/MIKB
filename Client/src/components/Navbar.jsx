@@ -206,10 +206,10 @@ export default function Navbar({ user, onLogout }) {
         }
 
         if (imageUrl.startsWith('/')) {
-            return `http://localhost:5001${imageUrl}`;
+            return `https://bricks-backend-qyea.onrender.com${imageUrl}`;
         }
 
-        return `http://localhost:5001/uploads/${imageUrl}`;
+        return `https://bricks-backend-qyea.onrender.com/uploads/${imageUrl}`;
     };
 
     // Check if we have successful search results
