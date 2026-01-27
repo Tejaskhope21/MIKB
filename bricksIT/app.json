@@ -14,7 +14,7 @@
     "scheme": "bricksit",
     "userInterfaceStyle": "automatic",
 
-    "newArchEnabled": false,
+    "newArchEnabled": true,
 
     "jsEngine": "hermes",
 
