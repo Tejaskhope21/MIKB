@@ -16,9 +16,9 @@ import { Ionicons } from '@expo/vector-icons';
 const { width } = Dimensions.get('window');
 
 // ✅ Expo-compatible assets
-const b1 = require('../../assets/images/offer5.gif');
-const b2 = require('../../assets/images/offer6.gif');
-const b3 = require('../../assets/images/offer4.gif');
+const b1 = require('../../assets/h4.png');
+const b2 = require('../../assets/h5.png');
+const b3 = require('../../assets/h6.png');
 
 export default function Banner() {
 //   const router = useRouter();
@@ -32,32 +32,14 @@ export default function Banner() {
     {
       id: 1,
       image: b1,
-      category: 'Electrical',
-      title: 'Deals Of The Day',
-      description: 'Up to 40% off on all electrical items',
-      icon: 'flash',
-      link: '/categories/electricals',
-      iconColor: '#2563eb',
     },
     {
       id: 2,
       image: b2,
-      category: 'Hardware & Fixtures',
-      title: 'Limited Time Offer',
-      description: 'Premium hardware at unbeatable prices',
-      icon: 'construct',
-      link: '/categories/hardware',
-      iconColor: '#dc2626',
     },
     {
       id: 3,
       image: b3,
-      category: 'Plumbing',
-      title: 'Hot Deals Await',
-      description: 'Quality plumbing solutions with great discounts',
-      icon: 'water',
-      link: '/categories/plumbing',
-      iconColor: '#16a34a',
     },
   ];
 

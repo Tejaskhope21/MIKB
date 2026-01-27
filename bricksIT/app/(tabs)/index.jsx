@@ -17,9 +17,12 @@ import { Ionicons } from '@expo/vector-icons';
 import Banner from '../../components/Banner/Banner';
 
 // Import local images directly
-import hero1 from '../../assets/BannerImages/hero1.png';
-import hero2 from '../../assets/BannerImages/hero2.png';
-import hero3 from '../../assets/BannerImages/hero3.png';
+import hero1 from '../../assets/h2.png';
+import hero2 from '../../assets/h1.png';
+import hero3 from '../../assets/h3.png';
+import hero4 from '../../assets/h4.png';
+import hero5 from '../../assets/h5.png';
+import hero6 from '../../assets/h6.png';
 
 // Import logo
 import logoImage from '../../assets/images/logo2.png';
@@ -55,6 +58,9 @@ const Hero = () => {
     { id: '1', image: hero1 },
     { id: '2', image: hero2 },
     { id: '3', image: hero3 },
+    { id: '4', image: hero4 },
+    { id: '5', image: hero5 },
+    { id: '6', image: hero6 },
   ];
 
   useEffect(() => {
