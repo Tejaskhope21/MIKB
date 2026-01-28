@@ -12,9 +12,9 @@ import {
     Alert,
     ActivityIndicator,
     Image,
-    Modal,
     Platform,
     KeyboardAvoidingView,
+    PermissionsAndroid,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useCart } from '../context/CartContext';
@@ -22,12 +22,14 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
 
 const API_BASE_URL = 'https://bricks-backend-qyea.onrender.com/api';
 
 export default function CheckoutScreen() {
     const router = useRouter();
-    const { cartItems, getCartTotal, clearCart, getCartCount } = useCart();
+    const { cartItems, getCartTotal, clearCart } = useCart();
 
     const [loading, setLoading] = useState(false);
     const [addresses, setAddresses] = useState([]);
@@ -36,6 +38,8 @@ export default function CheckoutScreen() {
     const [bankTransferDetails, setBankTransferDetails] = useState({
         transactionId: '',
         screenshot: null,
+        screenshotUri: null,
+        screenshotBase64: null,
         bankName: '',
         accountName: '',
         accountNumber: '',
@@ -43,9 +47,9 @@ export default function CheckoutScreen() {
         upiId: ''
     });
     const [notes, setNotes] = useState('');
-    const [showAddressModal, setShowAddressModal] = useState(false);
     const [userToken, setUserToken] = useState(null);
     const [userProfile, setUserProfile] = useState(null);
+    const [uploadingImage, setUploadingImage] = useState(false);
 
     // Price calculations
     const subtotal = getCartTotal();
@@ -65,6 +69,7 @@ export default function CheckoutScreen() {
 
     useEffect(() => {
         loadUserData();
+        requestPermissions();
     }, []);
 
     useEffect(() => {
@@ -78,6 +83,58 @@ export default function CheckoutScreen() {
             fetchUserAddresses();
         }
     }, [userProfile]);
+
+    const requestPermissions = async () => {
+        if (Platform.OS === 'android') {
+            const cameraPermission = await PermissionsAndroid.request(
+                PermissionsAndroid.PERMISSIONS.CAMERA,
+                {
+                    title: 'Camera Permission',
+                    message: 'App needs camera permission to upload payment proof',
+                    buttonNeutral: 'Ask Me Later',
+                    buttonNegative: 'Cancel',
+                    buttonPositive: 'OK',
+                }
+            );
+            
+            // Request permission for Android 13 and above
+            if (Platform.Version >= 33) {
+                await PermissionsAndroid.request(
+                    PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES,
+                    {
+                        title: 'Media Permission',
+                        message: 'App needs media permission to upload payment proof',
+                        buttonNeutral: 'Ask Me Later',
+                        buttonNegative: 'Cancel',
+                        buttonPositive: 'OK',
+                    }
+                );
+            } else {
+                await PermissionsAndroid.request(
+                    PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
+                    {
+                        title: 'Storage Permission',
+                        message: 'App needs storage permission to upload payment proof',
+                        buttonNeutral: 'Ask Me Later',
+                        buttonNegative: 'Cancel',
+                        buttonPositive: 'OK',
+                    }
+                );
+            }
+        } else {
+            // For iOS
+            const { status: mediaStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
+            
+            if (mediaStatus !== 'granted' || cameraStatus !== 'granted') {
+                Alert.alert(
+                    'Permission Required',
+                    'Please grant camera and gallery permissions to upload payment proof.',
+                    [{ text: 'OK' }]
+                );
+            }
+        }
+    };
 
     const loadUserData = async () => {
         try {
@@ -156,11 +213,149 @@ export default function CheckoutScreen() {
     };
 
     const handleFileUpload = async () => {
-        // For React Native, you would use ImagePicker or DocumentPicker here
+        try {
+            // Check if permissions are granted
+            if (Platform.OS === 'ios') {
+                const { status: mediaStatus } = await ImagePicker.getMediaLibraryPermissionsAsync();
+                const { status: cameraStatus } = await ImagePicker.getCameraPermissionsAsync();
+                
+                if (mediaStatus !== 'granted' || cameraStatus !== 'granted') {
+                    Alert.alert(
+                        'Permissions Required',
+                        'Please grant camera and gallery permissions in settings to upload payment proof.',
+                        [
+                            { text: 'Cancel', style: 'cancel' },
+                            { text: 'Open Settings', onPress: () => ImagePicker.requestMediaLibraryPermissionsAsync() }
+                        ]
+                    );
+                    return;
+                }
+            }
+
+            Alert.alert(
+                'Upload Payment Proof',
+                'Choose source',
+                [
+                    { text: 'Camera', onPress: () => takePhoto() },
+                    { text: 'Gallery', onPress: () => pickImage() },
+                    { text: 'Cancel', style: 'cancel' }
+                ]
+            );
+        } catch (error) {
+            console.error('Error showing upload options:', error);
+            Alert.alert('Error', 'Failed to show upload options. Please try again.');
+        }
+    };
+
+    const takePhoto = async () => {
+        try {
+            const result = await ImagePicker.launchCameraAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [4, 3],
+                quality: 0.8,
+                base64: true,
+            });
+
+            if (!result.canceled && result.assets && result.assets[0]) {
+                const asset = result.assets[0];
+                await processImage(asset.uri, asset.base64, asset.fileSize);
+            }
+        } catch (error) {
+            console.error('Error taking photo:', error);
+            Alert.alert('Error', 'Failed to take photo. Please try again.');
+        }
+    };
+
+    const pickImage = async () => {
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [4, 3],
+                quality: 0.8,
+                base64: true,
+                selectionLimit: 1,
+            });
+
+            if (!result.canceled && result.assets && result.assets[0]) {
+                const asset = result.assets[0];
+                await processImage(asset.uri, asset.base64, asset.fileSize);
+            }
+        } catch (error) {
+            console.error('Error picking image:', error);
+            Alert.alert('Error', 'Failed to pick image. Please try again.');
+        }
+    };
+
+    const getFileSize = async (uri) => {
+        try {
+            // Using the new FileSystem API
+            const fileInfo = await FileSystem.getInfoAsync(uri);
+            return fileInfo?.size || 0;
+        } catch (error) {
+            console.error('Error getting file size:', error);
+            return 0;
+        }
+    };
+
+    const processImage = async (uri, base64, fileSize = null) => {
+        try {
+            setUploadingImage(true);
+            
+            // Get file size if not provided
+            let actualFileSize = fileSize;
+            if (!actualFileSize) {
+                actualFileSize = await getFileSize(uri);
+            }
+            
+            // Check file size (5MB limit)
+            const fileSizeMB = actualFileSize / (1024 * 1024);
+            
+            if (fileSizeMB > 5) {
+                Alert.alert('File Too Large', 'Image must be less than 5MB. Please select a smaller image.');
+                setUploadingImage(false);
+                return;
+            }
+
+            // Get file extension
+            const fileExtension = uri.split('.').pop().toLowerCase();
+            const mimeType = `image/${fileExtension === 'jpg' ? 'jpeg' : fileExtension}`;
+            
+            setBankTransferDetails(prev => ({
+                ...prev,
+                screenshot: `data:${mimeType};base64,${base64}`,
+                screenshotUri: uri,
+                screenshotBase64: base64
+            }));
+
+        } catch (error) {
+            console.error('Error processing image:', error);
+            Alert.alert('Error', 'Failed to process image. Please try again.');
+        } finally {
+            setUploadingImage(false);
+        }
+    };
+
+    const removeImage = () => {
         Alert.alert(
-            'Upload Payment Proof',
-            'This feature requires react-native-image-picker or react-native-document-picker setup.',
-            [{ text: 'OK' }]
+            'Remove Image',
+            'Are you sure you want to remove this image?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                { 
+                    text: 'Remove', 
+                    style: 'destructive',
+                    onPress: () => {
+                        setBankTransferDetails(prev => ({
+                            ...prev,
+                            screenshot: null,
+                            screenshotUri: null,
+                            screenshotBase64: null
+                        }));
+                    }
+                }
+            ]
         );
     };
 
@@ -173,6 +368,10 @@ export default function CheckoutScreen() {
         if (paymentMethod === 'bank_transfer') {
             if (!bankTransferDetails.transactionId.trim()) {
                 Alert.alert('Transaction ID Required', 'Please enter transaction ID / UPI reference');
+                return false;
+            }
+            if (!bankTransferDetails.screenshot) {
+                Alert.alert('Payment Proof Required', 'Please upload payment screenshot');
                 return false;
             }
             if (!bankTransferDetails.bankName.trim()) {
@@ -262,16 +461,12 @@ export default function CheckoutScreen() {
 
             const data = await response.json();
             
-            // Extract order ID
             let orderId = data._id || data.id || data.order?._id || data.orderId;
             if (!orderId) {
                 orderId = 'TEMP_' + Date.now().toString().slice(-8);
             }
 
-            // Clear cart after successful order
             clearCart();
-
-            // Navigate to order success
             router.push(`/order-success/${orderId}`);
 
         } catch (error) {
@@ -327,6 +522,7 @@ export default function CheckoutScreen() {
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={styles.keyboardView}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
             >
                 <ScrollView
                     showsVerticalScrollIndicator={false}
@@ -491,6 +687,7 @@ export default function CheckoutScreen() {
                                         value={bankTransferDetails.transactionId}
                                         onChangeText={(text) => setBankTransferDetails(prev => ({ ...prev, transactionId: text }))}
                                         placeholderTextColor="#94a3b8"
+                                        returnKeyType="next"
                                     />
 
                                     <TextInput
@@ -499,6 +696,7 @@ export default function CheckoutScreen() {
                                         value={bankTransferDetails.bankName}
                                         onChangeText={(text) => setBankTransferDetails(prev => ({ ...prev, bankName: text }))}
                                         placeholderTextColor="#94a3b8"
+                                        returnKeyType="next"
                                     />
 
                                     <TextInput
@@ -507,6 +705,7 @@ export default function CheckoutScreen() {
                                         value={bankTransferDetails.accountName}
                                         onChangeText={(text) => setBankTransferDetails(prev => ({ ...prev, accountName: text }))}
                                         placeholderTextColor="#94a3b8"
+                                        returnKeyType="next"
                                     />
 
                                     <TextInput
@@ -515,6 +714,8 @@ export default function CheckoutScreen() {
                                         value={bankTransferDetails.accountNumber}
                                         onChangeText={(text) => setBankTransferDetails(prev => ({ ...prev, accountNumber: text }))}
                                         placeholderTextColor="#94a3b8"
+                                        returnKeyType="next"
+                                        keyboardType="numeric"
                                     />
 
                                     <TextInput
@@ -523,6 +724,7 @@ export default function CheckoutScreen() {
                                         value={bankTransferDetails.ifscCode}
                                         onChangeText={(text) => setBankTransferDetails(prev => ({ ...prev, ifscCode: text }))}
                                         placeholderTextColor="#94a3b8"
+                                        returnKeyType="next"
                                     />
 
                                     <TextInput
@@ -531,37 +733,60 @@ export default function CheckoutScreen() {
                                         value={bankTransferDetails.upiId}
                                         onChangeText={(text) => setBankTransferDetails(prev => ({ ...prev, upiId: text }))}
                                         placeholderTextColor="#94a3b8"
+                                        returnKeyType="done"
                                     />
 
-                                    {/* Upload Section */}
-                                    <TouchableOpacity
-                                        style={styles.uploadSection}
-                                        onPress={handleFileUpload}
-                                    >
+                                    {/* Upload Section - FIXED */}
+                                    <View style={styles.uploadContainer}>
                                         {bankTransferDetails.screenshot ? (
                                             <View style={styles.imagePreviewContainer}>
                                                 <Image 
-                                                    source={{ uri: bankTransferDetails.screenshot }} 
+                                                    source={{ uri: bankTransferDetails.screenshotUri || bankTransferDetails.screenshot }} 
                                                     style={styles.imagePreview}
+                                                    resizeMode="contain"
                                                 />
-                                                <TouchableOpacity
-                                                    style={styles.removeImageButton}
-                                                    onPress={() => setBankTransferDetails(prev => ({ ...prev, screenshot: null }))}
-                                                >
-                                                    <Text style={styles.removeImageText}>Remove Image</Text>
-                                                </TouchableOpacity>
+                                                <View style={styles.imagePreviewActions}>
+                                                    <TouchableOpacity
+                                                        style={styles.removeImageButton}
+                                                        onPress={removeImage}
+                                                    >
+                                                        <Ionicons name="trash-outline" size={16} color="#fff" />
+                                                        <Text style={styles.removeImageText}> Remove</Text>
+                                                    </TouchableOpacity>
+                                                    <TouchableOpacity
+                                                        style={styles.changeImageButton}
+                                                        onPress={handleFileUpload}
+                                                    >
+                                                        <Ionicons name="swap-horizontal-outline" size={16} color="#fff" />
+                                                        <Text style={styles.changeImageText}> Change</Text>
+                                                    </TouchableOpacity>
+                                                </View>
                                             </View>
                                         ) : (
-                                            <>
-                                                <Ionicons name="cloud-upload-outline" size={48} color="#9ca3af" />
-                                                <Text style={styles.uploadText}>Upload payment proof (screenshot)</Text>
-                                                <TouchableOpacity style={styles.chooseFileButton}>
-                                                    <Text style={styles.chooseFileText}>Choose File</Text>
-                                                </TouchableOpacity>
-                                                <Text style={styles.fileSizeText}>Max 5MB (PNG, JPG, JPEG)</Text>
-                                            </>
+                                            <TouchableOpacity
+                                                style={styles.uploadSection}
+                                                onPress={handleFileUpload}
+                                                disabled={uploadingImage}
+                                            >
+                                                {uploadingImage ? (
+                                                    <View style={styles.uploadingContainer}>
+                                                        <ActivityIndicator size="large" color="#800000" />
+                                                        <Text style={styles.uploadingText}>Processing image...</Text>
+                                                    </View>
+                                                ) : (
+                                                    <>
+                                                        <Ionicons name="cloud-upload-outline" size={48} color="#9ca3af" />
+                                                        <Text style={styles.uploadText}>Upload payment proof (screenshot)</Text>
+                                                        <View style={styles.uploadButton}>
+                                                            <Ionicons name="camera-outline" size={20} color="#fff" />
+                                                            <Text style={styles.uploadButtonText}> Tap to upload</Text>
+                                                        </View>
+                                                        <Text style={styles.fileSizeText}>Max 5MB (PNG, JPG, JPEG)</Text>
+                                                    </>
+                                                )}
+                                            </TouchableOpacity>
                                         )}
-                                    </TouchableOpacity>
+                                    </View>
                                 </View>
                             )}
                         </TouchableOpacity>
@@ -578,6 +803,8 @@ export default function CheckoutScreen() {
                             multiline
                             numberOfLines={4}
                             placeholderTextColor="#94a3b8"
+                            returnKeyType="done"
+                            blurOnSubmit={true}
                         />
                     </View>
 
@@ -651,11 +878,11 @@ export default function CheckoutScreen() {
                     <Text style={styles.orderTotalAmount}>₹{total.toLocaleString()}</Text>
                 </View>
                 <TouchableOpacity
-                    style={[styles.placeOrderButton, loading && styles.placeOrderButtonDisabled]}
+                    style={[styles.placeOrderButton, (loading || uploadingImage) && styles.placeOrderButtonDisabled]}
                     onPress={handlePlaceOrder}
-                    disabled={loading}
+                    disabled={loading || uploadingImage}
                 >
-                    {loading ? (
+                    {(loading || uploadingImage) ? (
                         <ActivityIndicator color="#fff" />
                     ) : (
                         <Text style={styles.placeOrderButtonText}>
@@ -721,6 +948,10 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 8 : 12,
         elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
     },
     backButton: {
         padding: 4,
@@ -957,6 +1188,9 @@ const styles = StyleSheet.create({
         minHeight: 80,
         textAlignVertical: 'top',
     },
+    uploadContainer: {
+        marginTop: 8,
+    },
     uploadSection: {
         borderWidth: 1.5,
         borderColor: '#adb5bd',
@@ -965,7 +1199,15 @@ const styles = StyleSheet.create({
         padding: 24,
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    uploadingContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    uploadingText: {
         marginTop: 8,
+        fontSize: 14,
+        color: '#6c757d',
     },
     uploadText: {
         fontSize: 14,
@@ -974,13 +1216,16 @@ const styles = StyleSheet.create({
         marginBottom: 12,
         textAlign: 'center',
     },
-    chooseFileButton: {
+    uploadButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
         backgroundColor: '#800000',
         paddingHorizontal: 20,
-        paddingVertical: 8,
+        paddingVertical: 10,
         borderRadius: 6,
+        marginBottom: 8,
     },
-    chooseFileText: {
+    uploadButtonText: {
         color: '#fff',
         fontSize: 14,
         fontWeight: '600',
@@ -988,22 +1233,55 @@ const styles = StyleSheet.create({
     fileSizeText: {
         fontSize: 10,
         color: '#adb5bd',
-        marginTop: 6,
+        marginTop: 4,
     },
     imagePreviewContainer: {
         alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#dee2e6',
+        borderRadius: 8,
+        padding: 12,
+        backgroundColor: '#f8f9fa',
     },
     imagePreview: {
-        width: 160,
-        height: 160,
+        width: '100%',
+        height: 200,
         borderRadius: 6,
-        marginBottom: 8,
+        marginBottom: 12,
+    },
+    imagePreviewActions: {
+        flexDirection: 'row',
+        gap: 12,
+        width: '100%',
+        justifyContent: 'space-between',
     },
     removeImageButton: {
-        padding: 6,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#dc3545',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 6,
+        flex: 1,
+        justifyContent: 'center',
     },
     removeImageText: {
-        color: '#dc3545',
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    changeImageButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#6c757d',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 6,
+        flex: 1,
+        justifyContent: 'center',
+    },
+    changeImageText: {
+        color: '#fff',
         fontSize: 14,
         fontWeight: '500',
     },
