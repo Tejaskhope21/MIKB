@@ -14,7 +14,8 @@ import {
     MapPin
 } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://bricks-backend-qyea.onrender.com/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://bricks-backend-qyea.onrender.com/api/v1';
+
 
 const OrderList = () => {
     const navigate = useNavigate();
@@ -54,9 +55,14 @@ const OrderList = () => {
                 ...(filters.status && { status: filters.status })
             }).toString();
 
-            const response = await axios.get(`${API_URL}/orders/seller?${queryParams}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const response = await axios.get(
+            `${API_URL}/orders/seller/orders?${queryParams}`,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            }
+        );
 
             if (response.data.success) {
                 setOrders(response.data.orders || []);

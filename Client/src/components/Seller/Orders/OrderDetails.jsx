@@ -29,7 +29,9 @@ import axios from 'axios';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://bricks-backend-qyea.onrender.com/api';
+// FIXED
+const API_URL = import.meta.env.VITE_API_URL || 'https://bricks-backend-qyea.onrender.com/api/v1';
+
 
 const OrderDetails = () => {
     const { orderId } = useParams();
