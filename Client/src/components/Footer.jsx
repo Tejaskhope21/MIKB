@@ -86,7 +86,7 @@ function Footer() {
                 </div>
             </div>
 
-            {/* TEAM SECTION (SMALL) */}
+            {/* TEAM SECTION (SMALL)
             <div className="bg-gray-900 py-10 px-4">
                 <div className="max-w-6xl mx-auto">
                     <div className="text-center mb-6">
@@ -119,7 +119,7 @@ function Footer() {
                         ))}
                     </div>
                 </div>
-            </div>
+            </div> */}
 
             {/* MAIN FOOTER */}
             <div className="max-w-7xl mx-auto px-4 py-10">

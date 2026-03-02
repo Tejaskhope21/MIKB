@@ -15,9 +15,14 @@ import {
   ChevronRight,
 } from "lucide-react";
 
+<<<<<<< HEAD
 const API_URL =
   import.meta.env.VITE_API_URL ||
   "https://bricks-backend-qyea.onrender.com/api";
+=======
+const API_URL = import.meta.env.VITE_API_URL || 'https://bricks-backend-qyea.onrender.com/api/v1';
+
+>>>>>>> 5b54669abee385c3f19fca9c3783fe66a3020392
 
 const OrderList = () => {
   const navigate = useNavigate();
@@ -156,6 +161,7 @@ const OrderList = () => {
     });
   };
 
+<<<<<<< HEAD
   const getStatusBadge = (status) => {
     const styles = {
       pending: "bg-yellow-100 text-yellow-800 border border-yellow-200",
@@ -163,6 +169,34 @@ const OrderList = () => {
       shipped: "bg-indigo-100 text-indigo-800 border border-indigo-200",
       delivered: "bg-green-100 text-green-800 border border-green-200",
       cancelled: "bg-red-100 text-red-800 border border-red-200",
+=======
+            const response = await axios.get(
+            `${API_URL}/orders/seller/orders?${queryParams}`,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            }
+        );
+
+            if (response.data.success) {
+                setOrders(response.data.orders || []);
+            } else {
+                setOrders([]);
+            }
+        } catch (error) {
+            console.error('Error fetching seller orders:', error);
+            if (error.response?.status === 401) {
+                localStorage.removeItem('token');
+                navigate('/login');
+            } else {
+                alert('Failed to load orders. Please try again.');
+            }
+            setOrders([]);
+        } finally {
+            setLoading(false);
+        }
+>>>>>>> 5b54669abee385c3f19fca9c3783fe66a3020392
     };
 
     const icons = {
