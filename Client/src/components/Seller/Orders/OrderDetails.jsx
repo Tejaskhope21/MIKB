@@ -29,15 +29,10 @@ import axios from "axios";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
-<<<<<<< HEAD
-const API_URL =
-  import.meta.env.VITE_API_URL ||
-  "https://bricks-backend-qyea.onrender.com/api";
-=======
+
 // FIXED
 const API_URL = import.meta.env.VITE_API_URL || 'https://bricks-backend-qyea.onrender.com/api/v1';
 
->>>>>>> 5b54669abee385c3f19fca9c3783fe66a3020392
 
 const OrderDetails = () => {
   const { orderId } = useParams();
