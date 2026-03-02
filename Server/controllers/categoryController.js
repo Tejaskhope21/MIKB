@@ -1,488 +1,213 @@
 import Category from '../models/Category.model.js';
-import Product from '../models/Product.model.js'
-import mongoose from 'mongoose';
-/* -------- GET ALL -------- */
-export const getCategories = async (req, res) => {
-    try {
-        const categories = await Category.find().sort({ numericId: 1 });
+import SubCategory from '../models/SubCategory.model.js';
+import ItemType from '../models/ItemType.model.js';
 
-        res.status(200).json({
-            success: true,
-            count: categories.length,
-            categories
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
+/* ===============================
+   ADMIN: CREATE CATEGORY TREE
+   Category → SubCategory → ItemTypes
+================================ */
+
+export const createCategoryTree = async (req, res) => {
+  try {
+    const { category, subCategories } = req.body;
+
+    /* 1️⃣ Create Category */
+    const createdCategory = await Category.create({
+      name: category.name,
+      image: category.image,
+      position: category.position
+    });
+
+    const createdSubCategories = [];
+
+    /* 2️⃣ Create SubCategories */
+    for (const sub of subCategories) {
+      const createdSub = await SubCategory.create({
+        categoryId: createdCategory._id,
+        title: sub.title,
+        position: sub.position
+      });
+
+      const createdItems = [];
+
+      /* 3️⃣ Create Item Types */
+      if (Array.isArray(sub.items)) {
+        for (const itemName of sub.items) {
+          const item = await ItemType.create({
+            subCategoryId: createdSub._id,
+            name: itemName
+          });
+
+          createdItems.push(item);
+        }
+      }
+
+      createdSubCategories.push({
+        ...createdSub.toObject(),
+        items: createdItems
+      });
     }
+
+    res.status(201).json({
+      success: true,
+      message: 'Category tree created successfully',
+      data: {
+        category: createdCategory,
+        subCategories: createdSubCategories
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
 };
 
-/* -------- GET ONE -------- */
-export const getCategory = async (req, res) => {
-    try {
-        const id = parseInt(req.params.id);
-        
-        // Check if it's a valid number
-        if (isNaN(id)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid category ID. Must be a number.'
-            });
-        }
+/* ➕ CREATE SUB CATEGORY */
+export const createSubCategory = async (req, res) => {
+  try {
+    const { categoryId, title, position } = req.body;
 
-        const category = await Category.findOne({ numericId: id });
+    const subCategory = await SubCategory.create({
+      categoryId,
+      title,
+      position
+    });
 
-        if (!category) {
-            return res.status(404).json({
-                success: false,
-                message: 'Category not found'
-            });
-        }
-
-        res.status(200).json({
-            success: true,
-            category
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
-    }
+    res.status(201).json({
+      success: true,
+      message: 'SubCategory created successfully',
+      data: subCategory
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
+/* ➕ CREATE ITEM TYPE */
+export const createItemType = async (req, res) => {
+  try {
+    const { subCategoryId, name } = req.body;
 
-/* -------- CREATE (ADMIN) -------- */
-export const createCategory = async (req, res) => {
-    try {
-        // Generate slug if not provided
-        if (req.body.name && !req.body.slug) {
-            req.body.slug = req.body.name
-                .toLowerCase()
-                .replace(/[^a-z0-9]+/g, '-')
-                .replace(/(^-|-$)/g, '');
-        }
-        
-        const category = await Category.create(req.body);
+    const itemType = await ItemType.create({
+      subCategoryId,
+      name
+    });
 
-        res.status(201).json({
-            success: true,
-            category
-        });
-    } catch (error) {
-        res.status(400).json({
-            success: false,
-            message: error.message
-        });
-    }
+    res.status(201).json({
+      success: true,
+      message: 'Item type created successfully',
+      data: itemType
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
-/* -------- UPDATE (ADMIN) -------- */
+/* ✏️ UPDATE CATEGORY */
 export const updateCategory = async (req, res) => {
-    try {
-        const id = parseInt(req.params.id);
-        
-        // Check if it's a valid number
-        if (isNaN(id)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid category ID. Must be a number.'
-            });
-        }
+  try {
+    const category = await Category.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
 
-        const category = await Category.findOneAndUpdate(
-            { numericId: id },
-            req.body,
-            { 
-                new: true, 
-                runValidators: true,
-                context: 'query' // This helps with validation
-            }
-        );
-
-        if (!category) {
-            return res.status(404).json({
-                success: false,
-                message: 'Category not found'
-            });
-        }
-
-        res.status(200).json({
-            success: true,
-            category
-        });
-    } catch (error) {
-        // Handle duplicate key errors
-        if (error.code === 11000) {
-            if (error.keyValue.numericId) {
-                return res.status(400).json({
-                    success: false,
-                    message: `Cannot update: Category with numericId ${error.keyValue.numericId} already exists`
-                });
-            }
-            if (error.keyValue.slug) {
-                return res.status(400).json({
-                    success: false,
-                    message: `Cannot update: Category with slug "${error.keyValue.slug}" already exists`
-                });
-            }
-        }
-        
-        res.status(400).json({
-            success: false,
-            message: error.message
-        });
-    }
+    res.json({
+      success: true,
+      message: 'Category updated',
+      data: category
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
-/* -------- DELETE (ADMIN) -------- */
+/* ❌ DELETE CATEGORY (SOFT DELETE) */
 export const deleteCategory = async (req, res) => {
-    try {
-        const id = parseInt(req.params.id);
-        
-        // Check if it's a valid number
-        if (isNaN(id)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid category ID. Must be a number.'
-            });
-        }
+  try {
+    await Category.findByIdAndUpdate(req.params.id, { isActive: false });
 
-        const category = await Category.findOneAndDelete({ numericId: id });
-
-        if (!category) {
-            return res.status(404).json({
-                success: false,
-                message: 'Category not found'
-            });
-        }
-
-        res.status(200).json({
-            success: true,
-            message: 'Category deleted successfully',
-            deletedCategory: {
-                id: category._id,
-                numericId: category.numericId,
-                name: category.name
-            }
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
-    }
+    res.json({
+      success: true,
+      message: 'Category disabled successfully'
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
-/* -------- UTILITY: Fix duplicate index (temporary) -------- */
-export const fixDuplicateIndex = async (req, res) => {
-    try {
-        // List all indexes
-        const indexes = await Category.collection.getIndexes();
-        console.log('Current indexes:', Object.keys(indexes));
-        
-        let message = 'No duplicate indexes found';
-        
-        // Check if name_1 index exists and drop it
-        if (indexes.name_1) {
-            await Category.collection.dropIndex("name_1");
-            message = 'Dropped duplicate name_1 index';
-            console.log(message);
-        }
-        
-        res.status(200).json({
-            success: true,
-            message,
-            indexes: Object.keys(await Category.collection.getIndexes())
-        });
-    } catch (error) {
-        console.error('Error fixing index:', error);
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
-    }
+/* ===============================
+   SELLER CONTROLLERS
+================================ */
+
+/* 📦 SELLER – GET ALL ACTIVE CATEGORIES */
+export const getCategoriesForSeller = async (req, res) => {
+  const categories = await Category.find({ isActive: true })
+    .sort({ position: 1 });
+
+  res.json({ success: true, data: categories });
 };
 
-/* -------- UTILITY: Check existing data -------- */
-export const checkExistingData = async (req, res) => {
-    try {
-        const categories = await Category.find({});
-        
-        res.status(200).json({
-            success: true,
-            count: categories.length,
-            categories: categories.map(cat => ({
-                id: cat._id,
-                numericId: cat.numericId,
-                name: cat.name,
-                slug: cat.slug,
-                description: cat.description,
-                subcategoriesCount: cat.subcategories.length
-            }))
-        });
-    } catch (error) {
-        res.status(500).json({ 
-            success: false, 
-            message: error.message 
-        });
-    }
+/* 📦 SELLER – GET SUBCATEGORIES BY CATEGORY */
+export const getSubCategoriesForSeller = async (req, res) => {
+  const subCategories = await SubCategory.find({
+    categoryId: req.params.categoryId,
+    isActive: true
+  }).sort({ position: 1 });
+
+  res.json({ success: true, data: subCategories });
 };
 
+/* 📦 SELLER – GET ITEM TYPES */
+export const getItemTypesForSeller = async (req, res) => {
+  const itemTypes = await ItemType.find({
+    subCategoryId: req.params.subCategoryId,
+    isActive: true
+  });
 
-// ----------------------------------------------------------------------------//
-                        //    SubCategory Controller    //
-
-/* =========================
-   GET SUBCATEGORIES BY CATEGORY ID
-========================= */
-export const getSubcategoriesByCategory = async (req, res) => {
-    try {
-        const { categoryId } = req.params;
-        
-        let category;
-        
-        // Check if categoryId is ObjectId or numericId
-        if (mongoose.Types.ObjectId.isValid(categoryId) && /^[0-9a-fA-F]{24}$/.test(categoryId)) {
-            // Find by MongoDB _id
-            category = await Category.findById(categoryId);
-        } else {
-            // Find by numericId (convert to number)
-            const numericId = parseInt(categoryId);
-            if (isNaN(numericId)) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid category ID'
-                });
-            }
-            category = await Category.findOne({ numericId: numericId });
-        }
-
-        if (!category) {
-            return res.status(404).json({
-                success: false,
-                massage:error,
-                message: 'Category not found'
-            });
-        }
-
-        // Return subcategories from the category document
-        const subcategories = category.subcategories || [];
-        
-        res.json({
-            success: true,
-            count: subcategories.length,
-            subcategories: subcategories.map(sub => ({
-                _id: sub._id,
-                numericId: sub.numericId,
-                title: sub.title,
-                items: sub.items || [],
-                description: sub.description || `Browse ${sub.title} products`
-            }))
-        });
-    } catch (error) {
-        console.error('Get subcategories error:', error.message);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to fetch subcategories',
-            error: error.message
-        });
-    }
+  res.json({ success: true, data: itemTypes });
 };
 
-/* =========================
-   GET PRODUCTS BY SUBCATEGORY
-========================= */
-export const getProductsBySubcategory = async (req, res) => {
-    try {
-        const { subcategoryId, categoryId } = req.params;
-        const { 
-            page = 1, 
-            limit = 20, 
-            minPrice, 
-            maxPrice, 
-            brand,
-            sortBy = 'newest',
-            search 
-        } = req.query;
+/* ===============================
+   PUBLIC (USER) CONTROLLERS
+================================ */
 
-        // Build filter
-        const filter = { status: 'published' };
+/* 🌍 PUBLIC – FULL CATEGORY TREE */
+export const getPublicCategories = async (req, res) => {
+  const categories = await Category.find({ isActive: true })
+    .sort({ position: 1 })
+    .lean();
 
-        // Category filter
-        if (categoryId) {
-            if (mongoose.Types.ObjectId.isValid(categoryId)) {
-                filter.categoryId = categoryId;
-            } else {
-                // Try to find category by numericId
-                const category = await Category.findOne({ numericId: parseInt(categoryId) });
-                if (category) {
-                    filter.categoryId = category._id;
-                } else {
-                    filter['categoryId.numericId'] = parseInt(categoryId);
-                }
-            }
-        }
+  const categoryIds = categories.map(c => c._id);
 
-        // Subcategory filter - try multiple possible fields
-        if (subcategoryId) {
-            filter.$or = [
-                { subcategoryId: subcategoryId },
-                { subcategoryId: parseInt(subcategoryId) },
-                { 'subcategory._id': subcategoryId },
-                { 'subcategory.id': subcategoryId },
-                { 'subcategory.numericId': parseInt(subcategoryId) }
-            ];
-        }
+  const subCategories = await SubCategory.find({
+    categoryId: { $in: categoryIds },
+    isActive: true
+  }).lean();
 
-        // Price filter
-        if (minPrice || maxPrice) {
-            filter.price = {};
-            if (minPrice) filter.price.$gte = parseFloat(minPrice);
-            if (maxPrice) filter.price.$lte = parseFloat(maxPrice);
-        }
+  const subCategoryIds = subCategories.map(s => s._id);
 
-        // Brand filter
-        if (brand) {
-            filter.brand = { $regex: brand, $options: 'i' };
-        }
+  const itemTypes = await ItemType.find({
+    subCategoryId: { $in: subCategoryIds },
+    isActive: true
+  }).lean();
 
-        // Search filter
-        if (search) {
-            filter.$or = [
-                { name: { $regex: search, $options: 'i' } },
-                { description: { $regex: search, $options: 'i' } },
-                { brand: { $regex: search, $options: 'i' } }
-            ];
-        }
+  const finalData = categories.map(category => ({
+    ...category,
+    subCategories: subCategories
+      .filter(sc => sc.categoryId.toString() === category._id.toString())
+      .map(sc => ({
+        ...sc,
+        items: itemTypes.filter(
+          it => it.subCategoryId.toString() === sc._id.toString()
+        )
+      }))
+  }));
 
-        // Calculate pagination
-        const skip = (parseInt(page) - 1) * parseInt(limit);
-
-        // Build query
-        let query = Product.find(filter)
-            .skip(skip)
-            .limit(parseInt(limit))
-            .populate('sellerId', 'name storeName')
-            .populate('categoryId', 'name color icon description');
-
-        // Apply sorting
-        switch (sortBy) {
-            case 'price-low':
-                query = query.sort({ price: 1 });
-                break;
-            case 'price-high':
-                query = query.sort({ price: -1 });
-                break;
-            case 'rating':
-                query = query.sort({ rating: -1 });
-                break;
-            case 'discount':
-                query = query.sort({ discount: -1 });
-                break;
-            case 'name-asc':
-                query = query.sort({ name: 1 });
-                break;
-            case 'name-desc':
-                query = query.sort({ name: -1 });
-                break;
-            case 'popular':
-                query = query.sort({ views: -1 });
-                break;
-            default: // 'newest'
-                query = query.sort({ createdAt: -1 });
-        }
-
-        const products = await query;
-        const total = await Product.countDocuments(filter);
-
-        // Get brands for filter
-        const brands = await Product.distinct('brand', filter);
-
-        res.json({
-            success: true,
-            count: products.length,
-            total,
-            page: parseInt(page),
-            pages: Math.ceil(total / parseInt(limit)),
-            brands: brands.filter(b => b).sort(),
-            minPrice: minPrice || 0,
-            maxPrice: maxPrice || await Product.findOne(filter).sort({ price: -1 }).select('price').then(p => p?.price || 0),
-            products
-        });
-    } catch (error) {
-        console.error('Get products by subcategory error:', error.message);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to fetch products by subcategory',
-            error: error.message
-        });
-    }
+  res.json({
+    success: true,
+    data: finalData
+  });
 };
-
-/* =========================
-   GET SUBCATEGORY DETAILS
-========================= */
-export const getSubcategoryDetails = async (req, res) => {
-    try {
-        const { categoryId, subcategoryId } = req.params;
-
-        // Find the category
-        let category;
-        if (mongoose.Types.ObjectId.isValid(categoryId) && /^[0-9a-fA-F]{24}$/.test(categoryId)) {
-            category = await Category.findById(categoryId);
-        } else {
-            category = await Category.findOne({ numericId: parseInt(categoryId) });
-        }
-
-        if (!category) {
-            return res.status(404).json({
-                success: false,
-                message: 'Category not found'
-            });
-        }
-
-        // Find the subcategory
-        const subcategories = category.subcategories || [];
-        const subcategory = subcategories.find(sub => 
-            sub._id?.toString() === subcategoryId ||
-            sub.id === subcategoryId ||
-            sub.numericId?.toString() === subcategoryId
-        );
-
-        if (!subcategory) {
-            return res.status(404).json({
-                success: false,
-                message: 'Subcategory not found'
-            });
-        }
-
-        // Get product count
-        const productCount = await Product.countDocuments({
-            status: 'published',
-            $or: [
-                { subcategoryId: subcategory._id || subcategory.id || subcategory.numericId },
-                { 'subcategory._id': subcategory._id },
-                { 'subcategory.id': subcategory.id },
-                { 'subcategory.numericId': subcategory.numericId }
-            ]
-        });
-
-        res.json({
-            success: true,
-            subcategory: {
-                ...subcategory,
-                productCount
-            }
-        });
-    } catch (error) {
-        console.error('Get subcategory details error:', error.message);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to fetch subcategory details',
-            error: error.message
-        });
-    }
-};                    

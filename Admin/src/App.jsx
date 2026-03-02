@@ -1,3 +1,4 @@
+// src/App.jsx (or wherever your router is)
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import AdminLayout from "./components/Layout/AdminLayout";
@@ -11,19 +12,17 @@ import SellerAnalytics from "./pages/SellerAnalytics";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import AdminCategories from "./pages/AdminCategories";
-
-// Add these imports
 import ContractorsList from "./pages/ContractorsList";
 import ContractorDetails from "./pages/ContractorDetails";
 
 function App() {
   const isAuthenticated = () => {
-    const token = localStorage.getItem("adminToken") || localStorage.getItem("token");
+    const token = localStorage.getItem("token") || localStorage.getItem("adminToken");
     const userType = localStorage.getItem("userType");
     const userRole = localStorage.getItem("userRole");
-    
-    // Check for admin token or user with admin role
-    return (token && userType === "admin") || (token && userRole === "admin");
+
+    // Accept either token + admin type/role
+    return !!token && (userType === "admin" || userRole === "admin");
   };
 
   return (
@@ -32,7 +31,7 @@ function App() {
         {/* Public Routes */}
         <Route path="/admin/login" element={<Login />} />
 
-        {/* Admin Protected Routes */}
+        {/* Protected Admin Routes */}
         <Route
           path="/admin"
           element={
@@ -48,25 +47,13 @@ function App() {
           <Route path="seller-analytics" element={<SellerAnalytics />} />
           <Route path="users" element={<Users />} />
           <Route path="category" element={<AdminCategories />} />
-          
-          {/* Add Contractors Routes */}
           <Route path="contractors" element={<ContractorsList />} />
           <Route path="contractors/:id" element={<ContractorDetails />} />
-          
           <Route path="reports" element={<Reports />} />
           <Route path="settings" element={<Settings />} />
-          
-          {/* Future routes - comment out for now */}
-          {/* <Route path="products" element={<Products />} /> */}
-          {/* <Route path="orders" element={<Orders />} /> */}
-          {/* <Route path="payouts" element={<Payouts />} /> */}
-          {/* <Route path="inventory" element={<Inventory />} /> */}
         </Route>
 
-        {/* Default route - redirect to admin login */}
-        <Route path="/" element={<Navigate to="/admin/login" replace />} />
-
-        {/* 404 Route - redirect to admin login */}
+        {/* Catch-all - redirect to login */}
         <Route path="*" element={<Navigate to="/admin/login" replace />} />
       </Routes>
     </Router>

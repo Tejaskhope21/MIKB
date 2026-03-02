@@ -1,58 +1,35 @@
 import express from 'express';
 import {
-    getCategories,
-    getCategory,
-    createCategory,
-    updateCategory,
-    deleteCategory,
-    fixDuplicateIndex,
-    checkExistingData,
-    getSubcategoriesByCategory,
-    getSubcategoryDetails,
-    getProductsBySubcategory
-
+ createCategoryTree,
+  updateCategory,
+  deleteCategory,
+  getCategoriesForSeller,
+  getSubCategoriesForSeller,
+  getItemTypesForSeller,
+  getPublicCategories
 } from '../controllers/categoryController.js';
 
-import {
-    protect,
-    authorize
-} from '../middleware/auth.middleware.js';
-
+import { protect, authorize } from '../middleware/auth.middleware.js';
 const router = express.Router();
 
-/* ---------- PUBLIC ROUTES ---------- */
-router.get('/', getCategories);
-router.get('/:id', getCategory);
+/* ===============================
+   ADMIN ROUTES
+================================ */
+router.post('/admin/category-tree',protect,authorize('admin'),createCategoryTree);
 
-/* ---------- UTILITY ROUTES (for debugging) ---------- */
-router.get('/debug/check-data', checkExistingData);
-router.get('/debug/fix-index', fixDuplicateIndex);
+router.put('/admin/category/:id', protect, authorize('admin'), updateCategory);
+router.delete('/admin/category/:id', protect, authorize('admin'), deleteCategory);
 
+/* ===============================
+   SELLER ROUTES
+================================ */
+router.get('/seller/categories', getCategoriesForSeller);
+router.get('/seller/subcategories/:categoryId', getSubCategoriesForSeller);
+router.get('/seller/itemtypes/:subCategoryId', getItemTypesForSeller);
 
-// Subcategory routes 
-router.get('/:categoryId/subcategories', getSubcategoriesByCategory);
-router.get('/:categoryId/subcategories/:subcategoryId', getSubcategoryDetails);
-router.get('/:categoryId/subcategories/:subcategoryId/products', getProductsBySubcategory);
-/* ---------- ADMIN PROTECTED ROUTES ---------- */
-router.post(
-    '/',
-    protect,
-    authorize('admin'),
-    createCategory
-);
-
-router.put(
-    '/:id',
-    protect,
-    authorize('admin'),
-    updateCategory
-);
-
-router.delete(
-    '/:id',
-    protect,
-    authorize('admin'),
-    deleteCategory
-);
+/* ===============================
+   PUBLIC ROUTES
+================================ */
+router.get('/public/categories', getPublicCategories);
 
 export default router;

@@ -6,6 +6,9 @@ import BrandsSection from "../../components/Brands/BrandsSection";
 import ProductsComponent from "../../components/Products/ProductsComponent";
 import { fetchProducts } from '../../services/api';
 import Banner from '../../components/Banner/Banner';
+import HotDeals from '../../components/ProductDeals/HotDeals';
+import TrendingProducts from '../../components/ProductDeals/TrendingProducts';
+import AllProductsPage from '../Products/AllProductsPage';
 
 const HomePage = () => {
     const [featuredProducts, setFeaturedProducts] = useState([]);
@@ -155,55 +158,22 @@ const HomePage = () => {
             <BrandsSection />
 
             <div className="space-y-12 py-8">
-                {/* Featured Products */}
-                <section className="py-8 bg-gray-50">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        {productsLoading ? (
-                            <ProductSectionSkeleton title="Featured Products" />
-                        ) : (
-                            <ProductsComponent
-                                title="Featured Products"
-                                categoryColor="blue"
-                                products={featuredProducts}
-                            />
-                        )}
-                    </div>
-                </section>
+             <div className="max-w-7xl mx-auto px-4">
+      <HotDeals />
+    </div>
 
-                {/* Best Sellers */}
-                <section className="py-8 bg-white">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        {productsLoading ? (
-                            <ProductSectionSkeleton title="Best Sellers" />
-                        ) : (
-                            <ProductsComponent
-                                title="Best Sellers"
-                                categoryColor="red"
-                                products={bestSellers}
-                            />
-                        )}
-                    </div>
-                </section>
+             
 
                 {/* Banner */}
                 <Banner />
 
-                {/* Special Offers */}
-                <section className="py-8 bg-gradient-to-r from-blue-50 to-cyan-50">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        {productsLoading ? (
-                            <ProductSectionSkeleton title="Special Offers" />
-                        ) : (
-                            <ProductsComponent
-                                title="Special Offers"
-                                categoryColor="orange"
-                                products={specialOffers}
-                            />
-                        )}
-                    </div>
-                </section>
+              <div className="max-w-7xl mx-auto px-4">
+      
+      <TrendingProducts/>    </div>
             </div>
 
+
+   <AllProductsPage/>
             {/* Optional: Small error notification */}
             {productsError && !productsLoading && (
                 <div className="fixed bottom-4 right-4 bg-orange-100 border border-orange-300 text-orange-800 px-4 py-3 rounded-lg shadow-lg z-50 max-w-sm">

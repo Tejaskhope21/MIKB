@@ -131,7 +131,7 @@ api.interceptors.request.use(
 
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 // Handle 401 → auto logout
@@ -143,7 +143,7 @@ api.interceptors.response.use(
       staticLogout();
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 /* ===============================

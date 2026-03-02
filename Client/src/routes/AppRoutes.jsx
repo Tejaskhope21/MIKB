@@ -42,6 +42,8 @@ import AllProductsPage from "../pages/Products/AllProductsPage"
 import SubcategoryProductsPage from "../pages/Products/SubcategoryProductsPage"
 import ContractorProfilePage from "../pages/Contractor/ContractorProfilePage"
 import ContractorsListPage from "../pages/Contractor/ContractorsListPage"
+import CategoryProducts from "../pages/Category/CategoryProducts"
+import ItemTypeProducts from "../pages/Category/ItemProducts"
 
 const AppRoutes = () => {
     return (
@@ -59,7 +61,8 @@ const AppRoutes = () => {
                     <Route path="/cart" element={<CartPage />} />
                     <Route path="/contractors" element={<ContractorsListPage />} />
                     <Route path="/brands" element={<BrandsPage />} />
-
+                     <Route path="/category/:categorySlug/:subCategorySlug/:itemTypeSlug" element={<ItemTypeProducts />}/>  
+                     <Route path="/category/:categoryId" element={<CategoryProducts />} />
                     {/* Protected User Routes (general users) */}
                     <Route path="/category/:categoryId" element={<CategoryWithSubcategories />} />
                     <Route path="/category/:categoryId/subcategory/:subcategoryId/products" element={<SubcategoryProductsPage />} />

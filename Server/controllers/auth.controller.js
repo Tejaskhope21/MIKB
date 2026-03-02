@@ -195,49 +195,9 @@ export const sellerLogin = async (req, res) => {
     }
 };
 
-/* ================= ADMIN LOGIN ================= */
-export const adminLogin = async (req, res) => {
-    try {
-        const { email, password } = req.body;
 
-        const admin = await User.findOne({ email, role: 'ADMIN' }).select('+password');
 
-        if (!admin) {
-            return res.status(403).json({
-                success: false,
-                message: 'Admin access only'
-            });
-        }
 
-        const isMatch = await admin.matchPassword(password);
-        if (!isMatch) {
-            return res.status(401).json({
-                success: false,
-                message: 'Invalid credentials'
-            });
-        }
-
-        admin.lastLogin = new Date();
-        await admin.save();
-
-        const adminResponse = admin.toObject();
-        delete adminResponse.password;
-
-        res.json({
-            success: true,
-            token: generateToken(admin),
-            admin: adminResponse,
-            message: 'Admin login successful'
-        });
-
-    } catch (error) {
-        console.error('Admin login error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error'
-        });
-    }
-};
 
 /* ================= GET CURRENT USER ================= */
 export const getMe = async (req, res) => {
@@ -264,3 +224,121 @@ export const getMe = async (req, res) => {
         });
     }
 };
+
+/* ================= ADMIN LOGIN ================= */
+export const adminLogin = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({
+                success: false,
+                message: 'Email and password are required'
+            });
+        }
+
+        // IMPORTANT: select password explicitly
+        const admin = await User.findOne({
+            email: email.toLowerCase(),
+            role: 'ADMIN'
+        }).select('+password');
+
+        if (!admin) {
+            return res.status(403).json({
+                success: false,
+                message: 'Admin access only'
+            });
+        }
+
+        // DEBUG (temporary – remove in production)
+        // console.log('Entered password:', password);
+        // console.log('DB password:', admin.password);
+
+        const isMatch = await admin.matchPassword(password);
+
+        if (!isMatch) {
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid credentials'
+            });
+        }
+
+        admin.lastLogin = new Date();
+        await admin.save();
+
+        const adminResponse = admin.toObject();
+        delete adminResponse.password;
+
+        return res.status(200).json({
+            success: true,
+            token: generateToken(admin),
+            admin: adminResponse,
+            message: 'Admin login successful'
+        });
+
+    } catch (error) {
+        console.error('Admin login error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Server error'
+        });
+    }
+};
+
+
+
+
+
+/* ================= ADMIN REGISTER ================= */
+export const adminRegister = async (req, res) => {
+    try {
+        const { name, email, password } = req.body;
+
+        if (!name || !email || !password) {
+            return res.status(400).json({
+                success: false,
+                message: 'All fields are required'
+            });
+        }
+
+        const existingAdmin = await User.findOne({
+            email: email.toLowerCase()
+        });
+
+        if (existingAdmin) {
+            return res.status(409).json({
+                success: false,
+                message: 'Admin already exists'
+            });
+        }
+
+        // ✅ DO NOT HASH PASSWORD HERE
+        const admin = await User.create({
+            name,
+            email: email.toLowerCase(),
+            password, // plain password
+            role: 'ADMIN'
+        });
+
+        admin.lastLogin = new Date();
+        await admin.save();
+
+        const adminResponse = admin.toObject();
+        delete adminResponse.password;
+
+        return res.status(201).json({
+            success: true,
+            token: generateToken(admin),
+            admin: adminResponse,
+            message: 'Admin registered successfully'
+        });
+
+    } catch (error) {
+        console.error('Admin register error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Server error'
+        });
+    }
+};
+

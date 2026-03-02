@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   CheckCircle,
   XCircle,
@@ -19,28 +19,29 @@ import {
   DollarSign,
   Package,
   ShoppingBag,
-  Shield
-} from 'lucide-react';
+  Shield,
+} from "lucide-react";
 
 const SellerVerification = () => {
   const [sellers, setSellers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
   const [selectedSeller, setSelectedSeller] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [verificationNotes, setVerificationNotes] = useState('');
+  const [verificationNotes, setVerificationNotes] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
 
   // API configuration - use the same as your backend
-  const API_BASE = 'https://bricks-backend-qyea.onrender.com/api';
+  const API_BASE = "https://bricks-backend-qyea.onrender.com/api";
 
   // Get authentication headers
   const getAuthHeaders = () => {
-    const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
+    const token =
+      localStorage.getItem("adminToken") || localStorage.getItem("token");
     return {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
     };
   };
 
@@ -48,52 +49,62 @@ const SellerVerification = () => {
   const fetchSellers = async () => {
     try {
       setLoading(true);
-      console.log('Fetching sellers from:', `${API_BASE}/admin/sellers`);
+      console.log("Fetching sellers from:", `${API_BASE}/admin/sellers`);
 
       const response = await fetch(`${API_BASE}/admin/sellers`, {
-        method: 'GET',
-        headers: getAuthHeaders()
+        method: "GET",
+        headers: getAuthHeaders(),
       });
 
-      console.log('Response status:', response.status);
+      console.log("Response status:", response.status);
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Sellers data:', data);
+        console.log("Sellers data:", data);
 
         // Transform the data to match your frontend structure
-        const transformedSellers = data.sellers?.map(seller => ({
-          _id: seller._id,
-          name: seller.name || 'N/A',
-          email: seller.email || 'N/A',
-          phone: seller.phone || 'N/A',
-          businessName: seller.businessName || seller.companyName || 'N/A',
-          businessType: seller.businessType || 'N/A',
-          address: seller.address || seller.location || 'N/A',
-          registrationDate: seller.createdAt ? new Date(seller.createdAt).toISOString().split('T')[0] : 'N/A',
-          status: seller.isSellerVerified ? 'approved' : 'pending',
-          isSellerVerified: seller.isSellerVerified || false,
-          notes: seller.notes || '',
-          createdAt: seller.createdAt || new Date().toISOString(),
-          totalProducts: seller.totalProducts || 0,
-          totalOrders: seller.totalOrders || 0,
-          totalRevenue: seller.totalRevenue || 0,
-          // Add mock verification documents since your backend might not have these
-          verificationDocuments: seller.documents || {
-            panCard: 'https://via.placeholder.com/300x200/4CAF50/FFFFFF?text=PAN+Card',
-            aadharCard: 'https://via.placeholder.com/300x200/2196F3/FFFFFF?text=Aadhaar+Card',
-            gstCertificate: 'https://via.placeholder.com/300x200/FF9800/FFFFFF?text=GST+Certificate'
-          }
-        })) || getDemoSellers();
+        const transformedSellers =
+          data.sellers?.map((seller) => ({
+            _id: seller._id,
+            name: seller.name || "N/A",
+            email: seller.email || "N/A",
+            phone: seller.phone || "N/A",
+            businessName: seller.businessName || seller.companyName || "N/A",
+            businessType: seller.businessType || "N/A",
+            address: seller.address || seller.location || "N/A",
+            registrationDate: seller.createdAt
+              ? new Date(seller.createdAt).toISOString().split("T")[0]
+              : "N/A",
+            status: seller.isSellerVerified ? "approved" : "pending",
+            isSellerVerified: seller.isSellerVerified || false,
+            notes: seller.notes || "",
+            createdAt: seller.createdAt || new Date().toISOString(),
+            totalProducts: seller.totalProducts || 0,
+            totalOrders: seller.totalOrders || 0,
+            totalRevenue: seller.totalRevenue || 0,
+            // Add mock verification documents since your backend might not have these
+            verificationDocuments: seller.documents || {
+              panCard:
+                "https://via.placeholder.com/300x200/4CAF50/FFFFFF?text=PAN+Card",
+              aadharCard:
+                "https://via.placeholder.com/300x200/2196F3/FFFFFF?text=Aadhaar+Card",
+              gstCertificate:
+                "https://via.placeholder.com/300x200/FF9800/FFFFFF?text=GST+Certificate",
+            },
+          })) || getDemoSellers();
 
         setSellers(transformedSellers);
       } else {
-        console.error('Failed to fetch sellers:', response.status, response.statusText);
+        console.error(
+          "Failed to fetch sellers:",
+          response.status,
+          response.statusText,
+        );
         // Fallback to demo data if API fails
         setSellers(getDemoSellers());
       }
     } catch (error) {
-      console.error('Error fetching sellers:', error);
+      console.error("Error fetching sellers:", error);
       // Fallback to demo data
       setSellers(getDemoSellers());
     } finally {
@@ -105,48 +116,53 @@ const SellerVerification = () => {
   const verifySeller = async (sellerId) => {
     try {
       setActionLoading(true);
-      console.log('Verifying seller:', sellerId);
+      console.log("Verifying seller:", sellerId);
 
-      const response = await fetch(`${API_BASE}/admin/sellers/${sellerId}/verify`, {
-        method: 'PATCH', // Changed from PUT to PATCH to match your backend
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          isSellerVerified: true,
-          status: 'approved',
-          notes: verificationNotes
-        })
-      });
+      const response = await fetch(
+        `${API_BASE}/admin/sellers/${sellerId}/verify`,
+        {
+          method: "PATCH", // Changed from PUT to PATCH to match your backend
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            isSellerVerified: true,
+            status: "approved",
+            notes: verificationNotes,
+          }),
+        },
+      );
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Verification response:', data);
+        console.log("Verification response:", data);
 
         // Update local state
-        setSellers(prev => prev.map(seller =>
-          seller._id === sellerId
-            ? {
-              ...seller,
-              isSellerVerified: true,
-              status: 'approved',
-              notes: verificationNotes
-            }
-            : seller
-        ));
+        setSellers((prev) =>
+          prev.map((seller) =>
+            seller._id === sellerId
+              ? {
+                  ...seller,
+                  isSellerVerified: true,
+                  status: "approved",
+                  notes: verificationNotes,
+                }
+              : seller,
+          ),
+        );
 
         setSelectedSeller(null);
         setIsModalOpen(false);
-        setVerificationNotes('');
+        setVerificationNotes("");
 
-        alert('Seller approved successfully!');
+        alert("Seller approved successfully!");
         fetchSellers(); // Refresh the list
       } else {
         const errorText = await response.text();
-        console.error('Failed to verify seller:', response.status, errorText);
+        console.error("Failed to verify seller:", response.status, errorText);
         alert(`Failed to approve seller: ${response.statusText}`);
       }
     } catch (error) {
-      console.error('Error approving seller:', error);
-      alert('Error approving seller. Please try again.');
+      console.error("Error approving seller:", error);
+      alert("Error approving seller. Please try again.");
     } finally {
       setActionLoading(false);
     }
@@ -157,61 +173,70 @@ const SellerVerification = () => {
     try {
       setActionLoading(true);
 
-      // Since your backend doesn't have a reject endpoint yet, 
+      // Since your backend doesn't have a reject endpoint yet,
       // we'll simulate it or you can create a separate endpoint
       // For now, we'll just update the local state
 
       // Option 1: Call a custom endpoint or use toggleUserStatus
-      const response = await fetch(`${API_BASE}/admin/users/${sellerId}/status`, {
-        method: 'PATCH',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          isActive: false,
-          status: 'rejected'
-        })
-      });
+      const response = await fetch(
+        `${API_BASE}/admin/users/${sellerId}/status`,
+        {
+          method: "PATCH",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            isActive: false,
+            status: "rejected",
+          }),
+        },
+      );
 
       if (response.ok) {
         // Update local state
-        setSellers(prev => prev.map(seller =>
-          seller._id === sellerId
-            ? {
-              ...seller,
-              status: 'rejected',
-              isSellerVerified: false,
-              notes: verificationNotes
-            }
-            : seller
-        ));
+        setSellers((prev) =>
+          prev.map((seller) =>
+            seller._id === sellerId
+              ? {
+                  ...seller,
+                  status: "rejected",
+                  isSellerVerified: false,
+                  notes: verificationNotes,
+                }
+              : seller,
+          ),
+        );
 
         setSelectedSeller(null);
         setIsModalOpen(false);
-        setVerificationNotes('');
+        setVerificationNotes("");
 
-        alert('Seller rejected successfully!');
+        alert("Seller rejected successfully!");
         fetchSellers(); // Refresh the list
       } else {
         // If the endpoint doesn't exist, just update local state
-        setSellers(prev => prev.map(seller =>
-          seller._id === sellerId
-            ? {
-              ...seller,
-              status: 'rejected',
-              isSellerVerified: false,
-              notes: verificationNotes
-            }
-            : seller
-        ));
+        setSellers((prev) =>
+          prev.map((seller) =>
+            seller._id === sellerId
+              ? {
+                  ...seller,
+                  status: "rejected",
+                  isSellerVerified: false,
+                  notes: verificationNotes,
+                }
+              : seller,
+          ),
+        );
 
         setSelectedSeller(null);
         setIsModalOpen(false);
-        setVerificationNotes('');
+        setVerificationNotes("");
 
-        alert('Seller rejected (local update only). Backend endpoint not implemented.');
+        alert(
+          "Seller rejected (local update only). Backend endpoint not implemented.",
+        );
       }
     } catch (error) {
-      console.error('Error rejecting seller:', error);
-      alert('Error rejecting seller. Please try again.');
+      console.error("Error rejecting seller:", error);
+      alert("Error rejecting seller. Please try again.");
     } finally {
       setActionLoading(false);
     }
@@ -219,35 +244,40 @@ const SellerVerification = () => {
 
   // Calculate statistics
   const calculateStats = () => {
-    const pending = sellers.filter(s => !s.isSellerVerified && s.status !== 'rejected').length;
-    const approved = sellers.filter(s => s.isSellerVerified).length;
-    const rejected = sellers.filter(s => s.status === 'rejected').length;
+    const pending = sellers.filter(
+      (s) => !s.isSellerVerified && s.status !== "rejected",
+    ).length;
+    const approved = sellers.filter((s) => s.isSellerVerified).length;
+    const rejected = sellers.filter((s) => s.status === "rejected").length;
 
     return {
       total: sellers.length,
       pending,
       approved,
-      rejected
+      rejected,
     };
   };
 
   const stats = calculateStats();
 
   // Filter sellers
-  const filteredSellers = sellers.filter(seller => {
+  const filteredSellers = sellers.filter((seller) => {
     const searchLower = searchTerm.toLowerCase();
     const matchesSearch =
       !searchTerm ||
       (seller.name && seller.name.toLowerCase().includes(searchLower)) ||
       (seller.email && seller.email.toLowerCase().includes(searchLower)) ||
-      (seller.businessName && seller.businessName.toLowerCase().includes(searchLower)) ||
+      (seller.businessName &&
+        seller.businessName.toLowerCase().includes(searchLower)) ||
       (seller.phone && seller.phone.includes(searchTerm));
 
     const matchesStatus =
-      filterStatus === 'all' ||
-      (filterStatus === 'pending' && !seller.isSellerVerified && seller.status !== 'rejected') ||
-      (filterStatus === 'approved' && seller.isSellerVerified) ||
-      (filterStatus === 'rejected' && seller.status === 'rejected');
+      filterStatus === "all" ||
+      (filterStatus === "pending" &&
+        !seller.isSellerVerified &&
+        seller.status !== "rejected") ||
+      (filterStatus === "approved" && seller.isSellerVerified) ||
+      (filterStatus === "rejected" && seller.status === "rejected");
 
     return matchesSearch && matchesStatus;
   });
@@ -261,7 +291,7 @@ const SellerVerification = () => {
           Verified
         </span>
       );
-    } else if (seller.status === 'rejected') {
+    } else if (seller.status === "rejected") {
       return (
         <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
           <XCircle className="w-4 h-4 mr-1" />
@@ -281,7 +311,7 @@ const SellerVerification = () => {
   // View seller details
   const viewSellerDetails = (seller) => {
     setSelectedSeller(seller);
-    setVerificationNotes(seller.notes || '');
+    setVerificationNotes(seller.notes || "");
     setIsModalOpen(true);
   };
 
@@ -292,22 +322,46 @@ const SellerVerification = () => {
     // Check for verification documents
     if (seller.verificationDocuments) {
       if (seller.verificationDocuments.panCard) {
-        docs.push({ type: 'PAN Card', url: seller.verificationDocuments.panCard, verified: true });
+        docs.push({
+          type: "PAN Card",
+          url: seller.verificationDocuments.panCard,
+          verified: true,
+        });
       }
       if (seller.verificationDocuments.aadharCard) {
-        docs.push({ type: 'Aadhaar Card', url: seller.verificationDocuments.aadharCard, verified: true });
+        docs.push({
+          type: "Aadhaar Card",
+          url: seller.verificationDocuments.aadharCard,
+          verified: true,
+        });
       }
       if (seller.verificationDocuments.gstCertificate) {
-        docs.push({ type: 'GST Certificate', url: seller.verificationDocuments.gstCertificate, verified: true });
+        docs.push({
+          type: "GST Certificate",
+          url: seller.verificationDocuments.gstCertificate,
+          verified: true,
+        });
       }
     }
 
     // Fallback to demo documents if none exist
     if (docs.length === 0) {
       docs.push(
-        { type: 'PAN Card', url: 'https://via.placeholder.com/300x200/4CAF50/FFFFFF?text=PAN+Card', verified: true },
-        { type: 'Aadhaar Card', url: 'https://via.placeholder.com/300x200/2196F3/FFFFFF?text=Aadhaar+Card', verified: true },
-        { type: 'GST Certificate', url: 'https://via.placeholder.com/300x200/FF9800/FFFFFF?text=GST+Certificate', verified: true }
+        {
+          type: "PAN Card",
+          url: "https://via.placeholder.com/300x200/4CAF50/FFFFFF?text=PAN+Card",
+          verified: true,
+        },
+        {
+          type: "Aadhaar Card",
+          url: "https://via.placeholder.com/300x200/2196F3/FFFFFF?text=Aadhaar+Card",
+          verified: true,
+        },
+        {
+          type: "GST Certificate",
+          url: "https://via.placeholder.com/300x200/FF9800/FFFFFF?text=GST+Certificate",
+          verified: true,
+        },
       );
     }
 
@@ -317,44 +371,47 @@ const SellerVerification = () => {
   // Demo data for fallback
   const getDemoSellers = () => [
     {
-      _id: '1',
-      name: 'Rajesh Kumar',
-      email: 'rajesh@kumarconstructions.com',
-      phone: '+91 9876543210',
-      businessName: 'Kumar Constructions',
-      businessType: 'Contractor',
-      address: 'Mumbai, Maharashtra',
-      registrationDate: '2024-01-15',
-      status: 'pending',
+      _id: "1",
+      name: "Rajesh Kumar",
+      email: "rajesh@kumarconstructions.com",
+      phone: "+91 9876543210",
+      businessName: "Kumar Constructions",
+      businessType: "Contractor",
+      address: "Mumbai, Maharashtra",
+      registrationDate: "2024-01-15",
+      status: "pending",
       isSellerVerified: false,
-      notes: 'GST certificate verification pending',
+      notes: "GST certificate verification pending",
       totalProducts: 45,
       totalOrders: 128,
       totalRevenue: 1250000,
-      createdAt: '2024-03-10',
+      createdAt: "2024-03-10",
       verificationDocuments: {
-        panCard: 'https://via.placeholder.com/300x200/4CAF50/FFFFFF?text=PAN+Card',
-        aadharCard: 'https://via.placeholder.com/300x200/2196F3/FFFFFF?text=Aadhaar+Card',
-        gstCertificate: 'https://via.placeholder.com/300x200/FF9800/FFFFFF?text=GST+Certificate'
-      }
+        panCard:
+          "https://via.placeholder.com/300x200/4CAF50/FFFFFF?text=PAN+Card",
+        aadharCard:
+          "https://via.placeholder.com/300x200/2196F3/FFFFFF?text=Aadhaar+Card",
+        gstCertificate:
+          "https://via.placeholder.com/300x200/FF9800/FFFFFF?text=GST+Certificate",
+      },
     },
     {
-      _id: '2',
-      name: 'Priya Sharma',
-      email: 'priya@sharmafashion.com',
-      phone: '+91 9876543211',
-      businessName: 'Sharma Fashion House',
-      businessType: 'Retail',
-      address: 'Delhi, NCR',
-      registrationDate: '2024-02-10',
-      status: 'approved',
+      _id: "2",
+      name: "Priya Sharma",
+      email: "priya@sharmafashion.com",
+      phone: "+91 9876543211",
+      businessName: "Sharma Fashion House",
+      businessType: "Retail",
+      address: "Delhi, NCR",
+      registrationDate: "2024-02-10",
+      status: "approved",
       isSellerVerified: true,
-      notes: 'All documents verified successfully',
+      notes: "All documents verified successfully",
       totalProducts: 23,
       totalOrders: 67,
       totalRevenue: 890000,
-      createdAt: '2024-03-05'
-    }
+      createdAt: "2024-03-05",
+    },
   ];
 
   // Initialize
@@ -366,8 +423,12 @@ const SellerVerification = () => {
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Seller Verification</h1>
-        <p className="text-gray-600 mt-1">Review and verify seller applications</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
+          Seller Verification
+        </h1>
+        <p className="text-gray-600 mt-1">
+          Review and verify seller applications
+        </p>
       </div>
 
       {/* Stats Cards */}
@@ -376,7 +437,9 @@ const SellerVerification = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500 font-medium">Total Sellers</p>
-              <p className="text-3xl font-bold text-gray-800 mt-2">{stats.total}</p>
+              <p className="text-3xl font-bold text-gray-800 mt-2">
+                {stats.total}
+              </p>
             </div>
             <div className="p-3 bg-blue-100 rounded-lg">
               <User className="h-6 w-6 text-blue-600" />
@@ -387,8 +450,12 @@ const SellerVerification = () => {
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 font-medium">Pending Review</p>
-              <p className="text-3xl font-bold text-yellow-600 mt-2">{stats.pending}</p>
+              <p className="text-sm text-gray-500 font-medium">
+                Pending Review
+              </p>
+              <p className="text-3xl font-bold text-yellow-600 mt-2">
+                {stats.pending}
+              </p>
             </div>
             <div className="p-3 bg-yellow-100 rounded-lg">
               <Clock className="h-6 w-6 text-yellow-600" />
@@ -400,7 +467,9 @@ const SellerVerification = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500 font-medium">Verified</p>
-              <p className="text-3xl font-bold text-green-600 mt-2">{stats.approved}</p>
+              <p className="text-3xl font-bold text-green-600 mt-2">
+                {stats.approved}
+              </p>
             </div>
             <div className="p-3 bg-green-100 rounded-lg">
               <CheckCircle className="h-6 w-6 text-green-600" />
@@ -412,7 +481,9 @@ const SellerVerification = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500 font-medium">Rejected</p>
-              <p className="text-3xl font-bold text-red-600 mt-2">{stats.rejected}</p>
+              <p className="text-3xl font-bold text-red-600 mt-2">
+                {stats.rejected}
+              </p>
             </div>
             <div className="p-3 bg-red-100 rounded-lg">
               <XCircle className="h-6 w-6 text-red-600" />
@@ -441,38 +512,42 @@ const SellerVerification = () => {
           {/* Filter Buttons */}
           <div className="flex flex-wrap gap-2">
             <button
-              onClick={() => setFilterStatus('all')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium ${filterStatus === 'all'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+              onClick={() => setFilterStatus("all")}
+              className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                filterStatus === "all"
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
             >
               All
             </button>
             <button
-              onClick={() => setFilterStatus('pending')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${filterStatus === 'pending'
-                ? 'bg-yellow-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+              onClick={() => setFilterStatus("pending")}
+              className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${
+                filterStatus === "pending"
+                  ? "bg-yellow-600 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
             >
               <Clock className="h-4 w-4" /> Pending
             </button>
             <button
-              onClick={() => setFilterStatus('approved')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${filterStatus === 'approved'
-                ? 'bg-green-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+              onClick={() => setFilterStatus("approved")}
+              className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${
+                filterStatus === "approved"
+                  ? "bg-green-600 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
             >
               <CheckCircle className="h-4 w-4" /> Verified
             </button>
             <button
-              onClick={() => setFilterStatus('rejected')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${filterStatus === 'rejected'
-                ? 'bg-red-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+              onClick={() => setFilterStatus("rejected")}
+              className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${
+                filterStatus === "rejected"
+                  ? "bg-red-600 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
             >
               <XCircle className="h-4 w-4" /> Rejected
             </button>
@@ -518,9 +593,13 @@ const SellerVerification = () => {
                     <td colSpan="5" className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center">
                         <AlertCircle className="h-12 w-12 text-gray-300 mb-4" />
-                        <p className="text-gray-500 text-lg font-medium">No sellers found</p>
+                        <p className="text-gray-500 text-lg font-medium">
+                          No sellers found
+                        </p>
                         <p className="text-gray-400 text-sm mt-1">
-                          {searchTerm ? 'Try adjusting your search criteria' : 'No seller applications available'}
+                          {searchTerm
+                            ? "Try adjusting your search criteria"
+                            : "No seller applications available"}
                         </p>
                       </div>
                     </td>
@@ -534,15 +613,25 @@ const SellerVerification = () => {
                             <User className="h-5 w-5 text-blue-600" />
                           </div>
                           <div>
-                            <p className="font-medium text-gray-900">{seller.name}</p>
-                            <p className="text-sm text-gray-500">{seller.email}</p>
-                            <p className="text-xs text-gray-400 mt-1">{seller.phone}</p>
+                            <p className="font-medium text-gray-900">
+                              {seller.name}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              {seller.email}
+                            </p>
+                            <p className="text-xs text-gray-400 mt-1">
+                              {seller.phone}
+                            </p>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="font-medium text-gray-900">{seller.businessName}</p>
-                        <p className="text-sm text-gray-500">{seller.businessType}</p>
+                        <p className="font-medium text-gray-900">
+                          {seller.businessName}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {seller.businessType}
+                        </p>
                         <div className="flex items-center text-xs text-gray-400 mt-1">
                           <MapPin className="h-3 w-3 mr-1" />
                           {seller.address}
@@ -560,15 +649,30 @@ const SellerVerification = () => {
                         <div className="space-y-1">
                           <div className="flex items-center gap-2 text-sm">
                             <Package className="h-4 w-4 text-gray-400" />
-                            <span>Products: <span className="font-medium">{seller.totalProducts || 0}</span></span>
+                            <span>
+                              Products:{" "}
+                              <span className="font-medium">
+                                {seller.totalProducts || 0}
+                              </span>
+                            </span>
                           </div>
                           <div className="flex items-center gap-2 text-sm">
                             <ShoppingBag className="h-4 w-4 text-gray-400" />
-                            <span>Orders: <span className="font-medium">{seller.totalOrders || 0}</span></span>
+                            <span>
+                              Orders:{" "}
+                              <span className="font-medium">
+                                {seller.totalOrders || 0}
+                              </span>
+                            </span>
                           </div>
                           <div className="flex items-center gap-2 text-sm">
                             <DollarSign className="h-4 w-4 text-gray-400" />
-                            <span>Revenue: <span className="font-medium">₹{seller.totalRevenue?.toLocaleString() || 0}</span></span>
+                            <span>
+                              Revenue:{" "}
+                              <span className="font-medium">
+                                ₹{seller.totalRevenue?.toLocaleString() || 0}
+                              </span>
+                            </span>
                           </div>
                         </div>
                       </td>
@@ -581,26 +685,27 @@ const SellerVerification = () => {
                             <Eye className="h-4 w-4" />
                             Review
                           </button>
-                          {!seller.isSellerVerified && seller.status !== 'rejected' && (
-                            <>
-                              <button
-                                onClick={() => verifySeller(seller._id)}
-                                disabled={actionLoading}
-                                className="px-3 py-2 bg-green-50 text-green-600 rounded-lg text-sm font-medium hover:bg-green-100 flex items-center gap-2 disabled:opacity-50"
-                              >
-                                <CheckCircle className="h-4 w-4" />
-                                {actionLoading ? 'Processing...' : 'Approve'}
-                              </button>
-                              <button
-                                onClick={() => rejectSeller(seller._id)}
-                                disabled={actionLoading}
-                                className="px-3 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 flex items-center gap-2 disabled:opacity-50"
-                              >
-                                <XCircle className="h-4 w-4" />
-                                Reject
-                              </button>
-                            </>
-                          )}
+                          {!seller.isSellerVerified &&
+                            seller.status !== "rejected" && (
+                              <>
+                                <button
+                                  onClick={() => verifySeller(seller._id)}
+                                  disabled={actionLoading}
+                                  className="px-3 py-2 bg-green-50 text-green-600 rounded-lg text-sm font-medium hover:bg-green-100 flex items-center gap-2 disabled:opacity-50"
+                                >
+                                  <CheckCircle className="h-4 w-4" />
+                                  {actionLoading ? "Processing..." : "Approve"}
+                                </button>
+                                <button
+                                  onClick={() => rejectSeller(seller._id)}
+                                  disabled={actionLoading}
+                                  className="px-3 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 flex items-center gap-2 disabled:opacity-50"
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                  Reject
+                                </button>
+                              </>
+                            )}
                         </div>
                       </td>
                     </tr>
@@ -624,7 +729,8 @@ const SellerVerification = () => {
                     {selectedSeller.name} - Verification Details
                   </h2>
                   <p className="text-gray-600 text-sm">
-                    Business: {selectedSeller.businessName} • ID: {selectedSeller._id}
+                    Business: {selectedSeller.businessName} • ID:{" "}
+                    {selectedSeller._id}
                   </p>
                 </div>
                 <button
@@ -684,23 +790,31 @@ const SellerVerification = () => {
                   <div className="space-y-3">
                     <div>
                       <p className="text-sm text-gray-500">Business Name</p>
-                      <p className="font-medium">{selectedSeller.businessName}</p>
+                      <p className="font-medium">
+                        {selectedSeller.businessName}
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Business Type</p>
-                      <p className="font-medium">{selectedSeller.businessType}</p>
+                      <p className="font-medium">
+                        {selectedSeller.businessType}
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Registration Date</p>
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-gray-400" />
-                        <p className="font-medium">{selectedSeller.registrationDate}</p>
+                        <p className="font-medium">
+                          {selectedSeller.registrationDate}
+                        </p>
                       </div>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Application Date</p>
                       <p className="font-medium">
-                        {new Date(selectedSeller.createdAt).toLocaleDateString()}
+                        {new Date(
+                          selectedSeller.createdAt,
+                        ).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
@@ -709,28 +823,38 @@ const SellerVerification = () => {
 
               {/* Performance Stats */}
               <div className="mb-6">
-                <h3 className="font-semibold text-gray-700 mb-3">Performance Metrics</h3>
+                <h3 className="font-semibold text-gray-700 mb-3">
+                  Performance Metrics
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="bg-gray-50 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <Package className="h-5 w-5 text-blue-500" />
-                      <span className="text-sm font-medium">Total Products</span>
+                      <span className="text-sm font-medium">
+                        Total Products
+                      </span>
                     </div>
-                    <p className="text-2xl font-bold text-gray-800">{selectedSeller.totalProducts || 0}</p>
+                    <p className="text-2xl font-bold text-gray-800">
+                      {selectedSeller.totalProducts || 0}
+                    </p>
                   </div>
                   <div className="bg-gray-50 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <ShoppingBag className="h-5 w-5 text-green-500" />
                       <span className="text-sm font-medium">Total Orders</span>
                     </div>
-                    <p className="text-2xl font-bold text-gray-800">{selectedSeller.totalOrders || 0}</p>
+                    <p className="text-2xl font-bold text-gray-800">
+                      {selectedSeller.totalOrders || 0}
+                    </p>
                   </div>
                   <div className="bg-gray-50 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <DollarSign className="h-5 w-5 text-purple-500" />
                       <span className="text-sm font-medium">Total Revenue</span>
                     </div>
-                    <p className="text-2xl font-bold text-gray-800">₹{selectedSeller.totalRevenue?.toLocaleString() || 0}</p>
+                    <p className="text-2xl font-bold text-gray-800">
+                      ₹{selectedSeller.totalRevenue?.toLocaleString() || 0}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -765,14 +889,14 @@ const SellerVerification = () => {
                       </div>
                       <div className="flex gap-2">
                         <button
-                          onClick={() => window.open(doc.url, '_blank')}
+                          onClick={() => window.open(doc.url, "_blank")}
                           className="flex-1 px-3 py-2 bg-blue-50 text-blue-600 text-sm rounded hover:bg-blue-100"
                         >
                           View
                         </button>
                         <button
                           onClick={() => {
-                            const link = document.createElement('a');
+                            const link = document.createElement("a");
                             link.href = doc.url;
                             link.download = `${doc.type}.jpg`;
                             document.body.appendChild(link);
@@ -792,7 +916,9 @@ const SellerVerification = () => {
 
               {/* Notes Section */}
               <div className="mb-6">
-                <h3 className="font-semibold text-gray-700 mb-2">Verification Notes</h3>
+                <h3 className="font-semibold text-gray-700 mb-2">
+                  Verification Notes
+                </h3>
                 <textarea
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
                   rows="3"
@@ -806,7 +932,9 @@ const SellerVerification = () => {
               {/* Previous Notes */}
               {selectedSeller.notes && (
                 <div className="mb-6">
-                  <h3 className="font-semibold text-gray-700 mb-2">Previous Notes</h3>
+                  <h3 className="font-semibold text-gray-700 mb-2">
+                    Previous Notes
+                  </h3>
                   <div className="bg-gray-50 rounded-lg p-4">
                     <p className="text-gray-700">{selectedSeller.notes}</p>
                   </div>
@@ -815,35 +943,36 @@ const SellerVerification = () => {
 
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t">
-                {!selectedSeller.isSellerVerified && selectedSeller.status !== 'rejected' && (
-                  <>
-                    <button
-                      onClick={() => verifySeller(selectedSeller._id)}
-                      disabled={actionLoading}
-                      className="flex-1 px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                      {actionLoading ? (
-                        <>
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                          Processing...
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle className="h-5 w-5" />
-                          Approve Seller
-                        </>
-                      )}
-                    </button>
-                    <button
-                      onClick={() => rejectSeller(selectedSeller._id)}
-                      disabled={actionLoading}
-                      className="flex-1 px-6 py-3 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                      <XCircle className="h-5 w-5" />
-                      Reject Application
-                    </button>
-                  </>
-                )}
+                {!selectedSeller.isSellerVerified &&
+                  selectedSeller.status !== "rejected" && (
+                    <>
+                      <button
+                        onClick={() => verifySeller(selectedSeller._id)}
+                        disabled={actionLoading}
+                        className="flex-1 px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        {actionLoading ? (
+                          <>
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="h-5 w-5" />
+                            Approve Seller
+                          </>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => rejectSeller(selectedSeller._id)}
+                        disabled={actionLoading}
+                        className="flex-1 px-6 py-3 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        <XCircle className="h-5 w-5" />
+                        Reject Application
+                      </button>
+                    </>
+                  )}
                 <button
                   onClick={() => setIsModalOpen(false)}
                   disabled={actionLoading}

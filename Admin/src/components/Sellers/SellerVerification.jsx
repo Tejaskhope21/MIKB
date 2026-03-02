@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import {
   CheckCircle,
   XCircle,
@@ -18,20 +18,20 @@ import {
   X,
   Clock,
   Filter,
-  Shield
-} from 'lucide-react';
+  Shield,
+} from "lucide-react";
 
 const SellerVerificationDashboard = () => {
   const [sellers, setSellers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
   const [selectedSeller, setSelectedSeller] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [verificationNotes, setVerificationNotes] = useState('');
+  const [verificationNotes, setVerificationNotes] = useState("");
 
   // Use direct URL instead of process.env
-  const API_BASE = 'https://bricks-backend-qyea.onrender.com/api';
+  const API_BASE = "https://bricks-backend-qyea.onrender.com/api";
 
   // Fetch all sellers
   const fetchSellers = async () => {
@@ -51,9 +51,8 @@ const SellerVerificationDashboard = () => {
         calculateStats(demoData);
         setLoading(false);
       }, 1000);
-
     } catch (error) {
-      console.error('Error fetching sellers:', error);
+      console.error("Error fetching sellers:", error);
       const demoData = getDemoData();
       setSellers(demoData);
       calculateStats(demoData);
@@ -65,9 +64,15 @@ const SellerVerificationDashboard = () => {
   const calculateStats = (sellersList) => {
     const stats = {
       total: sellersList.length,
-      pending: sellersList.filter(s => s.status === 'pending' || s.status === 'under_review').length,
-      approved: sellersList.filter(s => s.status === 'approved' || s.status === 'active').length,
-      rejected: sellersList.filter(s => s.status === 'rejected' || s.status === 'suspended').length
+      pending: sellersList.filter(
+        (s) => s.status === "pending" || s.status === "under_review",
+      ).length,
+      approved: sellersList.filter(
+        (s) => s.status === "approved" || s.status === "active",
+      ).length,
+      rejected: sellersList.filter(
+        (s) => s.status === "rejected" || s.status === "suspended",
+      ).length,
     };
     // You can set stats state if you have one
   };
@@ -89,22 +94,23 @@ const SellerVerificationDashboard = () => {
       // Simulate API call
       setTimeout(() => {
         // Update local state
-        setSellers(prev => prev.map(seller =>
-          seller._id === sellerId
-            ? { ...seller, status: 'approved', notes: verificationNotes }
-            : seller
-        ));
+        setSellers((prev) =>
+          prev.map((seller) =>
+            seller._id === sellerId
+              ? { ...seller, status: "approved", notes: verificationNotes }
+              : seller,
+          ),
+        );
 
         setSelectedSeller(null);
         setIsModalOpen(false);
-        setVerificationNotes('');
+        setVerificationNotes("");
 
-        alert('Seller approved successfully!');
+        alert("Seller approved successfully!");
       }, 500);
-
     } catch (error) {
-      console.error('Error approving seller:', error);
-      alert('Failed to approve seller. Please try again.');
+      console.error("Error approving seller:", error);
+      alert("Failed to approve seller. Please try again.");
     }
   };
 
@@ -125,34 +131,37 @@ const SellerVerificationDashboard = () => {
       // Simulate API call
       setTimeout(() => {
         // Update local state
-        setSellers(prev => prev.map(seller =>
-          seller._id === sellerId
-            ? { ...seller, status: 'rejected', notes: verificationNotes }
-            : seller
-        ));
+        setSellers((prev) =>
+          prev.map((seller) =>
+            seller._id === sellerId
+              ? { ...seller, status: "rejected", notes: verificationNotes }
+              : seller,
+          ),
+        );
 
         setSelectedSeller(null);
         setIsModalOpen(false);
-        setVerificationNotes('');
+        setVerificationNotes("");
 
-        alert('Seller rejected successfully!');
+        alert("Seller rejected successfully!");
       }, 500);
-
     } catch (error) {
-      console.error('Error rejecting seller:', error);
-      alert('Failed to reject seller. Please try again.');
+      console.error("Error rejecting seller:", error);
+      alert("Failed to reject seller. Please try again.");
     }
   };
 
   // Filter sellers based on search and status
-  const filteredSellers = sellers.filter(seller => {
-    const matchesSearch = searchTerm === '' ||
+  const filteredSellers = sellers.filter((seller) => {
+    const matchesSearch =
+      searchTerm === "" ||
       seller.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       seller.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       seller.businessName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       seller.phone?.includes(searchTerm);
 
-    const matchesStatus = filterStatus === 'all' || seller.status === filterStatus;
+    const matchesStatus =
+      filterStatus === "all" || seller.status === filterStatus;
 
     return matchesSearch && matchesStatus;
   });
@@ -160,32 +169,38 @@ const SellerVerificationDashboard = () => {
   // Calculate stats for display
   const stats = {
     total: sellers.length,
-    pending: sellers.filter(s => s.status === 'pending' || s.status === 'under_review').length,
-    approved: sellers.filter(s => s.status === 'approved' || s.status === 'active').length,
-    rejected: sellers.filter(s => s.status === 'rejected' || s.status === 'suspended').length
+    pending: sellers.filter(
+      (s) => s.status === "pending" || s.status === "under_review",
+    ).length,
+    approved: sellers.filter(
+      (s) => s.status === "approved" || s.status === "active",
+    ).length,
+    rejected: sellers.filter(
+      (s) => s.status === "rejected" || s.status === "suspended",
+    ).length,
   };
 
   // Get status badge
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'approved':
-      case 'active':
+      case "approved":
+      case "active":
         return (
           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
             <CheckCircle className="w-4 h-4 mr-1" />
             Approved
           </span>
         );
-      case 'rejected':
-      case 'suspended':
+      case "rejected":
+      case "suspended":
         return (
           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
             <XCircle className="w-4 h-4 mr-1" />
             Rejected
           </span>
         );
-      case 'pending':
-      case 'under_review':
+      case "pending":
+      case "under_review":
         return (
           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
             <Clock className="w-4 h-4 mr-1" />
@@ -204,13 +219,13 @@ const SellerVerificationDashboard = () => {
   // View seller details
   const viewSellerDetails = (seller) => {
     setSelectedSeller(seller);
-    setVerificationNotes(seller.notes || '');
+    setVerificationNotes(seller.notes || "");
     setIsModalOpen(true);
   };
 
   // Download document
   const downloadDocument = (url, filename) => {
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
     link.download = filename;
     document.body.appendChild(link);
@@ -221,78 +236,130 @@ const SellerVerificationDashboard = () => {
   // Demo data for testing
   const getDemoData = () => [
     {
-      _id: '1',
-      name: 'Rajesh Kumar',
-      email: 'rajesh@kumarconstructions.com',
-      phone: '+91 9876543210',
-      businessName: 'Kumar Constructions',
-      businessType: 'Contractor',
-      address: '123, Main Street, Mumbai, Maharashtra',
-      registrationDate: '2024-01-15',
-      status: 'pending',
+      _id: "1",
+      name: "Rajesh Kumar",
+      email: "rajesh@kumarconstructions.com",
+      phone: "+91 9876543210",
+      businessName: "Kumar Constructions",
+      businessType: "Contractor",
+      address: "123, Main Street, Mumbai, Maharashtra",
+      registrationDate: "2024-01-15",
+      status: "pending",
       documents: [
-        { type: 'PAN Card', url: 'https://via.placeholder.com/300x200/4CAF50/FFFFFF?text=PAN+Card', verified: true },
-        { type: 'Aadhaar Card', url: 'https://via.placeholder.com/300x200/2196F3/FFFFFF?text=Aadhaar+Card', verified: true },
-        { type: 'GST Certificate', url: 'https://via.placeholder.com/300x200/FF9800/FFFFFF?text=GST+Certificate', verified: false },
-        { type: 'Business License', url: 'https://via.placeholder.com/300x200/9C27B0/FFFFFF?text=Business+License', verified: true }
+        {
+          type: "PAN Card",
+          url: "https://via.placeholder.com/300x200/4CAF50/FFFFFF?text=PAN+Card",
+          verified: true,
+        },
+        {
+          type: "Aadhaar Card",
+          url: "https://via.placeholder.com/300x200/2196F3/FFFFFF?text=Aadhaar+Card",
+          verified: true,
+        },
+        {
+          type: "GST Certificate",
+          url: "https://via.placeholder.com/300x200/FF9800/FFFFFF?text=GST+Certificate",
+          verified: false,
+        },
+        {
+          type: "Business License",
+          url: "https://via.placeholder.com/300x200/9C27B0/FFFFFF?text=Business+License",
+          verified: true,
+        },
       ],
-      notes: 'GST certificate verification pending',
-      createdAt: '2024-03-10T10:30:00Z'
+      notes: "GST certificate verification pending",
+      createdAt: "2024-03-10T10:30:00Z",
     },
     {
-      _id: '2',
-      name: 'Priya Sharma',
-      email: 'priya@sharmafashion.com',
-      phone: '+91 9876543211',
-      businessName: 'Sharma Fashion House',
-      businessType: 'Retail',
-      address: '456, Connaught Place, Delhi',
-      registrationDate: '2024-02-10',
-      status: 'approved',
+      _id: "2",
+      name: "Priya Sharma",
+      email: "priya@sharmafashion.com",
+      phone: "+91 9876543211",
+      businessName: "Sharma Fashion House",
+      businessType: "Retail",
+      address: "456, Connaught Place, Delhi",
+      registrationDate: "2024-02-10",
+      status: "approved",
       documents: [
-        { type: 'PAN Card', url: 'https://via.placeholder.com/300x200/4CAF50/FFFFFF?text=PAN+Card', verified: true },
-        { type: 'Aadhaar Card', url: 'https://via.placeholder.com/300x200/2196F3/FFFFFF?text=Aadhaar+Card', verified: true },
-        { type: 'GST Certificate', url: 'https://via.placeholder.com/300x200/FF9800/FFFFFF?text=GST+Certificate', verified: true }
+        {
+          type: "PAN Card",
+          url: "https://via.placeholder.com/300x200/4CAF50/FFFFFF?text=PAN+Card",
+          verified: true,
+        },
+        {
+          type: "Aadhaar Card",
+          url: "https://via.placeholder.com/300x200/2196F3/FFFFFF?text=Aadhaar+Card",
+          verified: true,
+        },
+        {
+          type: "GST Certificate",
+          url: "https://via.placeholder.com/300x200/FF9800/FFFFFF?text=GST+Certificate",
+          verified: true,
+        },
       ],
-      notes: 'All documents verified successfully',
-      createdAt: '2024-03-05T14:20:00Z'
+      notes: "All documents verified successfully",
+      createdAt: "2024-03-05T14:20:00Z",
     },
     {
-      _id: '3',
-      name: 'Arun Patel',
-      email: 'arun@pateltech.com',
-      phone: '+91 9876543212',
-      businessName: 'Patel Tech Solutions',
-      businessType: 'IT Services',
-      address: '789, MG Road, Bangalore',
-      registrationDate: '2024-01-28',
-      status: 'rejected',
+      _id: "3",
+      name: "Arun Patel",
+      email: "arun@pateltech.com",
+      phone: "+91 9876543212",
+      businessName: "Patel Tech Solutions",
+      businessType: "IT Services",
+      address: "789, MG Road, Bangalore",
+      registrationDate: "2024-01-28",
+      status: "rejected",
       documents: [
-        { type: 'PAN Card', url: 'https://via.placeholder.com/300x200/4CAF50/FFFFFF?text=PAN+Card', verified: true },
-        { type: 'Aadhaar Card', url: 'https://via.placeholder.com/300x200/2196F3/FFFFFF?text=Aadhaar+Card', verified: false },
-        { type: 'GST Certificate', url: 'https://via.placeholder.com/300x200/FF9800/FFFFFF?text=GST+Certificate', verified: true }
+        {
+          type: "PAN Card",
+          url: "https://via.placeholder.com/300x200/4CAF50/FFFFFF?text=PAN+Card",
+          verified: true,
+        },
+        {
+          type: "Aadhaar Card",
+          url: "https://via.placeholder.com/300x200/2196F3/FFFFFF?text=Aadhaar+Card",
+          verified: false,
+        },
+        {
+          type: "GST Certificate",
+          url: "https://via.placeholder.com/300x200/FF9800/FFFFFF?text=GST+Certificate",
+          verified: true,
+        },
       ],
-      notes: 'Aadhaar verification failed',
-      createdAt: '2024-03-12T09:15:00Z'
+      notes: "Aadhaar verification failed",
+      createdAt: "2024-03-12T09:15:00Z",
     },
     {
-      _id: '4',
-      name: 'Meena Singh',
-      email: 'meena@singhfoods.com',
-      phone: '+91 9876543213',
-      businessName: 'Singh Foods & Catering',
-      businessType: 'Food Services',
-      address: '321, Koregaon Park, Pune',
-      registrationDate: '2024-03-01',
-      status: 'pending',
+      _id: "4",
+      name: "Meena Singh",
+      email: "meena@singhfoods.com",
+      phone: "+91 9876543213",
+      businessName: "Singh Foods & Catering",
+      businessType: "Food Services",
+      address: "321, Koregaon Park, Pune",
+      registrationDate: "2024-03-01",
+      status: "pending",
       documents: [
-        { type: 'PAN Card', url: 'https://via.placeholder.com/300x200/4CAF50/FFFFFF?text=PAN+Card', verified: true },
-        { type: 'Aadhaar Card', url: 'https://via.placeholder.com/300x200/2196F3/FFFFFF?text=Aadhaar+Card', verified: true },
-        { type: 'FSSAI License', url: 'https://via.placeholder.com/300x200/FF5722/FFFFFF?text=FSSAI+License', verified: false }
+        {
+          type: "PAN Card",
+          url: "https://via.placeholder.com/300x200/4CAF50/FFFFFF?text=PAN+Card",
+          verified: true,
+        },
+        {
+          type: "Aadhaar Card",
+          url: "https://via.placeholder.com/300x200/2196F3/FFFFFF?text=Aadhaar+Card",
+          verified: true,
+        },
+        {
+          type: "FSSAI License",
+          url: "https://via.placeholder.com/300x200/FF5722/FFFFFF?text=FSSAI+License",
+          verified: false,
+        },
       ],
-      notes: 'FSSAI license verification pending',
-      createdAt: '2024-03-15T11:45:00Z'
-    }
+      notes: "FSSAI license verification pending",
+      createdAt: "2024-03-15T11:45:00Z",
+    },
   ];
 
   useEffect(() => {
@@ -303,8 +370,12 @@ const SellerVerificationDashboard = () => {
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Seller Verification</h1>
-        <p className="text-gray-600 mt-1">Review and verify seller applications</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
+          Seller Verification
+        </h1>
+        <p className="text-gray-600 mt-1">
+          Review and verify seller applications
+        </p>
       </div>
 
       {/* Stats Cards */}
@@ -313,7 +384,9 @@ const SellerVerificationDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500 font-medium">Total Sellers</p>
-              <p className="text-3xl font-bold text-gray-800 mt-2">{stats.total}</p>
+              <p className="text-3xl font-bold text-gray-800 mt-2">
+                {stats.total}
+              </p>
             </div>
             <div className="p-3 bg-blue-100 rounded-lg">
               <User className="h-6 w-6 text-blue-600" />
@@ -324,8 +397,12 @@ const SellerVerificationDashboard = () => {
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 font-medium">Pending Review</p>
-              <p className="text-3xl font-bold text-yellow-600 mt-2">{stats.pending}</p>
+              <p className="text-sm text-gray-500 font-medium">
+                Pending Review
+              </p>
+              <p className="text-3xl font-bold text-yellow-600 mt-2">
+                {stats.pending}
+              </p>
             </div>
             <div className="p-3 bg-yellow-100 rounded-lg">
               <Clock className="h-6 w-6 text-yellow-600" />
@@ -337,7 +414,9 @@ const SellerVerificationDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500 font-medium">Approved</p>
-              <p className="text-3xl font-bold text-green-600 mt-2">{stats.approved}</p>
+              <p className="text-3xl font-bold text-green-600 mt-2">
+                {stats.approved}
+              </p>
             </div>
             <div className="p-3 bg-green-100 rounded-lg">
               <CheckCircle className="h-6 w-6 text-green-600" />
@@ -349,7 +428,9 @@ const SellerVerificationDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500 font-medium">Rejected</p>
-              <p className="text-3xl font-bold text-red-600 mt-2">{stats.rejected}</p>
+              <p className="text-3xl font-bold text-red-600 mt-2">
+                {stats.rejected}
+              </p>
             </div>
             <div className="p-3 bg-red-100 rounded-lg">
               <XCircle className="h-6 w-6 text-red-600" />
@@ -378,38 +459,42 @@ const SellerVerificationDashboard = () => {
           {/* Filter Buttons */}
           <div className="flex flex-wrap gap-2">
             <button
-              onClick={() => setFilterStatus('all')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium ${filterStatus === 'all'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+              onClick={() => setFilterStatus("all")}
+              className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                filterStatus === "all"
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
             >
               All
             </button>
             <button
-              onClick={() => setFilterStatus('pending')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${filterStatus === 'pending'
-                  ? 'bg-yellow-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+              onClick={() => setFilterStatus("pending")}
+              className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${
+                filterStatus === "pending"
+                  ? "bg-yellow-600 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
             >
               <Clock className="h-4 w-4" /> Pending
             </button>
             <button
-              onClick={() => setFilterStatus('approved')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${filterStatus === 'approved'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+              onClick={() => setFilterStatus("approved")}
+              className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${
+                filterStatus === "approved"
+                  ? "bg-green-600 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
             >
               <CheckCircle className="h-4 w-4" /> Approved
             </button>
             <button
-              onClick={() => setFilterStatus('rejected')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${filterStatus === 'rejected'
-                  ? 'bg-red-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+              onClick={() => setFilterStatus("rejected")}
+              className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${
+                filterStatus === "rejected"
+                  ? "bg-red-600 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
             >
               <XCircle className="h-4 w-4" /> Rejected
             </button>
@@ -455,9 +540,13 @@ const SellerVerificationDashboard = () => {
                     <td colSpan="5" className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center">
                         <AlertCircle className="h-12 w-12 text-gray-300 mb-4" />
-                        <p className="text-gray-500 text-lg font-medium">No sellers found</p>
+                        <p className="text-gray-500 text-lg font-medium">
+                          No sellers found
+                        </p>
                         <p className="text-gray-400 text-sm mt-1">
-                          {searchTerm ? 'Try adjusting your search criteria' : 'No seller applications available'}
+                          {searchTerm
+                            ? "Try adjusting your search criteria"
+                            : "No seller applications available"}
                         </p>
                       </div>
                     </td>
@@ -471,15 +560,25 @@ const SellerVerificationDashboard = () => {
                             <User className="h-5 w-5 text-blue-600" />
                           </div>
                           <div>
-                            <p className="font-medium text-gray-900">{seller.name}</p>
-                            <p className="text-sm text-gray-500">{seller.email}</p>
-                            <p className="text-xs text-gray-400 mt-1">{seller.phone}</p>
+                            <p className="font-medium text-gray-900">
+                              {seller.name}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              {seller.email}
+                            </p>
+                            <p className="text-xs text-gray-400 mt-1">
+                              {seller.phone}
+                            </p>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="font-medium text-gray-900">{seller.businessName}</p>
-                        <p className="text-sm text-gray-500">{seller.businessType}</p>
+                        <p className="font-medium text-gray-900">
+                          {seller.businessName}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {seller.businessType}
+                        </p>
                         <div className="flex items-center text-xs text-gray-400 mt-1">
                           <MapPin className="h-3 w-3 mr-1" />
                           {seller.address}
@@ -490,10 +589,11 @@ const SellerVerificationDashboard = () => {
                           {seller.documents?.map((doc, index) => (
                             <span
                               key={index}
-                              className={`inline-flex items-center px-2 py-1 rounded text-xs ${doc.verified
-                                  ? 'bg-green-100 text-green-800'
-                                  : 'bg-red-100 text-red-800'
-                                }`}
+                              className={`inline-flex items-center px-2 py-1 rounded text-xs ${
+                                doc.verified
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-red-100 text-red-800"
+                              }`}
                             >
                               {doc.verified ? (
                                 <Check className="h-3 w-3 mr-1" />
@@ -508,7 +608,10 @@ const SellerVerificationDashboard = () => {
                       <td className="px-6 py-4">
                         {getStatusBadge(seller.status)}
                         <p className="text-xs text-gray-500 mt-1">
-                          Registered: {new Date(seller.registrationDate).toLocaleDateString()}
+                          Registered:{" "}
+                          {new Date(
+                            seller.registrationDate,
+                          ).toLocaleDateString()}
                         </p>
                       </td>
                       <td className="px-6 py-4">
@@ -520,7 +623,7 @@ const SellerVerificationDashboard = () => {
                             <Eye className="h-4 w-4" />
                             Review
                           </button>
-                          {seller.status === 'pending' && (
+                          {seller.status === "pending" && (
                             <>
                               <button
                                 onClick={() => verifySeller(seller._id)}
@@ -561,7 +664,8 @@ const SellerVerificationDashboard = () => {
                     {selectedSeller.name} - Verification Details
                   </h2>
                   <p className="text-gray-600 text-sm">
-                    Business: {selectedSeller.businessName} • Status: {selectedSeller.status}
+                    Business: {selectedSeller.businessName} • Status:{" "}
+                    {selectedSeller.status}
                   </p>
                 </div>
                 <button
@@ -620,25 +724,33 @@ const SellerVerificationDashboard = () => {
                   <div className="space-y-3">
                     <div>
                       <p className="text-sm text-gray-500">Business Name</p>
-                      <p className="font-medium">{selectedSeller.businessName}</p>
+                      <p className="font-medium">
+                        {selectedSeller.businessName}
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Business Type</p>
-                      <p className="font-medium">{selectedSeller.businessType}</p>
+                      <p className="font-medium">
+                        {selectedSeller.businessType}
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Registration Date</p>
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-gray-400" />
                         <p className="font-medium">
-                          {new Date(selectedSeller.registrationDate).toLocaleDateString()}
+                          {new Date(
+                            selectedSeller.registrationDate,
+                          ).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Application Date</p>
                       <p className="font-medium">
-                        {new Date(selectedSeller.createdAt).toLocaleDateString()}
+                        {new Date(
+                          selectedSeller.createdAt,
+                        ).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
@@ -671,13 +783,15 @@ const SellerVerificationDashboard = () => {
                       </div>
                       <div className="flex gap-2">
                         <button
-                          onClick={() => window.open(doc.url, '_blank')}
+                          onClick={() => window.open(doc.url, "_blank")}
                           className="flex-1 px-3 py-2 bg-blue-50 text-blue-600 text-sm rounded hover:bg-blue-100"
                         >
                           View
                         </button>
                         <button
-                          onClick={() => downloadDocument(doc.url, `${doc.type}.jpg`)}
+                          onClick={() =>
+                            downloadDocument(doc.url, `${doc.type}.jpg`)
+                          }
                           className="flex-1 px-3 py-2 bg-gray-50 text-gray-600 text-sm rounded hover:bg-gray-100 flex items-center justify-center gap-1"
                         >
                           <Download className="h-4 w-4" />
@@ -691,7 +805,9 @@ const SellerVerificationDashboard = () => {
 
               {/* Notes Section */}
               <div className="mb-6">
-                <h3 className="font-semibold text-gray-700 mb-2">Verification Notes</h3>
+                <h3 className="font-semibold text-gray-700 mb-2">
+                  Verification Notes
+                </h3>
                 <textarea
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   rows="3"
@@ -704,7 +820,9 @@ const SellerVerificationDashboard = () => {
               {/* Previous Notes */}
               {selectedSeller.notes && (
                 <div className="mb-6">
-                  <h3 className="font-semibold text-gray-700 mb-2">Previous Notes</h3>
+                  <h3 className="font-semibold text-gray-700 mb-2">
+                    Previous Notes
+                  </h3>
                   <div className="bg-gray-50 rounded-lg p-4">
                     <p className="text-gray-700">{selectedSeller.notes}</p>
                   </div>
@@ -713,7 +831,7 @@ const SellerVerificationDashboard = () => {
 
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t">
-                {selectedSeller.status === 'pending' && (
+                {selectedSeller.status === "pending" && (
                   <>
                     <button
                       onClick={() => verifySeller(selectedSeller._id)}

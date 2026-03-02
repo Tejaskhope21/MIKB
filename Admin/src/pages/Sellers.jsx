@@ -1,9 +1,18 @@
 import React, { useState, useEffect } from "react";
 import {
-  Search, Filter, Download,
-  Eye, CheckCircle, XCircle,
-  MoreVertical, User, Building,
-  Calendar, Phone, Mail, MapPin
+  Search,
+  Filter,
+  Download,
+  Eye,
+  CheckCircle,
+  XCircle,
+  MoreVertical,
+  User,
+  Building,
+  Calendar,
+  Phone,
+  Mail,
+  MapPin,
 } from "lucide-react";
 
 const Sellers = () => {
@@ -23,11 +32,14 @@ const Sellers = () => {
     try {
       setLoading(true);
       // Replace with your actual API endpoint
-      const response = await fetch('https://bricks-backend-qyea.onrender.com/api/admin/sellers', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-        }
-      });
+      const response = await fetch(
+        "https://bricks-backend-qyea.onrender.com/api/admin/sellers",
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+          },
+        },
+      );
 
       const data = await response.json();
       if (data.success) {
@@ -47,19 +59,24 @@ const Sellers = () => {
 
   const handleVerify = async (sellerId) => {
     try {
-      await fetch(`https://bricks-backend-qyea.onrender.com/api/admin/sellers/${sellerId}/verify`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+      await fetch(
+        `https://bricks-backend-qyea.onrender.com/api/admin/sellers/${sellerId}/verify`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+          },
+          body: JSON.stringify({ status: "verified" }),
         },
-        body: JSON.stringify({ status: 'verified' })
-      });
+      );
 
       // Update local state
-      setSellers(sellers.map(seller =>
-        seller._id === sellerId ? { ...seller, status: 'verified' } : seller
-      ));
+      setSellers(
+        sellers.map((seller) =>
+          seller._id === sellerId ? { ...seller, status: "verified" } : seller,
+        ),
+      );
     } catch (error) {
       console.error("Error verifying seller:", error);
     }
@@ -67,19 +84,24 @@ const Sellers = () => {
 
   const handleSuspend = async (sellerId) => {
     try {
-      await fetch(`https://bricks-backend-qyea.onrender.com/api/admin/sellers/${sellerId}/suspend`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+      await fetch(
+        `https://bricks-backend-qyea.onrender.com/api/admin/sellers/${sellerId}/suspend`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+          },
+          body: JSON.stringify({ status: "suspended" }),
         },
-        body: JSON.stringify({ status: 'suspended' })
-      });
+      );
 
       // Update local state
-      setSellers(sellers.map(seller =>
-        seller._id === sellerId ? { ...seller, status: 'suspended' } : seller
-      ));
+      setSellers(
+        sellers.map((seller) =>
+          seller._id === sellerId ? { ...seller, status: "suspended" } : seller,
+        ),
+      );
     } catch (error) {
       console.error("Error suspending seller:", error);
     }
@@ -87,19 +109,24 @@ const Sellers = () => {
 
   const handleActivate = async (sellerId) => {
     try {
-      await fetch(`https://bricks-backend-qyea.onrender.com/api/admin/sellers/${sellerId}/activate`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+      await fetch(
+        `https://bricks-backend-qyea.onrender.com/api/admin/sellers/${sellerId}/activate`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+          },
+          body: JSON.stringify({ status: "active" }),
         },
-        body: JSON.stringify({ status: 'active' })
-      });
+      );
 
       // Update local state
-      setSellers(sellers.map(seller =>
-        seller._id === sellerId ? { ...seller, status: 'active' } : seller
-      ));
+      setSellers(
+        sellers.map((seller) =>
+          seller._id === sellerId ? { ...seller, status: "active" } : seller,
+        ),
+      );
     } catch (error) {
       console.error("Error activating seller:", error);
     }
@@ -123,12 +150,12 @@ const Sellers = () => {
       status: "verified",
       documents: [
         { type: "PAN Card", verified: true },
-        { type: "GST Certificate", verified: true }
+        { type: "GST Certificate", verified: true },
       ],
       totalProducts: 45,
       totalOrders: 128,
       totalRevenue: 1250000,
-      storeStatus: "active"
+      storeStatus: "active",
     },
     {
       _id: "2",
@@ -142,12 +169,12 @@ const Sellers = () => {
       status: "pending",
       documents: [
         { type: "PAN Card", verified: true },
-        { type: "GST Certificate", verified: false }
+        { type: "GST Certificate", verified: false },
       ],
       totalProducts: 23,
       totalOrders: 67,
       totalRevenue: 890000,
-      storeStatus: "inactive"
+      storeStatus: "inactive",
     },
     {
       _id: "3",
@@ -161,12 +188,12 @@ const Sellers = () => {
       status: "suspended",
       documents: [
         { type: "PAN Card", verified: true },
-        { type: "GST Certificate", verified: true }
+        { type: "GST Certificate", verified: true },
       ],
       totalProducts: 12,
       totalOrders: 34,
       totalRevenue: 560000,
-      storeStatus: "suspended"
+      storeStatus: "suspended",
     },
     {
       _id: "4",
@@ -181,23 +208,25 @@ const Sellers = () => {
       documents: [
         { type: "PAN Card", verified: true },
         { type: "FSSAI License", verified: true },
-        { type: "GST Certificate", verified: true }
+        { type: "GST Certificate", verified: true },
       ],
       totalProducts: 56,
       totalOrders: 189,
       totalRevenue: 2100000,
-      storeStatus: "active"
-    }
+      storeStatus: "active",
+    },
   ];
 
-  const filteredSellers = sellers.filter(seller => {
-    const matchesSearch = searchTerm === "" ||
+  const filteredSellers = sellers.filter((seller) => {
+    const matchesSearch =
+      searchTerm === "" ||
       seller.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       seller.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       seller.businessName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       seller.phone?.includes(searchTerm);
 
-    const matchesStatus = statusFilter === "all" || seller.status === statusFilter;
+    const matchesStatus =
+      statusFilter === "all" || seller.status === statusFilter;
 
     let matchesDate = true;
     if (dateFilter) {
@@ -209,22 +238,22 @@ const Sellers = () => {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'verified':
-      case 'active':
+      case "verified":
+      case "active":
         return (
           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
             <CheckCircle className="w-4 h-4 mr-1" />
             Verified
           </span>
         );
-      case 'suspended':
+      case "suspended":
         return (
           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
             <XCircle className="w-4 h-4 mr-1" />
             Suspended
           </span>
         );
-      case 'pending':
+      case "pending":
         return (
           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
             <span className="w-4 h-4 mr-1">⏱️</span>
@@ -242,20 +271,46 @@ const Sellers = () => {
 
   const getStoreStatusBadge = (status) => {
     switch (status) {
-      case 'active':
-        return <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Active</span>;
-      case 'inactive':
-        return <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Inactive</span>;
-      case 'suspended':
-        return <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">Suspended</span>;
+      case "active":
+        return (
+          <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
+            Active
+          </span>
+        );
+      case "inactive":
+        return (
+          <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">
+            Inactive
+          </span>
+        );
+      case "suspended":
+        return (
+          <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">
+            Suspended
+          </span>
+        );
       default:
-        return <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">Unknown</span>;
+        return (
+          <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">
+            Unknown
+          </span>
+        );
     }
   };
 
   const exportToCSV = () => {
-    const headers = ['Name', 'Email', 'Phone', 'Business Name', 'Status', 'Registration Date', 'Total Products', 'Total Orders', 'Total Revenue'];
-    const csvData = sellers.map(seller => [
+    const headers = [
+      "Name",
+      "Email",
+      "Phone",
+      "Business Name",
+      "Status",
+      "Registration Date",
+      "Total Products",
+      "Total Orders",
+      "Total Revenue",
+    ];
+    const csvData = sellers.map((seller) => [
       seller.name,
       seller.email,
       seller.phone,
@@ -264,15 +319,18 @@ const Sellers = () => {
       seller.registrationDate,
       seller.totalProducts || 0,
       seller.totalOrders || 0,
-      seller.totalRevenue || 0
+      seller.totalRevenue || 0,
     ]);
 
-    const csv = [headers.join(','), ...csvData.map(row => row.join(','))].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const csv = [
+      headers.join(","),
+      ...csvData.map((row) => row.join(",")),
+    ].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = 'sellers_export.csv';
+    a.download = "sellers_export.csv";
     a.click();
   };
 
@@ -281,7 +339,9 @@ const Sellers = () => {
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Seller Management</h1>
+          <h1 className="text-2xl font-bold text-gray-800">
+            Seller Management
+          </h1>
           <p className="text-gray-600">Manage all sellers and their accounts</p>
         </div>
         <button
@@ -299,7 +359,9 @@ const Sellers = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500 font-medium">Total Sellers</p>
-              <p className="text-3xl font-bold text-gray-800 mt-2">{sellers.length}</p>
+              <p className="text-3xl font-bold text-gray-800 mt-2">
+                {sellers.length}
+              </p>
             </div>
             <div className="p-3 bg-blue-100 rounded-lg">
               <User className="h-6 w-6 text-blue-600" />
@@ -312,7 +374,7 @@ const Sellers = () => {
             <div>
               <p className="text-sm text-gray-500 font-medium">Active Stores</p>
               <p className="text-3xl font-bold text-green-600 mt-2">
-                {sellers.filter(s => s.storeStatus === 'active').length}
+                {sellers.filter((s) => s.storeStatus === "active").length}
               </p>
             </div>
             <div className="p-3 bg-green-100 rounded-lg">
@@ -324,9 +386,11 @@ const Sellers = () => {
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 font-medium">Pending Verification</p>
+              <p className="text-sm text-gray-500 font-medium">
+                Pending Verification
+              </p>
               <p className="text-3xl font-bold text-yellow-600 mt-2">
-                {sellers.filter(s => s.status === 'pending').length}
+                {sellers.filter((s) => s.status === "pending").length}
               </p>
             </div>
             <div className="p-3 bg-yellow-100 rounded-lg">
@@ -340,7 +404,7 @@ const Sellers = () => {
             <div>
               <p className="text-sm text-gray-500 font-medium">Suspended</p>
               <p className="text-3xl font-bold text-red-600 mt-2">
-                {sellers.filter(s => s.status === 'suspended').length}
+                {sellers.filter((s) => s.status === "suspended").length}
               </p>
             </div>
             <div className="p-3 bg-red-100 rounded-lg">
@@ -431,7 +495,9 @@ const Sellers = () => {
                   <td colSpan="5" className="px-6 py-12 text-center">
                     <p className="text-gray-500">No sellers found</p>
                     <p className="text-gray-400 text-sm mt-1">
-                      {searchTerm ? 'Try adjusting your search criteria' : 'No sellers available'}
+                      {searchTerm
+                        ? "Try adjusting your search criteria"
+                        : "No sellers available"}
                     </p>
                   </td>
                 </tr>
@@ -444,15 +510,25 @@ const Sellers = () => {
                           <User className="h-5 w-5 text-blue-600" />
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900">{seller.name}</p>
-                          <p className="text-sm text-gray-500">{seller.email}</p>
-                          <p className="text-xs text-gray-400 mt-1">{seller.phone}</p>
+                          <p className="font-medium text-gray-900">
+                            {seller.name}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {seller.email}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {seller.phone}
+                          </p>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <p className="font-medium text-gray-900">{seller.businessName}</p>
-                      <p className="text-sm text-gray-500">{seller.businessType}</p>
+                      <p className="font-medium text-gray-900">
+                        {seller.businessName}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {seller.businessType}
+                      </p>
                       <div className="flex items-center text-xs text-gray-400 mt-1">
                         <Calendar className="h-3 w-3 mr-1" />
                         {seller.registrationDate}
@@ -461,24 +537,28 @@ const Sellers = () => {
                     <td className="px-6 py-4">
                       <div className="space-y-2">
                         {getStatusBadge(seller.status)}
-                        <div>
-                          {getStoreStatusBadge(seller.storeStatus)}
-                        </div>
+                        <div>{getStoreStatusBadge(seller.storeStatus)}</div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="space-y-1">
                         <div className="text-sm">
                           <span className="text-gray-500">Products: </span>
-                          <span className="font-medium">{seller.totalProducts || 0}</span>
+                          <span className="font-medium">
+                            {seller.totalProducts || 0}
+                          </span>
                         </div>
                         <div className="text-sm">
                           <span className="text-gray-500">Orders: </span>
-                          <span className="font-medium">{seller.totalOrders || 0}</span>
+                          <span className="font-medium">
+                            {seller.totalOrders || 0}
+                          </span>
                         </div>
                         <div className="text-sm">
                           <span className="text-gray-500">Revenue: </span>
-                          <span className="font-medium">₹{seller.totalRevenue?.toLocaleString() || 0}</span>
+                          <span className="font-medium">
+                            ₹{seller.totalRevenue?.toLocaleString() || 0}
+                          </span>
                         </div>
                       </div>
                     </td>
@@ -492,7 +572,7 @@ const Sellers = () => {
                           View Details
                         </button>
                         <div className="flex gap-2">
-                          {seller.status === 'pending' && (
+                          {seller.status === "pending" && (
                             <button
                               onClick={() => handleVerify(seller._id)}
                               className="flex-1 px-3 py-2 bg-green-50 text-green-600 rounded-lg text-sm hover:bg-green-100 flex items-center justify-center gap-1"
@@ -501,14 +581,15 @@ const Sellers = () => {
                               Verify
                             </button>
                           )}
-                          {seller.status === 'suspended' ? (
+                          {seller.status === "suspended" ? (
                             <button
                               onClick={() => handleActivate(seller._id)}
                               className="flex-1 px-3 py-2 bg-green-50 text-green-600 rounded-lg text-sm hover:bg-green-100 flex items-center justify-center gap-1"
                             >
                               Activate
                             </button>
-                          ) : seller.status === 'verified' || seller.status === 'active' ? (
+                          ) : seller.status === "verified" ||
+                            seller.status === "active" ? (
                             <button
                               onClick={() => handleSuspend(seller._id)}
                               className="flex-1 px-3 py-2 bg-red-50 text-red-600 rounded-lg text-sm hover:bg-red-100 flex items-center justify-center gap-1"
@@ -585,15 +666,21 @@ const Sellers = () => {
                   <div className="space-y-3">
                     <div>
                       <p className="text-sm text-gray-500">Business Name</p>
-                      <p className="font-medium">{selectedSeller.businessName}</p>
+                      <p className="font-medium">
+                        {selectedSeller.businessName}
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Business Type</p>
-                      <p className="font-medium">{selectedSeller.businessType}</p>
+                      <p className="font-medium">
+                        {selectedSeller.businessType}
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Registration Date</p>
-                      <p className="font-medium">{selectedSeller.registrationDate}</p>
+                      <p className="font-medium">
+                        {selectedSeller.registrationDate}
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Store Status</p>
@@ -605,26 +692,36 @@ const Sellers = () => {
 
               {/* Performance Stats */}
               <div className="mb-6">
-                <h4 className="font-semibold mb-3 text-gray-700">Performance Metrics</h4>
+                <h4 className="font-semibold mb-3 text-gray-700">
+                  Performance Metrics
+                </h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="bg-gray-50 rounded-lg p-4">
                     <p className="text-sm text-gray-500 mb-1">Total Products</p>
-                    <p className="text-2xl font-bold text-gray-800">{selectedSeller.totalProducts || 0}</p>
+                    <p className="text-2xl font-bold text-gray-800">
+                      {selectedSeller.totalProducts || 0}
+                    </p>
                   </div>
                   <div className="bg-gray-50 rounded-lg p-4">
                     <p className="text-sm text-gray-500 mb-1">Total Orders</p>
-                    <p className="text-2xl font-bold text-gray-800">{selectedSeller.totalOrders || 0}</p>
+                    <p className="text-2xl font-bold text-gray-800">
+                      {selectedSeller.totalOrders || 0}
+                    </p>
                   </div>
                   <div className="bg-gray-50 rounded-lg p-4">
                     <p className="text-sm text-gray-500 mb-1">Total Revenue</p>
-                    <p className="text-2xl font-bold text-gray-800">₹{selectedSeller.totalRevenue?.toLocaleString() || 0}</p>
+                    <p className="text-2xl font-bold text-gray-800">
+                      ₹{selectedSeller.totalRevenue?.toLocaleString() || 0}
+                    </p>
                   </div>
                 </div>
               </div>
 
               {/* Documents */}
               <div className="mb-6">
-                <h4 className="font-semibold mb-3 text-gray-700">Verification Documents</h4>
+                <h4 className="font-semibold mb-3 text-gray-700">
+                  Verification Documents
+                </h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   {selectedSeller.documents?.map((doc, index) => (
                     <div key={index} className="border rounded-lg p-3">
@@ -637,7 +734,7 @@ const Sellers = () => {
                         )}
                       </div>
                       <div className="text-xs text-gray-500">
-                        Status: {doc.verified ? 'Verified' : 'Pending'}
+                        Status: {doc.verified ? "Verified" : "Pending"}
                       </div>
                     </div>
                   ))}
@@ -646,7 +743,7 @@ const Sellers = () => {
 
               {/* Action Buttons */}
               <div className="flex justify-end gap-4 pt-6 border-t">
-                {selectedSeller.status === 'pending' && (
+                {selectedSeller.status === "pending" && (
                   <button
                     onClick={() => {
                       handleVerify(selectedSeller._id);
@@ -657,7 +754,7 @@ const Sellers = () => {
                     Verify Seller
                   </button>
                 )}
-                {selectedSeller.status === 'suspended' && (
+                {selectedSeller.status === "suspended" && (
                   <button
                     onClick={() => {
                       handleActivate(selectedSeller._id);
@@ -668,7 +765,8 @@ const Sellers = () => {
                     Activate Seller
                   </button>
                 )}
-                {(selectedSeller.status === 'verified' || selectedSeller.status === 'active') && (
+                {(selectedSeller.status === "verified" ||
+                  selectedSeller.status === "active") && (
                   <button
                     onClick={() => {
                       handleSuspend(selectedSeller._id);

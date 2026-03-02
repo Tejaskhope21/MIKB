@@ -1,24 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import axios from 'axios';
-import { Star, MapPin, Briefcase, CheckCircle, Users } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import axios from "axios";
+import { Star, MapPin, Briefcase, CheckCircle, Users } from "lucide-react";
 
-const API_BASE = import.meta.env.VITE_API_URL ||
-        (window.location.hostname.includes('localhost') || window.location.hostname === '127.0.0.1')
-        ? 'https://bricks-backend-qyea.onrender.com/api/contractor'
-        : 'https://bricks-backend-qyea.onrender.com/api/contractor';
+const API_BASE =
+  import.meta.env.VITE_API_URL ||
+  window.location.hostname.includes("localhost") ||
+  window.location.hostname === "127.0.0.1"
+    ? "https://bricks-backend-qyea.onrender.com/api/contractor"
+    : "https://bricks-backend-qyea.onrender.com/api/contractor";
 
 const ContractorsListPage = () => {
   const [contractors, setContractors] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   // Filters state
-  const [search, setSearch] = useState('');
-  const [ratingFilter, setRatingFilter] = useState('');
-  const [experienceFilter, setExperienceFilter] = useState('');
-  const [locationFilter, setLocationFilter] = useState('');
-  const [specialtyFilter, setSpecialtyFilter] = useState('');
+  const [search, setSearch] = useState("");
+  const [ratingFilter, setRatingFilter] = useState("");
+  const [experienceFilter, setExperienceFilter] = useState("");
+  const [locationFilter, setLocationFilter] = useState("");
+  const [specialtyFilter, setSpecialtyFilter] = useState("");
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [withPortfolio, setWithPortfolio] = useState(false);
 
@@ -40,7 +42,7 @@ const ContractorsListPage = () => {
         const res = await axios.get(`${API_BASE}/filter/options`);
         setFilterOptions(res.data.options || {});
       } catch (err) {
-        console.error('Failed to load filter options');
+        console.error("Failed to load filter options");
       }
     };
     fetchFilterOptions();
@@ -49,11 +51,20 @@ const ContractorsListPage = () => {
   // Fetch contractors with filters
   useEffect(() => {
     fetchContractors();
-  }, [page, search, ratingFilter, experienceFilter, locationFilter, specialtyFilter, verifiedOnly, withPortfolio]);
+  }, [
+    page,
+    search,
+    ratingFilter,
+    experienceFilter,
+    locationFilter,
+    specialtyFilter,
+    verifiedOnly,
+    withPortfolio,
+  ]);
 
   const fetchContractors = async () => {
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
       let url = `${API_BASE}/?page=${page}&limit=12`;
@@ -62,8 +73,10 @@ const ContractorsListPage = () => {
       if (search) url += `&search=${encodeURIComponent(search)}`;
       if (ratingFilter) url += `&minRating=${ratingFilter}`;
       if (experienceFilter) url += `&minExperience=${experienceFilter}`;
-      if (locationFilter) url += `&location=${encodeURIComponent(locationFilter)}`;
-      if (specialtyFilter) url += `&specialty=${encodeURIComponent(specialtyFilter)}`;
+      if (locationFilter)
+        url += `&location=${encodeURIComponent(locationFilter)}`;
+      if (specialtyFilter)
+        url += `&specialty=${encodeURIComponent(specialtyFilter)}`;
       if (verifiedOnly) url += `&verified=true`;
       if (withPortfolio) url += `&withPortfolio=true`;
 
@@ -71,7 +84,7 @@ const ContractorsListPage = () => {
       setContractors(res.data.data || []);
       setTotalPages(res.data.pages || 1);
     } catch (err) {
-      setError('Failed to load contractors. Please try again.');
+      setError("Failed to load contractors. Please try again.");
       console.error(err);
     } finally {
       setLoading(false);
@@ -85,7 +98,7 @@ const ContractorsListPage = () => {
         {[1, 2, 3, 4, 5].map((i) => (
           <Star
             key={i}
-            className={`w-4 h-4 ${i <= num ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+            className={`w-4 h-4 ${i <= num ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
           />
         ))}
         <span className="ml-1 text-sm font-medium">{num.toFixed(1)}</span>
@@ -94,11 +107,11 @@ const ContractorsListPage = () => {
   };
 
   const handleResetFilters = () => {
-    setSearch('');
-    setRatingFilter('');
-    setExperienceFilter('');
-    setLocationFilter('');
-    setSpecialtyFilter('');
+    setSearch("");
+    setRatingFilter("");
+    setExperienceFilter("");
+    setLocationFilter("");
+    setSpecialtyFilter("");
     setVerifiedOnly(false);
     setWithPortfolio(false);
     setPage(1);
@@ -109,8 +122,12 @@ const ContractorsListPage = () => {
       {/* Header */}
       <div className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-8">
-          <h1 className="text-3xl font-bold text-gray-900">Find Trusted Contractors</h1>
-          <p className="text-gray-600 mt-2">Browse verified professionals for your next project</p>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Find Trusted Contractors
+          </h1>
+          <p className="text-gray-600 mt-2">
+            Browse verified professionals for your next project
+          </p>
         </div>
       </div>
 
@@ -131,11 +148,16 @@ const ContractorsListPage = () => {
 
               {/* Search */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Search
+                </label>
                 <input
                   type="text"
                   value={search}
-                  onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
                   placeholder="Company name, description..."
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
@@ -143,10 +165,15 @@ const ContractorsListPage = () => {
 
               {/* Rating */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Minimum Rating</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Minimum Rating
+                </label>
                 <select
                   value={ratingFilter}
-                  onChange={(e) => { setRatingFilter(e.target.value); setPage(1); }}
+                  onChange={(e) => {
+                    setRatingFilter(e.target.value);
+                    setPage(1);
+                  }}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Any Rating</option>
@@ -158,10 +185,15 @@ const ContractorsListPage = () => {
 
               {/* Experience */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Experience</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Experience
+                </label>
                 <select
                   value={experienceFilter}
-                  onChange={(e) => { setExperienceFilter(e.target.value); setPage(1); }}
+                  onChange={(e) => {
+                    setExperienceFilter(e.target.value);
+                    setPage(1);
+                  }}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Any Experience</option>
@@ -173,11 +205,16 @@ const ContractorsListPage = () => {
 
               {/* Location */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Location
+                </label>
                 <input
                   type="text"
                   value={locationFilter}
-                  onChange={(e) => { setLocationFilter(e.target.value); setPage(1); }}
+                  onChange={(e) => {
+                    setLocationFilter(e.target.value);
+                    setPage(1);
+                  }}
                   placeholder="City or State"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
@@ -185,10 +222,15 @@ const ContractorsListPage = () => {
 
               {/* Specialty */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Specialty</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Specialty
+                </label>
                 <select
                   value={specialtyFilter}
-                  onChange={(e) => { setSpecialtyFilter(e.target.value); setPage(1); }}
+                  onChange={(e) => {
+                    setSpecialtyFilter(e.target.value);
+                    setPage(1);
+                  }}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">All Specialties</option>
@@ -206,10 +248,15 @@ const ContractorsListPage = () => {
                   <input
                     type="checkbox"
                     checked={verifiedOnly}
-                    onChange={(e) => { setVerifiedOnly(e.target.checked); setPage(1); }}
+                    onChange={(e) => {
+                      setVerifiedOnly(e.target.checked);
+                      setPage(1);
+                    }}
                     className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
                   />
-                  <span className="text-sm font-medium">Verified Contractors Only</span>
+                  <span className="text-sm font-medium">
+                    Verified Contractors Only
+                  </span>
                 </label>
               </div>
 
@@ -219,10 +266,15 @@ const ContractorsListPage = () => {
                   <input
                     type="checkbox"
                     checked={withPortfolio}
-                    onChange={(e) => { setWithPortfolio(e.target.checked); setPage(1); }}
+                    onChange={(e) => {
+                      setWithPortfolio(e.target.checked);
+                      setPage(1);
+                    }}
                     className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
                   />
-                  <span className="text-sm font-medium">Has Portfolio Projects</span>
+                  <span className="text-sm font-medium">
+                    Has Portfolio Projects
+                  </span>
                 </label>
               </div>
             </div>
@@ -240,7 +292,9 @@ const ContractorsListPage = () => {
               </div>
             ) : contractors.length === 0 ? (
               <div className="text-center py-12 bg-white rounded-xl shadow-sm">
-                <p className="text-xl text-gray-600">No contractors found matching your filters.</p>
+                <p className="text-xl text-gray-600">
+                  No contractors found matching your filters.
+                </p>
                 <button
                   onClick={handleResetFilters}
                   className="mt-4 text-blue-600 hover:underline"
@@ -269,28 +323,34 @@ const ContractorsListPage = () => {
                           {contractor.isVerified && (
                             <div className="flex items-center gap-1 text-green-600">
                               <CheckCircle className="w-5 h-5" />
-                              <span className="text-sm font-medium">Verified</span>
+                              <span className="text-sm font-medium">
+                                Verified
+                              </span>
                             </div>
                           )}
                         </div>
 
                         <p className="text-gray-600 mb-4 line-clamp-2">
-                          {contractor.description || 'Professional contractor services'}
+                          {contractor.description ||
+                            "Professional contractor services"}
                         </p>
 
                         <div className="space-y-3">
                           <div className="flex items-center gap-2 text-sm text-gray-600">
                             <MapPin className="w-4 h-4" />
                             <span>
-                              {contractor.address?.city && contractor.address?.state
+                              {contractor.address?.city &&
+                              contractor.address?.state
                                 ? `${contractor.address.city}, ${contractor.address.state}`
-                                : 'Location not listed'}
+                                : "Location not listed"}
                             </span>
                           </div>
 
                           <div className="flex items-center gap-2 text-sm text-gray-600">
                             <Briefcase className="w-4 h-4" />
-                            <span>{contractor.experience || 0} years experience</span>
+                            <span>
+                              {contractor.experience || 0} years experience
+                            </span>
                           </div>
 
                           <div className="flex items-center justify-between">
@@ -300,12 +360,16 @@ const ContractorsListPage = () => {
                             </span>
                           </div>
 
-                          {contractor.portfolio && contractor.portfolio.length > 0 && (
-                            <div className="flex items-center gap-2 text-sm text-blue-600">
-                              <Users className="w-4 h-4" />
-                              <span>{contractor.portfolio.length} projects in portfolio</span>
-                            </div>
-                          )}
+                          {contractor.portfolio &&
+                            contractor.portfolio.length > 0 && (
+                              <div className="flex items-center gap-2 text-sm text-blue-600">
+                                <Users className="w-4 h-4" />
+                                <span>
+                                  {contractor.portfolio.length} projects in
+                                  portfolio
+                                </span>
+                              </div>
+                            )}
                         </div>
                       </div>
                     </Link>

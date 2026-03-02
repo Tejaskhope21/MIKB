@@ -5,6 +5,7 @@ import {
     sellerRegister,
     sellerLogin,
     adminLogin,
+    adminRegister,
     getMe
 } from '../controllers/auth.controller.js';
 
@@ -53,6 +54,11 @@ router.post(
 router.post(
     '/admin/login',
     adminLogin
+);
+
+router.post(
+    '/admin/register',
+    adminRegister
 );
 
 /* =======================

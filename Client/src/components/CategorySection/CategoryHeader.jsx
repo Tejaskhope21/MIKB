@@ -1,189 +1,218 @@
-// components/CategoryHeader.jsx - UPDATED
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { fetchCategories } from '../../services/api';
-import "../../index.css"
+// src/components/CategoryHeader.jsx
+import React, { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
 
 const CategoryHeader = () => {
-    const [categories, setCategories] = useState([]);
-    const [hoveredIndex, setHoveredIndex] = useState(null);
-    const [isSubHovered, setIsSubHovered] = useState(false);
-    const [error, setError] = useState(null);
-    const navigate = useNavigate();
+  const [categories, setCategories] = useState([]);
+  const [activeCatId, setActiveCatId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-    useEffect(() => {
-        fetchCategories()
-            .then(data => {
-                const enriched = data.map(cat => ({
-                    ...cat,
-                    id: cat.numericId || cat.id || cat._id
-                }));
-                setCategories(enriched);
-            })
-            .catch(err => {
-                console.error(err);
-                setError('Failed to load categories menu');
-            });
-    }, []);
+  const menuRef = useRef(null);
 
-    // Function to handle category click (goes to category page with all subcategories)
-    const handleCategoryClick = (categoryId, categoryName) => {
-        navigate(`/category/${categoryId}`, { 
-            state: { categoryName: categoryName }
-        });
-    };
+  // Fetch categories
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        // Prefer relative path → assumes Vite proxy is configured
+        const res = await fetch(
+          "https://bricks-backend-qyea.onrender.com/api/categories/public/categories",
+          {
+            headers: {
+              Accept: "application/json",
+            },
+            // credentials: 'include', // uncomment only if you need cookies/auth
+          },
+        );
 
-    // Function to handle subcategory click (goes to category page with subcategory pre-filtered)
-    const handleSubcategoryClick = (categoryId, subcategoryTitle, subcategoryId, categoryName) => {
-        // Navigate to the category page with the subcategory pre-selected
-        navigate(`/category/${categoryId}`, { 
-            state: { 
-                categoryName: categoryName,
-                subcategoryName: subcategoryTitle,
-                subcategoryId: subcategoryId
-            }
-        });
-    };
-
-    // Extract all subcategories with their IDs
-    const getAllSubcategories = (category) => {
-        if (!category.subcategories || !Array.isArray(category.subcategories)) {
-            return [];
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status} - ${res.statusText}`);
         }
-        
-        const allSubcategories = [];
-        
-        category.subcategories.forEach(subcat => {
-            // If the subcategory has a title and ID, add it
-            if (subcat.title && subcat._id) {
-                allSubcategories.push({
-                    title: subcat.title,
-                    id: subcat._id,
-                    numericId: subcat.numericId
-                });
-            }
-            
-            // Also check if there are items that should be treated as subcategories
-            if (subcat.items && Array.isArray(subcat.items)) {
-                subcat.items.forEach(item => {
-                    // For items without specific IDs, use a generated ID
-                    allSubcategories.push({
-                        title: item,
-                        id: `item-${item.toLowerCase().replace(/\s+/g, '-')}`,
-                        numericId: null
-                    });
-                });
-            }
-        });
-        
-        return allSubcategories;
+
+        const json = await res.json();
+
+        if (!json.success) {
+          throw new Error(json.message || "API response was not successful");
+        }
+
+        const data = Array.isArray(json.data) ? json.data : [];
+        setCategories(data);
+      } catch (err) {
+        console.error("Failed to load categories:", err);
+        setError("Failed to load navigation menu. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
     };
 
-    if (error) {
-        return <nav className="bg-white shadow-md py-4 text-center text-red-600 text-sm">{error}</nav>;
-    }
+    fetchCategories();
+  }, []);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setActiveCatId(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  if (error) {
     return (
-        <nav 
-            className="relative bg-white shadow-md"
-            onMouseLeave={() => !isSubHovered && setHoveredIndex(null)}
-        >
-            {/* Main Categories Header */}
-            <div className="container mx-auto px-4">
-                <div className="flex overflow-x-auto py-3 space-x-1 scrollbar-hide">
-                    {categories.map((cat, i) => (
-                        <div 
-                            key={cat.id} 
-                            onMouseEnter={() => setHoveredIndex(i)} 
-                            className="relative"
-                        >
-                            <button 
-                                onClick={() => handleCategoryClick(cat.id, cat.name)}
-                                className={`px-4 py-2 text-sm font-medium whitespace-nowrap rounded-md transition-colors ${
-                                    hoveredIndex === i 
-                                        ? "text-[#800000] bg-red-50" 
-                                        : "text-gray-600 hover:text-[#800000] hover:bg-gray-50"
-                                }`}
-                            >
-                                {cat.name}
-                            </button>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* 4-Column Subcategories Dropdown */}
-            {hoveredIndex !== null && categories[hoveredIndex]?.subcategories?.length > 0 && (
-                <div
-                    className="absolute left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50"
-                    onMouseEnter={() => setIsSubHovered(true)}
-                    onMouseLeave={() => { 
-                        setIsSubHovered(false); 
-                        setHoveredIndex(null); 
-                    }}
-                    style={{ 
-                        top: "100%",
-                    }}
-                >
-                    <div className="container mx-auto px-4 py-6">
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-xl font-bold text-gray-800">
-                                {categories[hoveredIndex].name}
-                            </h2>
-                            {/* <Link 
-                                to={`/category/${categories[hoveredIndex].id}`}
-                                state={{ categoryName: categories[hoveredIndex].name }}
-                                className="text-[#800000] hover:text-red-700 font-medium text-sm flex items-center gap-1 border border-[#800000] px-3 py-1.5 rounded-md hover:bg-red-50 transition-colors"
-                            >
-                                View All Categories
-                                <span className="ml-1">→</span>
-                            </Link> */}
-                        </div>
-                        
-                        {/* 4-Column Grid Subcategories */}
-                        <div className="max-h-[30vh] overflow-y-auto pr-2 scrollbar-hide">
-                            <div className="grid grid-cols-4 gap-x-6 gap-y-3">
-                                {getAllSubcategories(categories[hoveredIndex]).map((subcategory, index) => (
-                                    <div key={subcategory.id} className="w-full">
-                                        <button
-                                            onClick={() => handleSubcategoryClick(
-                                                categories[hoveredIndex].id, 
-                                                subcategory.title,
-                                                subcategory.id,
-                                                categories[hoveredIndex].name
-                                            )}
-                                            className="w-full text-left px-3 py-2.5 text-gray-700 hover:text-[#800000] hover:bg-gray-50 rounded-md transition-colors duration-150 group"
-                                        >
-                                            <div className="flex items-center">
-                                                <span className="font-medium text-sm group-hover:font-semibold transition-all">
-                                                    {subcategory.title}
-                                                </span>
-                                                <span className="ml-2 text-xs text-gray-400 group-hover:text-[#800000] opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    →
-                                                </span>
-                                            </div>
-                                            {subcategory.description && (
-                                                <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-                                                    {subcategory.description}
-                                                </p>
-                                            )}
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                        
-                        {/* Display count of subcategories */}
-                        <div className="mt-4 pt-3 border-t border-gray-100">
-                            <p className="text-xs text-gray-500">
-                                Showing {getAllSubcategories(categories[hoveredIndex]).length} subcategories
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </nav>
+      <nav className="bg-white border-b py-5 text-center text-red-600 font-medium">
+        {error}
+        <br />
+        <small className="text-gray-500 text-sm mt-1 block">
+          (check backend is running & network tab)
+        </small>
+      </nav>
     );
+  }
+
+  if (loading) {
+    return (
+      <nav className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="h-16 flex items-center justify-center gap-8 md:gap-12 animate-pulse">
+            {[...Array(7)].map((_, i) => (
+              <div key={i} className="h-5 w-20 md:w-28 bg-gray-200 rounded" />
+            ))}
+          </div>
+        </div>
+      </nav>
+    );
+  }
+
+  if (categories.length === 0) {
+    return (
+      <nav className="bg-white border-b py-5 text-center text-gray-600">
+        No categories available
+      </nav>
+    );
+  }
+
+  return (
+    <nav
+      className="bg-white border-b border-gray-200 relative z-50"
+      ref={menuRef}
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <ul className="flex items-center justify-center gap-6 md:gap-9 lg:gap-11 text-sm md:text-base font-medium text-gray-800">
+          {categories.map((cat) => {
+            if (!cat?._id || !cat?.name) return null;
+
+            const catSlug = cat.name
+              .toLowerCase()
+              .trim()
+              .replace(/\s+/g, "-")
+              .replace(/[^a-z0-9-]/g, "");
+
+            return (
+              <li
+                key={cat._id}
+                className="relative group"
+                onMouseEnter={() => setActiveCatId(cat._id)}
+                onMouseLeave={() => setActiveCatId(null)}
+              >
+                <Link
+                  to={`/category/${catSlug}`}
+                  className="py-4 md:py-5 block px-2 hover:text-[#800000] transition-colors uppercase tracking-wide whitespace-nowrap"
+                >
+                  {cat.name}
+                </Link>
+
+                {activeCatId === cat._id &&
+                  Array.isArray(cat.subCategories) &&
+                  cat.subCategories.length > 0 && (
+                    <div className="absolute left-1/2 -translate-x-1/2 top-full w-screen max-w-7xl bg-white shadow-2xl border-t border-gray-200">
+                      <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 gap-6 md:gap-8 px-6 md:px-10 py-8">
+                        {cat.subCategories.map((sub) => {
+                          const subName = sub.name || sub.title || "Unnamed";
+                          if (!sub?._id) return null;
+
+                          const subSlug = subName
+                            .toLowerCase()
+                            .trim()
+                            .replace(/\s+/g, "-")
+                            .replace(/[^a-z0-9-]/g, "");
+
+                          return (
+                            <div
+                              key={sub._id}
+                              className="min-w-[140px] space-y-3"
+                            >
+                              <h3 className="font-bold text-gray-900 uppercase text-xs sm:text-sm tracking-wide">
+                                <Link
+                                  to={`/category/${catSlug}/${subSlug}`}
+                                  className="hover:text-[#800000] transition-colors"
+                                >
+                                  {subName}
+                                </Link>
+                              </h3>
+
+                              {Array.isArray(sub.items) &&
+                              sub.items.length > 0 ? (
+                                <ul className="space-y-1.5 text-sm text-gray-700">
+                                  {sub.items.map((item) => {
+                                    if (!item?._id || !item?.name) return null;
+
+                                    const itemSlug = item.name
+                                      .toLowerCase()
+                                      .trim()
+                                      .replace(/\s+/g, "-")
+                                      .replace(/[^a-z0-9-]/g, "");
+
+                                    return (
+                                      <li key={item._id}>
+                                        <Link
+                                          to={`/category/${catSlug}/${subSlug}/${itemSlug}`}
+                                          className="hover:text-[#800000] hover:underline transition-colors block py-0.5 text-gray-600"
+                                        >
+                                          {item.name}
+                                        </Link>
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
+                              ) : (
+                                <p className="text-xs text-gray-500 italic">
+                                  No items available
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Optional: Add a footer section with a view all button */}
+                      <div className="border-t border-gray-100 px-6 md:px-10 py-4 bg-gray-50">
+                        <div className="flex justify-between items-center">
+                          <p className="text-sm text-gray-500">
+                            Showing {cat.subCategories.length} subcategories
+                          </p>
+                          <Link
+                            to={`/category/${catSlug}`}
+                            className="text-sm text-[#800000] hover:text-red-700 font-medium flex items-center gap-1"
+                          >
+                            View all in {cat.name}
+                            <span className="ml-1">→</span>
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </nav>
+  );
 };
 
 export default CategoryHeader;

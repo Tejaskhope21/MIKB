@@ -1,6 +1,8 @@
 // services/api.js
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://bricks-backend-qyea.onrender.com/api/v1';
+const API_BASE_URL =
+  process.env.EXPO_PUBLIC_API_URL ||
+  "https://bricks-backend-qyea.onrender.com/api/v1";
 
 // Hot Deals API
 export const fetchHotDeals = async (limit = 10) => {
@@ -10,20 +12,21 @@ export const fetchHotDeals = async (limit = 10) => {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = await response.json();
-    
+
     if (data.success) {
       // Transform the data to match frontend structure
-      return data.products.map(product => ({
+      return data.products.map((product) => ({
         id: product._id,
         _id: product._id,
         name: product.name,
-        brand: product.brand || 'Brand',
-        price: product.discount && product.discount > 0 
-          ? calculateDiscountedPrice(product.price, product.discount)
-          : Number(product.price) || 0,
+        brand: product.brand || "Brand",
+        price:
+          product.discount && product.discount > 0
+            ? calculateDiscountedPrice(product.price, product.discount)
+            : Number(product.price) || 0,
         originalPrice: Number(product.price) || 0,
         // discount: product.discount || 0,
-        images: product.images ,
+        images: product.images,
         inStock: product.inStock !== false,
         // rating: Number(product.rating) || 4.0,
         category: product.category,
@@ -37,7 +40,7 @@ export const fetchHotDeals = async (limit = 10) => {
     }
     return [];
   } catch (error) {
-    console.error('Error fetching hot deals:', error);
+    console.error("Error fetching hot deals:", error);
     return [];
   }
 };
@@ -46,17 +49,17 @@ export const fetchHotDeals = async (limit = 10) => {
 export const trackHotDealView = async (productId) => {
   try {
     const response = await fetch(`${API_BASE_URL}/deals/view/${productId}`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     });
-    
+
     if (!response.ok) {
-      console.error('Failed to track view');
+      console.error("Failed to track view");
     }
   } catch (error) {
-    console.error('Error tracking hot deal view:', error);
+    console.error("Error tracking hot deal view:", error);
   }
 };
 
@@ -64,17 +67,17 @@ export const trackHotDealView = async (productId) => {
 export const trackHotDealClick = async (productId) => {
   try {
     const response = await fetch(`${API_BASE_URL}/deals/click/${productId}`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     });
-    
+
     if (!response.ok) {
-      console.error('Failed to track click');
+      console.error("Failed to track click");
     }
   } catch (error) {
-    console.error('Error tracking hot deal click:', error);
+    console.error("Error tracking hot deal click:", error);
   }
 };
 
@@ -89,16 +92,15 @@ const calculateDiscountedPrice = (price, discount) => {
 // Update the formatPrice function to handle discounted prices
 export const formatPrice = (price) => {
   const numPrice = Number(price);
-  if (isNaN(numPrice)) return '₹0';
-  
+  if (isNaN(numPrice)) return "₹0";
+
   if (numPrice >= 100000) {
     return `₹${(numPrice / 100000).toFixed(1)}L`;
   } else if (numPrice >= 1000) {
     return `₹${(numPrice / 1000).toFixed(1)}K`;
   }
-  return `₹${numPrice.toLocaleString('en-IN')}`;
+  return `₹${numPrice.toLocaleString("en-IN")}`;
 };
-
 
 // Trending Products API - Exact same format as hot deals
 export const fetchTrendingProducts = async (limit = 8) => {
@@ -108,18 +110,21 @@ export const fetchTrendingProducts = async (limit = 8) => {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = await response.json();
-    
+
     if (data.success) {
       // Transform the data to match frontend structure
-      return data.products.map(product => ({
+      return data.products.map((product) => ({
         id: product._id,
         _id: product._id,
         name: product.name,
-        brand: product.brand || 'Brand',
+        brand: product.brand || "Brand",
         price: Number(product.price) || 0,
-        originalPrice: Number(product.originalPrice) || Number(product.price) || 0,
+        originalPrice:
+          Number(product.originalPrice) || Number(product.price) || 0,
         discount: product.discount || 0,
-        image: product.images?.[0] || 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400',
+        image:
+          product.images?.[0] ||
+          "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400",
         images: product.images || [],
         inStock: product.inStock !== false,
         // rating: Number(product.rating) || 4.0,
@@ -135,7 +140,7 @@ export const fetchTrendingProducts = async (limit = 8) => {
     }
     return [];
   } catch (error) {
-    console.error('Error fetching trending products:', error);
+    console.error("Error fetching trending products:", error);
     return [];
   }
 };
@@ -143,38 +148,39 @@ export const fetchTrendingProducts = async (limit = 8) => {
 export const trackTrendingView = async (productId) => {
   try {
     const response = await fetch(`${API_BASE_URL}/trending/view/${productId}`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     });
-    
+
     if (!response.ok) {
-      console.error('Failed to track trending view');
+      console.error("Failed to track trending view");
     }
   } catch (error) {
-    console.error('Error tracking trending view:', error);
+    console.error("Error tracking trending view:", error);
   }
 };
 
 export const trackTrendingClick = async (productId) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/trending/click/${productId}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    const response = await fetch(
+      `${API_BASE_URL}/trending/click/${productId}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
       },
-    });
-    
+    );
+
     if (!response.ok) {
-      console.error('Failed to track trending click');
+      console.error("Failed to track trending click");
     }
   } catch (error) {
-    console.error('Error tracking trending click:', error);
+    console.error("Error tracking trending click:", error);
   }
 };
-
-
 
 /* ===============================
    SAFE FETCH (RN compatible)
@@ -184,7 +190,7 @@ const safeFetch = async (url) => {
 
   const data = await res.json();
   if (!res.ok) {
-    throw new Error(data?.error || 'Request failed');
+    throw new Error(data?.error || "Request failed");
   }
   return data;
 };
@@ -200,19 +206,19 @@ export const searchAutocomplete = async (query, limit = 8) => {
         products: [],
         categories: [],
         subcategories: [],
-        query: '',
+        query: "",
         totalResults: 0,
       };
     }
 
     const url = `${API_BASE_URL}/search/autocomplete?q=${encodeURIComponent(
-      query
+      query,
     )}&limit=${limit}`;
 
     const data = await safeFetch(url);
 
     if (data.success === false) {
-      console.warn('Search autocomplete failed:', data.error);
+      console.warn("Search autocomplete failed:", data.error);
       return {
         success: false,
         products: [],
@@ -220,7 +226,7 @@ export const searchAutocomplete = async (query, limit = 8) => {
         subcategories: [],
         query,
         totalResults: 0,
-        error: data.error || 'Search failed',
+        error: data.error || "Search failed",
       };
     }
 
@@ -233,7 +239,7 @@ export const searchAutocomplete = async (query, limit = 8) => {
       totalResults: data.totalResults || 0,
     };
   } catch (err) {
-    console.error('searchAutocomplete error:', err);
+    console.error("searchAutocomplete error:", err);
     return {
       success: false,
       products: [],
@@ -241,7 +247,7 @@ export const searchAutocomplete = async (query, limit = 8) => {
       subcategories: [],
       query,
       totalResults: 0,
-      error: err.message || 'Network error',
+      error: err.message || "Network error",
     };
   }
 };
@@ -261,30 +267,33 @@ export const hasSearchResults = (searchData) => {
 /* ===============================
    TRENDING PRODUCTS WITH FILTERS
 ================================ */
-export const fetchAllTrendingProducts = async (limit = 20, category = '') => {
+export const fetchAllTrendingProducts = async (limit = 20, category = "") => {
   try {
     let url = `${API_BASE_URL}/trending/all?limit=${limit}`;
     if (category) {
       url += `&category=${encodeURIComponent(category)}`;
     }
-    
+
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = await response.json();
-    
+
     if (data.success) {
       // Transform the data to match frontend structure
-      return data.products.map(product => ({
+      return data.products.map((product) => ({
         id: product._id,
         _id: product._id,
         name: product.name,
-        brand: product.brand || 'Brand',
+        brand: product.brand || "Brand",
         price: Number(product.price) || 0,
-        originalPrice: Number(product.originalPrice) || Number(product.price) || 0,
+        originalPrice:
+          Number(product.originalPrice) || Number(product.price) || 0,
         discount: product.discount || 0,
-        image: product.images?.[0] || 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400',
+        image:
+          product.images?.[0] ||
+          "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400",
         images: product.images || [],
         inStock: product.inStock !== false,
         category: product.category,
@@ -299,7 +308,7 @@ export const fetchAllTrendingProducts = async (limit = 20, category = '') => {
     }
     return [];
   } catch (error) {
-    console.error('Error fetching all trending products:', error);
+    console.error("Error fetching all trending products:", error);
     return [];
   }
 };
@@ -314,19 +323,21 @@ export const fetchTrendingCategories = async () => {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = await response.json();
-    
+
     if (data.success) {
-      return data.categories.map(cat => ({
+      return data.categories.map((cat) => ({
         id: cat._id,
         _id: cat._id,
         name: cat.name,
-        image: cat.image || `https://via.placeholder.com/80/cccccc/ffffff?text=${(cat.name || '?').charAt(0)}`,
+        image:
+          cat.image ||
+          `https://via.placeholder.com/80/cccccc/ffffff?text=${(cat.name || "?").charAt(0)}`,
         count: cat.count || 0,
       }));
     }
     return [];
   } catch (error) {
-    console.error('Error fetching trending categories:', error);
+    console.error("Error fetching trending categories:", error);
     return [];
   }
 };

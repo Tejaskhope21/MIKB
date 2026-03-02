@@ -1,190 +1,171 @@
 import React, { useEffect, useState } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import {
+  Link,
+  useParams,
+  useSearchParams,
+  useNavigate,
+} from "react-router-dom";
 import axios from "axios";
 
+/* ===============================
+   AXIOS INSTANCE
+================================ */
 const API = axios.create({
   baseURL: "https://bricks-backend-qyea.onrender.com/api/v1",
 });
 
-const AllProductsPage = () => {
+/* ===============================
+   COMPONENT
+================================ */
+const ItemTypeProducts = () => {
+  const { categorySlug, subCategorySlug, itemTypeSlug } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  // ================= STATES =================
-  const [categories, setCategories] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState(null);
-
   const [products, setProducts] = useState([]);
-  const [subCategories, setSubCategories] = useState([]);
-  const [itemTypes, setItemTypes] = useState([]);
   const [brands, setBrands] = useState([]);
-
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState("");
 
-  // ================= FILTER STATE =================
+  const [ids, setIds] = useState({
+    categoryId: "",
+    subCategoryId: "",
+    itemTypeId: "",
+  });
+
+  const [categoryData, setCategoryData] = useState(null);
+  const [subCategoryData, setSubCategoryData] = useState(null);
+  const [itemTypeData, setItemTypeData] = useState(null);
+
+  /* ===============================
+     FILTER STATE
+  ================================ */
   const [filters, setFilters] = useState({
-    subCategoryId: searchParams.get("subCategoryId") || "",
-    itemTypeId: searchParams.get("itemTypeId") || "",
     brand: searchParams.get("brand") || "",
     minPrice: searchParams.get("minPrice") || "",
     maxPrice: searchParams.get("maxPrice") || "",
   });
 
-  // ================= ACTIVE FILTERS (for API calls) =================
   const [activeFilters, setActiveFilters] = useState({});
 
-  // ================= SYNC FILTERS → URL =================
+  /* ===============================
+     SYNC FILTERS → URL
+  ================================ */
   useEffect(() => {
     const params = {};
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value) params[key] = value;
+    Object.entries(filters).forEach(([k, v]) => {
+      if (v) params[k] = v;
     });
     setSearchParams(params, { replace: true });
   }, [filters, setSearchParams]);
 
-  // ================= FETCH CATEGORIES =================
-  const fetchCategories = async () => {
+  /* ===============================
+     RESOLVE IDS FROM SLUGS
+  ================================ */
+  const resolveIds = async () => {
     try {
+      setLoading(true);
+      setError("");
+
       const res = await API.get("/categories/public/categories");
-      const data = Array.isArray(res.data?.data) ? res.data.data : [];
+      const categories = res.data?.data || [];
 
-      setCategories(data);
+      const category = categories.find((c) => c.slug === categorySlug);
+      if (!category) return setError("Category not found");
 
-      // Auto select first category
-      if (data.length > 0) {
-        setSelectedCategory(data[0]);
-        setSubCategories(data[0].subCategories || []);
-        setItemTypes(
-          data[0].subCategories?.flatMap((s) => s.items || []) || [],
-        );
-      }
+      const subCategory = category.subCategories?.find(
+        (sc) => sc.slug === subCategorySlug,
+      );
+      if (!subCategory) return setError("Subcategory not found");
+
+      const itemType = subCategory.items?.find(
+        (it) => it.slug === itemTypeSlug,
+      );
+      if (!itemType) return setError("Item type not found");
+
+      setIds({
+        categoryId: category._id,
+        subCategoryId: subCategory._id,
+        itemTypeId: itemType._id,
+      });
+
+      setCategoryData(category);
+      setSubCategoryData(subCategory);
+      setItemTypeData(itemType);
     } catch (err) {
       console.error(err);
       setError("Failed to load categories");
     }
   };
 
-  // ================= FETCH PRODUCTS =================
-  const fetchProducts = async (categoryId) => {
+  /* ===============================
+     FETCH PRODUCTS
+  ================================ */
+  const fetchProducts = async () => {
     try {
       setLoading(true);
-      setError(null);
 
-      const res = await API.get(
-        categoryId ? `/products/category/${categoryId}` : "/products/public",
-        { params: activeFilters },
-      );
+      const res = await API.get("/products/public", {
+        params: {
+          ...ids,
+          ...activeFilters,
+        },
+      });
 
-      const data = Array.isArray(res.data?.products)
-        ? res.data.products
-        : Array.isArray(res.data?.data)
-          ? res.data.data
-          : [];
+      const list = res.data?.products || [];
+      setProducts(list);
 
-      setProducts(data);
-
-      // Extract brands
-      const uniqueBrands = [
-        ...new Set(data.map((p) => p.brand).filter(Boolean)),
-      ];
-      setBrands(uniqueBrands);
+      setBrands([...new Set(list.map((p) => p.brand).filter(Boolean))]);
     } catch (err) {
       console.error(err);
       setError("Failed to load products");
-      setProducts([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // ================= CATEGORY CLICK =================
-  const handleCategoryClick = (category) => {
-    setSelectedCategory(category);
-    setSubCategories(category.subCategories || []);
-    setItemTypes(category.subCategories?.flatMap((s) => s.items || []) || []);
-
-    // Clear all filters when category changes
-    const newFilters = {
-      subCategoryId: "",
-      itemTypeId: "",
-      brand: "",
-      minPrice: "",
-      maxPrice: "",
-    };
-
-    setFilters(newFilters);
-    setActiveFilters({}); // Also clear active filters
-  };
-
-  // ================= SUB CATEGORY CHANGE =================
-  const handleSubCategoryChange = (subCategoryId) => {
-    setFilters((prev) => ({
-      ...prev,
-      subCategoryId,
-      itemTypeId: "", // Clear item type when subcategory changes
-    }));
-
-    if (!subCategoryId) {
-      setItemTypes(
-        selectedCategory?.subCategories?.flatMap((s) => s.items || []) || [],
-      );
-      return;
-    }
-
-    const sub = selectedCategory?.subCategories?.find(
-      (s) => s._id === subCategoryId,
-    );
-
-    setItemTypes(sub?.items || []);
-  };
-
-  // ================= APPLY FILTERS =================
+  /* ===============================
+     HANDLERS
+  ================================ */
   const applyFilters = () => {
-    // Set active filters to current filter values
     setActiveFilters({ ...filters });
   };
 
   const clearFilters = () => {
     const clearedFilters = {
-      subCategoryId: "",
-      itemTypeId: "",
       brand: "",
       minPrice: "",
       maxPrice: "",
     };
-
     setFilters(clearedFilters);
-    setActiveFilters(clearedFilters); // Also clear active filters
-
-    // Reset item types to all items in selected category
-    setItemTypes(
-      selectedCategory?.subCategories?.flatMap((s) => s.items || []) || [],
-    );
+    setActiveFilters(clearedFilters);
   };
 
-  // ================= INITIAL LOAD =================
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  // ================= FETCH PRODUCTS ON CHANGE =================
-  useEffect(() => {
-    if (selectedCategory?._id) {
-      fetchProducts(selectedCategory._id);
-    }
-  }, [selectedCategory, activeFilters]);
-
-  // ================= HANDLE PRODUCT CLICK =================
   const handleProductClick = (productId) => {
     navigate(`/product/${productId}`);
   };
 
-  // ================= SKELETON LOADER =================
+  /* ===============================
+     EFFECTS
+  ================================ */
+  useEffect(() => {
+    resolveIds();
+  }, [categorySlug, subCategorySlug, itemTypeSlug]);
+
+  useEffect(() => {
+    if (ids.itemTypeId) fetchProducts();
+  }, [ids, activeFilters]);
+
+  /* ===============================
+     SKELETON LOADER
+  ================================ */
   const SkeletonLoader = () => (
     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
       {[...Array(9)].map((_, index) => (
-        <div key={index} className="bg-white shadow-sm border border-gray-100">
+        <div
+          key={index}
+          className="bg-white shadow-sm border border-gray-100 rounded-xl overflow-hidden"
+        >
           <div className="h-64 bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse"></div>
           <div className="p-5 space-y-3">
             <div className="h-5 bg-gray-200 rounded animate-pulse"></div>
@@ -196,46 +177,98 @@ const AllProductsPage = () => {
     </div>
   );
 
-  // Check if any filter is active
+  /* ===============================
+     CHECK ACTIVE FILTERS
+  ================================ */
   const hasActiveFilters = Object.values(activeFilters).some(
     (value) => value !== "",
   );
 
-  // ================= UI =================
+  /* ===============================
+     UI STATES
+  ================================ */
+  if (error && !loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="bg-gradient-to-r from-red-50 to-pink-50 border border-red-100 p-12 text-center rounded-xl">
+            <div className="text-red-500 text-5xl mb-4">⚠️</div>
+            <h3 className="text-2xl font-bold text-gray-800 mb-4">{error}</h3>
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-[#800000] hover:bg-[#600000] text-white font-medium rounded-lg hover:shadow-md transition-all"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                />
+              </svg>
+              Back to Home
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ===============================
+     RENDER
+  ================================ */
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* BREADCRUMB */}
+        <nav className="flex items-center text-sm text-gray-600 mb-8 flex-wrap">
+          <Link
+            to="/"
+            className="hover:text-[#800000] transition-colors inline-flex items-center gap-1"
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+            </svg>
+            Home
+          </Link>
+          <span className="mx-2">›</span>
+          <Link
+            to={`/category/${ids.categoryId}`}
+            className="hover:text-[#800000] transition-colors capitalize"
+          >
+            {categoryData?.name || categorySlug?.replace(/-/g, " ")}
+          </Link>
+          <span className="mx-2">›</span>
+          <span className="text-gray-900 font-medium capitalize">
+            {subCategoryData?.name || subCategorySlug?.replace(/-/g, " ")}
+          </span>
+          <span className="mx-2">›</span>
+          <span className="font-bold text-[#800000] capitalize">
+            {itemTypeData?.name || itemTypeSlug?.replace(/-/g, " ")}
+          </span>
+        </nav>
+
         {/* HEADER */}
-        <div className="mb-10">
-          <h1 className="text-3xl font-bold text-gray-900 mb-3">
-            All Products
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-3 capitalize">
+            {itemTypeData?.name || itemTypeSlug?.replace(/-/g, " ")}
           </h1>
-          <p className="text-gray-600">
-            Browse through our extensive collection of premium products
-          </p>
+          {itemTypeData?.description && (
+            <p className="text-gray-600 max-w-3xl">
+              {itemTypeData.description}
+            </p>
+          )}
         </div>
 
-        {/* CATEGORY TABS */}
-        <div className="flex gap-3 mb-8 overflow-x-auto pb-2">
-          {categories.map((cat) => (
-            <button
-              key={cat._id}
-              onClick={() => handleCategoryClick(cat)}
-              className={`px-6 py-3 text-sm font-medium whitespace-nowrap transition-all ${
-                selectedCategory?._id === cat._id
-                  ? "text-white bg-[#800000] shadow-md"
-                  : "text-gray-700 bg-white hover:bg-gray-50 border border-gray-200"
-              }`}
-            >
-              {cat.name}
-            </button>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* FILTERS SIDEBAR */}
+        <div className="grid lg:grid-cols-12 gap-8">
+          {/* FILTER SIDEBAR */}
           <aside className="lg:col-span-3">
-            <div className="bg-white p-6 shadow-sm border border-gray-100 sticky top-6">
+            <div className="bg-white p-6 shadow-sm border border-gray-100 rounded-xl sticky top-6">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="font-bold text-lg text-gray-900">Filters</h2>
                 {hasActiveFilters && (
@@ -248,53 +281,13 @@ const AllProductsPage = () => {
                 )}
               </div>
 
-              {/* Sub Category Filter */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Sub Category
-                </label>
-                <select
-                  className="w-full border border-gray-300 p-3 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-transparent transition"
-                  value={filters.subCategoryId}
-                  onChange={(e) => handleSubCategoryChange(e.target.value)}
-                >
-                  <option value="">All Sub Categories</option>
-                  {subCategories.map((sub) => (
-                    <option key={sub._id} value={sub._id}>
-                      {sub.name || sub.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Item Type Filter */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Item Type
-                </label>
-                <select
-                  className="w-full border border-gray-300 p-3 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-transparent transition"
-                  value={filters.itemTypeId}
-                  onChange={(e) =>
-                    setFilters({ ...filters, itemTypeId: e.target.value })
-                  }
-                >
-                  <option value="">All Item Types</option>
-                  {itemTypes.map((item) => (
-                    <option key={item._id} value={item._id}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Brand Filter */}
+              {/* BRAND FILTER */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Brand
                 </label>
                 <select
-                  className="w-full border border-gray-300 p-3 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-transparent transition"
+                  className="w-full border border-gray-300 p-3 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-transparent transition rounded-lg"
                   value={filters.brand}
                   onChange={(e) =>
                     setFilters({ ...filters, brand: e.target.value })
@@ -309,41 +302,37 @@ const AllProductsPage = () => {
                 </select>
               </div>
 
-              {/* Price Range Filter */}
+              {/* PRICE RANGE */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                   Price Range
                 </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <input
-                      type="number"
-                      placeholder="Min ₹"
-                      className="w-full border border-gray-300 p-3 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-transparent transition"
-                      value={filters.minPrice}
-                      onChange={(e) =>
-                        setFilters({ ...filters, minPrice: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <input
-                      type="number"
-                      placeholder="Max ₹"
-                      className="w-full border border-gray-300 p-3 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-transparent transition"
-                      value={filters.maxPrice}
-                      onChange={(e) =>
-                        setFilters({ ...filters, maxPrice: e.target.value })
-                      }
-                    />
-                  </div>
+                <div className="space-y-3">
+                  <input
+                    type="number"
+                    placeholder="Minimum Price"
+                    className="w-full border border-gray-300 p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-transparent transition rounded-lg"
+                    value={filters.minPrice}
+                    onChange={(e) =>
+                      setFilters({ ...filters, minPrice: e.target.value })
+                    }
+                  />
+                  <input
+                    type="number"
+                    placeholder="Maximum Price"
+                    className="w-full border border-gray-300 p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-transparent transition rounded-lg"
+                    value={filters.maxPrice}
+                    onChange={(e) =>
+                      setFilters({ ...filters, maxPrice: e.target.value })
+                    }
+                  />
                 </div>
               </div>
 
-              {/* Apply Button */}
+              {/* APPLY BUTTON */}
               <button
                 onClick={applyFilters}
-                className="w-full bg-[#800000] hover:bg-[#600000] text-white font-medium py-3 hover:shadow-md transition-all duration-300 flex items-center justify-center gap-2"
+                className="w-full bg-[#800000] hover:bg-[#600000] text-white font-medium py-3 rounded-lg hover:shadow-md transition-all duration-300 flex items-center justify-center gap-2"
               >
                 <svg
                   className="w-5 h-5"
@@ -361,29 +350,13 @@ const AllProductsPage = () => {
                 Apply Filters
               </button>
 
-              {/* Active Filters Indicator */}
+              {/* ACTIVE FILTERS DISPLAY */}
               {hasActiveFilters && (
                 <div className="mt-4 pt-4 border-t border-gray-200">
                   <p className="text-sm font-medium text-gray-700 mb-2">
                     Active Filters:
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {activeFilters.subCategoryId && (
-                      <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">
-                        Sub Category:{" "}
-                        {subCategories.find(
-                          (s) => s._id === activeFilters.subCategoryId,
-                        )?.name || "Selected"}
-                      </span>
-                    )}
-                    {activeFilters.itemTypeId && (
-                      <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">
-                        Item Type:{" "}
-                        {itemTypes.find(
-                          (i) => i._id === activeFilters.itemTypeId,
-                        )?.name || "Selected"}
-                      </span>
-                    )}
                     {activeFilters.brand && (
                       <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">
                         Brand: {activeFilters.brand}
@@ -401,32 +374,28 @@ const AllProductsPage = () => {
             </div>
           </aside>
 
-          {/* PRODUCTS MAIN CONTENT */}
+          {/* MAIN CONTENT */}
           <main className="lg:col-span-9">
-            {/* Results Header */}
+            {/* RESULTS HEADER */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
               <div>
                 <h2 className="text-xl font-bold text-gray-900">
-                  {selectedCategory?.name || "All Products"}
+                  {products.length} Products Found
                   {hasActiveFilters && (
                     <span className="ml-2 text-sm font-normal text-[#800000]">
                       (Filtered Results)
                     </span>
                   )}
                 </h2>
-                <p className="text-gray-600 text-sm mt-1">
-                  {products.length} products found
-                  {hasActiveFilters &&
-                    Object.values(filters).some((v) => v) && (
-                      <span className="text-gray-400 ml-2">
-                        • Filters set but not applied
-                      </span>
-                    )}
-                </p>
+                {Object.values(filters).some((v) => v) && !hasActiveFilters && (
+                  <p className="text-gray-500 text-sm mt-1">
+                    Filters selected - Click "Apply Filters" to update results
+                  </p>
+                )}
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-gray-600 text-sm">Sort by:</span>
-                <select className="border border-gray-300 p-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-transparent">
+                <select className="border border-gray-300 p-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-transparent rounded-lg">
                   <option>Featured</option>
                   <option>Price: Low to High</option>
                   <option>Price: High to Low</option>
@@ -436,24 +405,11 @@ const AllProductsPage = () => {
               </div>
             </div>
 
-            {/* Products Grid */}
+            {/* PRODUCTS GRID */}
             {loading ? (
               <SkeletonLoader />
-            ) : error ? (
-              <div className="bg-gradient-to-r from-red-50 to-pink-50 border border-red-100 p-8 text-center rounded">
-                <div className="text-red-500 text-4xl mb-4">⚠️</div>
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                  {error}
-                </h3>
-                <button
-                  onClick={() => fetchProducts(selectedCategory?._id)}
-                  className="mt-4 px-5 py-2 bg-[#800000] hover:bg-[#600000] text-white font-medium hover:shadow-md transition-all"
-                >
-                  Try Again
-                </button>
-              </div>
             ) : products.length === 0 ? (
-              <div className="bg-white p-12 text-center border border-gray-200">
+              <div className="bg-white p-12 text-center border border-gray-200 rounded-xl">
                 <div className="text-gray-400 text-5xl mb-4">📦</div>
                 <h3 className="text-xl font-semibold text-gray-700 mb-2">
                   No products found
@@ -461,12 +417,12 @@ const AllProductsPage = () => {
                 <p className="text-gray-500 mb-4">
                   {hasActiveFilters
                     ? "No products match your filters. Try adjusting them."
-                    : "Try adjusting your filters or browse other categories"}
+                    : "No products available in this category."}
                 </p>
                 {hasActiveFilters && (
                   <button
                     onClick={clearFilters}
-                    className="mt-2 px-6 py-3 bg-[#800000] hover:bg-[#600000] text-white font-medium hover:shadow-md transition-all inline-flex items-center gap-2"
+                    className="mt-2 px-6 py-3 bg-[#800000] hover:bg-[#600000] text-white font-medium hover:shadow-md transition-all rounded-lg inline-flex items-center gap-2"
                   >
                     Clear Filters
                   </button>
@@ -478,9 +434,9 @@ const AllProductsPage = () => {
                   <div
                     key={product._id}
                     onClick={() => handleProductClick(product._id)}
-                    className="group bg-white shadow-sm hover:shadow-lg border border-gray-100 hover:border-[#800000]/20 transition-all duration-300 cursor-pointer"
+                    className="group bg-white shadow-sm hover:shadow-xl border border-gray-100 hover:border-[#800000]/20 transition-all duration-300 cursor-pointer rounded-xl overflow-hidden"
                   >
-                    {/* Product Image */}
+                    {/* PRODUCT IMAGE */}
                     <div className="relative overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
                       <img
                         src={
@@ -492,26 +448,26 @@ const AllProductsPage = () => {
                       />
                       {product.discount && (
                         <div className="absolute top-3 left-3">
-                          <span className="bg-[#800000] text-white text-xs font-bold px-3 py-1">
-                            -{product.discount}%
+                          <span className="bg-[#800000] text-white text-xs font-bold px-3 py-1 rounded">
+                            -{product.discount}% OFF
                           </span>
                         </div>
                       )}
                       {product.isNew && (
                         <div className="absolute top-3 right-3">
-                          <span className="bg-blue-600 text-white text-xs font-bold px-3 py-1">
+                          <span className="bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded">
                             NEW
                           </span>
                         </div>
                       )}
                     </div>
 
-                    {/* Product Info */}
+                    {/* PRODUCT INFO */}
                     <div className="p-5">
-                      {/* Category/Brand */}
+                      {/* RATING & CATEGORY */}
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-medium text-gray-500">
-                          {product.category || selectedCategory?.name}
+                          {product.category || itemTypeData?.name}
                         </span>
                         {product.rating && (
                           <div className="flex items-center gap-1">
@@ -529,12 +485,12 @@ const AllProductsPage = () => {
                         )}
                       </div>
 
-                      {/* Product Name */}
+                      {/* PRODUCT NAME */}
                       <h3 className="font-bold text-gray-900 text-lg mb-2 line-clamp-2 group-hover:text-[#800000] transition-colors h-14">
                         {product.name}
                       </h3>
 
-                      {/* Brand */}
+                      {/* BRAND */}
                       {product.brand && (
                         <p className="text-sm text-gray-600 mb-3">
                           Brand:{" "}
@@ -542,7 +498,7 @@ const AllProductsPage = () => {
                         </p>
                       )}
 
-                      {/* Price */}
+                      {/* PRICE */}
                       <div className="flex items-center gap-3 mb-4">
                         <span className="text-2xl font-bold text-gray-900">
                           ₹{product.price}
@@ -559,12 +515,12 @@ const AllProductsPage = () => {
                         )}
                       </div>
 
-                      {/* Action Button */}
-                      <button className="w-full bg-[#800000] hover:bg-[#600000] text-white font-medium py-3 hover:shadow-md transition-all duration-300 group-hover:scale-[1.02]">
+                      {/* VIEW DETAILS BUTTON */}
+                      <button className="w-full bg-[#800000] hover:bg-[#600000] text-white font-medium py-3 rounded-lg hover:shadow-md transition-all duration-300 group-hover:scale-[1.02]">
                         View Details
                       </button>
 
-                      {/* Quick Info */}
+                      {/* QUICK INFO */}
                       <div className="mt-4 pt-4 border-t border-gray-100">
                         <div className="grid grid-cols-2 gap-3 text-xs text-gray-500">
                           <div className="flex items-center gap-1">
@@ -606,4 +562,4 @@ const AllProductsPage = () => {
   );
 };
 
-export default AllProductsPage;
+export default ItemTypeProducts;

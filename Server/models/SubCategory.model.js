@@ -1,23 +1,23 @@
-// models/Category.model.js
+// models/SubCategory.model.js
 import mongoose from 'mongoose';
 
-const categorySchema = new mongoose.Schema(
+const subCategorySchema = new mongoose.Schema(
   {
-    name: {
+    categoryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Category',
+      required: true,
+      index: true
+    },
+    title: {
       type: String,
       required: true,
-      trim: true,
-      unique: true
+      trim: true
     },
     slug: {
       type: String,
-      unique: true,
       lowercase: true,
       index: true
-    },
-    image: {
-      type: String,
-      default: ''
     },
     position: {
       type: Number,
@@ -31,10 +31,10 @@ const categorySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// ✅ FIX: NO next(), NO arrow function
-categorySchema.pre('save', function () {
-  if (!this.slug && this.name) {
-    this.slug = this.name
+// ✅ FIX
+subCategorySchema.pre('save', function () {
+  if (!this.slug && this.title) {
+    this.slug = this.title
       .toLowerCase()
       .trim()
       .replace(/[^a-z0-9]+/g, '-')
@@ -42,4 +42,4 @@ categorySchema.pre('save', function () {
   }
 });
 
-export default mongoose.model('Category', categorySchema);
+export default mongoose.model('SubCategory', subCategorySchema);

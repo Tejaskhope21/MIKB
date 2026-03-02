@@ -75,9 +75,7 @@ const userSchema = new mongoose.Schema(
         ],
 
         /* ===== SELLER INFO ===== */
-        businessName: {
-            type: String,
-        },
+        businessName: String,
 
         sellerSettings: {
             storeName: String,
@@ -101,7 +99,7 @@ const userSchema = new mongoose.Schema(
             default: {},
         },
 
-        /* ===== STATUS & VERIFICATION ===== */
+        /* ===== STATUS ===== */
         isEmailVerified: { type: Boolean, default: false },
         isPhoneVerified: { type: Boolean, default: false },
         isSellerVerified: { type: Boolean, default: false },
@@ -114,7 +112,7 @@ const userSchema = new mongoose.Schema(
         loginAttempts: { type: Number, default: 0, select: false },
         lockUntil: { type: Date, select: false },
 
-        /* ===== WALLET (SELLER) ===== */
+        /* ===== WALLET ===== */
         wallet: {
             balance: { type: Number, default: 0, min: 0 },
             pendingBalance: { type: Number, default: 0, min: 0 },
@@ -139,18 +137,18 @@ const userSchema = new mongoose.Schema(
    PRE-SAVE MIDDLEWARE
 ========================= */
 userSchema.pre('save', async function () {
-    // Hash password
+    // Hash password ONLY if modified
     if (this.isModified('password')) {
         const salt = await bcrypt.genSalt(10);
         this.password = await bcrypt.hash(this.password, salt);
     }
 
-    // Generate referral code for USER
+    // Generate referral code
     if (this.role === 'USER' && !this.referralCode) {
         this.referralCode = crypto.randomBytes(4).toString('hex').toUpperCase();
     }
 
-    // Generate store slug for SELLER
+    // Generate store slug
     if (
         this.role === 'SELLER' &&
         this.businessName &&
@@ -163,18 +161,12 @@ userSchema.pre('save', async function () {
     }
 });
 
-/* =========================
-   QUERY MIDDLEWARE (NO next)
-========================= */
-userSchema.pre(/^find/, function () {
-    this.where({ deletedAt: { $exists: false } });
-});
 
 /* =========================
    INSTANCE METHODS
 ========================= */
 userSchema.methods.matchPassword = async function (enteredPassword) {
-    return bcrypt.compare(enteredPassword, this.password);
+    return await bcrypt.compare(enteredPassword, this.password);
 };
 
 userSchema.methods.getResetPasswordToken = function () {
@@ -185,7 +177,7 @@ userSchema.methods.getResetPasswordToken = function () {
         .update(resetToken)
         .digest('hex');
 
-    this.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
+    this.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
 
     return resetToken;
 };

@@ -1,42 +1,54 @@
 // src/components/UserProfilePage.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
-  User, Mail, Phone, MapPin, Edit2, Save, X,
-  ShoppingBag, Package, CreditCard, LogOut,
-  Shield, Clock, CheckCircle, Home, Building
-} from 'lucide-react';
-import axios from 'axios';
-import { useSearchParams } from 'react-router-dom';
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Edit2,
+  Save,
+  X,
+  ShoppingBag,
+  Package,
+  CreditCard,
+  LogOut,
+  Shield,
+  Clock,
+  CheckCircle,
+  Home,
+  Building,
+} from "lucide-react";
+import axios from "axios";
+import { useSearchParams } from "react-router-dom";
 
 // Automatic API URL - Local ya Production detect karega
-const API_URL = 'https://bricks-backend-qyea.onrender.com/api';
-
+const API_URL = "https://bricks-backend-qyea.onrender.com/api";
 
 const UserProfilePage = () => {
   const [searchParams] = useSearchParams();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
-  const [activeTab, setActiveTab] = useState('profile');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [activeTab, setActiveTab] = useState("profile");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const [profileData, setProfileData] = useState({
-    name: '',
-    email: '',
-    phone: ''
+    name: "",
+    email: "",
+    phone: "",
   });
 
   const [addresses, setAddresses] = useState([]);
   const [newAddress, setNewAddress] = useState({
-    fullName: '',
-    phone: '',
-    addressLine: '',
-    city: '',
-    state: '',
-    pincode: '',
-    country: 'India',
-    isDefault: false
+    fullName: "",
+    phone: "",
+    addressLine: "",
+    city: "",
+    state: "",
+    pincode: "",
+    country: "India",
+    isDefault: false,
   });
 
   const [showAddressForm, setShowAddressForm] = useState(false);
@@ -44,38 +56,41 @@ const UserProfilePage = () => {
 
   // Auth header with token
   const getAuthHeader = () => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     return {
       headers: {
         Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
+        "Content-Type": "application/json",
+      },
     };
   };
 
   useEffect(() => {
-    const tabParam = searchParams.get('tab');
-    if (tabParam && ['profile', 'addresses', 'orders', 'payments'].includes(tabParam)) {
+    const tabParam = searchParams.get("tab");
+    if (
+      tabParam &&
+      ["profile", "addresses", "orders", "payments"].includes(tabParam)
+    ) {
       setActiveTab(tabParam);
     }
 
     fetchUserData();
-    if (tabParam === 'addresses') {
+    if (tabParam === "addresses") {
       fetchAddresses();
     }
   }, [searchParams]);
 
   useEffect(() => {
-    if (activeTab === 'addresses') {
+    if (activeTab === "addresses") {
       fetchAddresses();
     }
   }, [activeTab]);
 
   const fetchUserData = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       if (!token) {
-        window.location.href = '/login';
+        window.location.href = "/login";
         return;
       }
 
@@ -84,17 +99,17 @@ const UserProfilePage = () => {
       if (response.data.success) {
         setUser(response.data.user);
         setProfileData({
-          name: response.data.user.name || '',
-          email: response.data.user.email || '',
-          phone: response.data.user.phone || ''
+          name: response.data.user.name || "",
+          email: response.data.user.email || "",
+          phone: response.data.user.phone || "",
         });
       }
     } catch (error) {
-      console.error('Error fetching user data:', error);
+      console.error("Error fetching user data:", error);
       if (error.response?.status === 401) {
         handleLogout();
       }
-      setError('Failed to load user data. Please try again.');
+      setError("Failed to load user data. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -102,37 +117,40 @@ const UserProfilePage = () => {
 
   const fetchAddresses = async () => {
     try {
-      const response = await axios.get(`${API_URL}/user/addresses`, getAuthHeader());
+      const response = await axios.get(
+        `${API_URL}/user/addresses`,
+        getAuthHeader(),
+      );
 
       if (response.data.success) {
         setAddresses(response.data.addresses || []);
       }
     } catch (error) {
-      console.error('Error fetching addresses:', error);
-      setError('Failed to load addresses.');
+      console.error("Error fetching addresses:", error);
+      setError("Failed to load addresses.");
     }
   };
 
   const handleProfileUpdate = async () => {
     setIsSubmitting(true);
-    setError('');
+    setError("");
     try {
       const response = await axios.put(
         `${API_URL}/user/profile`,
         profileData,
-        getAuthHeader()
+        getAuthHeader(),
       );
 
       if (response.data.success) {
         setUser(response.data.user);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        localStorage.setItem("user", JSON.stringify(response.data.user));
         setEditing(false);
-        setSuccess('Profile updated successfully!');
-        setTimeout(() => setSuccess(''), 3000);
+        setSuccess("Profile updated successfully!");
+        setTimeout(() => setSuccess(""), 3000);
       }
     } catch (error) {
-      console.error('Error updating profile:', error);
-      setError('Failed to update profile. Please try again.');
+      console.error("Error updating profile:", error);
+      setError("Failed to update profile. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -140,55 +158,59 @@ const UserProfilePage = () => {
 
   const handleAddAddress = async () => {
     setIsSubmitting(true);
-    setError('');
+    setError("");
     try {
       const response = await axios.post(
         `${API_URL}/user/addresses`,
         newAddress,
-        getAuthHeader()
+        getAuthHeader(),
       );
 
       if (response.data.success) {
         setAddresses(response.data.addresses);
         setNewAddress({
-          fullName: '',
-          phone: '',
-          addressLine: '',
-          city: '',
-          state: '',
-          pincode: '',
-          country: 'India',
-          isDefault: false
+          fullName: "",
+          phone: "",
+          addressLine: "",
+          city: "",
+          state: "",
+          pincode: "",
+          country: "India",
+          isDefault: false,
         });
         setShowAddressForm(false);
-        setSuccess('Address added successfully!');
-        setTimeout(() => setSuccess(''), 3000);
+        setSuccess("Address added successfully!");
+        setTimeout(() => setSuccess(""), 3000);
       }
     } catch (error) {
-      console.error('Error adding address:', error);
-      setError(error.response?.data?.message || 'Failed to add address. Please check all fields.');
+      console.error("Error adding address:", error);
+      setError(
+        error.response?.data?.message ||
+          "Failed to add address. Please check all fields.",
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDeleteAddress = async (addressId) => {
-    if (!window.confirm('Are you sure you want to delete this address?')) return;
+    if (!window.confirm("Are you sure you want to delete this address?"))
+      return;
 
     try {
       const response = await axios.delete(
         `${API_URL}/user/addresses/${addressId}`,
-        getAuthHeader()
+        getAuthHeader(),
       );
 
       if (response.data.success) {
         setAddresses(response.data.addresses);
-        setSuccess('Address deleted successfully!');
-        setTimeout(() => setSuccess(''), 3000);
+        setSuccess("Address deleted successfully!");
+        setTimeout(() => setSuccess(""), 3000);
       }
     } catch (error) {
-      console.error('Error deleting address:', error);
-      setError('Failed to delete address.');
+      console.error("Error deleting address:", error);
+      setError("Failed to delete address.");
     }
   };
 
@@ -197,33 +219,35 @@ const UserProfilePage = () => {
       const response = await axios.patch(
         `${API_URL}/user/addresses/${addressId}/default`,
         {},
-        getAuthHeader()
+        getAuthHeader(),
       );
 
       if (response.data.success) {
         setAddresses(response.data.addresses);
-        setSuccess('Default address updated!');
-        setTimeout(() => setSuccess(''), 3000);
+        setSuccess("Default address updated!");
+        setTimeout(() => setSuccess(""), 3000);
       }
     } catch (error) {
-      console.error('Error setting default address:', error);
-      setError('Failed to update default address.');
+      console.error("Error setting default address:", error);
+      setError("Failed to update default address.");
     }
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    window.location.href = '/login';
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.location.href = "/login";
   };
 
   const validateAddress = () => {
-    if (!newAddress.fullName.trim()) return 'Full name is required';
-    if (!newAddress.phone.match(/^[0-9]{10}$/)) return 'Valid 10-digit phone number is required';
-    if (!newAddress.addressLine.trim()) return 'Address line is required';
-    if (!newAddress.city.trim()) return 'City is required';
-    if (!newAddress.state.trim()) return 'State is required';
-    if (!newAddress.pincode.match(/^[0-9]{6}$/)) return 'Valid 6-digit pincode is required';
+    if (!newAddress.fullName.trim()) return "Full name is required";
+    if (!newAddress.phone.match(/^[0-9]{10}$/))
+      return "Valid 10-digit phone number is required";
+    if (!newAddress.addressLine.trim()) return "Address line is required";
+    if (!newAddress.city.trim()) return "City is required";
+    if (!newAddress.state.trim()) return "State is required";
+    if (!newAddress.pincode.match(/^[0-9]{6}$/))
+      return "Valid 6-digit pincode is required";
     return null;
   };
 
@@ -267,29 +291,34 @@ const UserProfilePage = () => {
                   <User className="h-8 w-8 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-800">{user?.name || 'User'}</h2>
+                  <h2 className="text-xl font-bold text-gray-800">
+                    {user?.name || "User"}
+                  </h2>
                   <p className="text-gray-600 text-sm">{user?.email}</p>
                   <div className="flex items-center mt-1">
                     <Shield className="h-3 w-3 text-green-500 mr-1" />
-                    <span className="text-xs text-green-600">Verified User</span>
+                    <span className="text-xs text-green-600">
+                      Verified User
+                    </span>
                   </div>
                 </div>
               </div>
 
               <nav className="space-y-2">
                 {[
-                  { id: 'profile', icon: User, label: 'Profile' },
-                  { id: 'addresses', icon: MapPin, label: 'Addresses' },
-                  { id: 'orders', icon: Package, label: 'My Orders' },
-                  { id: 'payments', icon: CreditCard, label: 'Payments' }
+                  { id: "profile", icon: User, label: "Profile" },
+                  { id: "addresses", icon: MapPin, label: "Addresses" },
+                  { id: "orders", icon: Package, label: "My Orders" },
+                  { id: "payments", icon: CreditCard, label: "Payments" },
                 ].map((item) => (
                   <button
                     key={item.id}
                     onClick={() => setActiveTab(item.id)}
-                    className={`w-full flex items-center px-4 py-3 rounded-lg text-left transition-all ${activeTab === item.id
-                      ? 'bg-[#800000] bg-opacity-10 text-[#800000] border-l-4 border-[#800000] font-semibold'
-                      : 'text-gray-700 hover:bg-gray-100 hover:text-[#800000]'
-                      }`}
+                    className={`w-full flex items-center px-4 py-3 rounded-lg text-left transition-all ${
+                      activeTab === item.id
+                        ? "bg-[#800000] bg-opacity-10 text-[#800000] border-l-4 border-[#800000] font-semibold"
+                        : "text-gray-700 hover:bg-gray-100 hover:text-[#800000]"
+                    }`}
                   >
                     <item.icon className="h-5 w-5 mr-3" />
                     {item.label}
@@ -313,13 +342,17 @@ const UserProfilePage = () => {
                 <div className="flex justify-between items-center">
                   <span className="text-red-100">Member Since</span>
                   <span className="font-medium">
-                    {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-IN') : 'N/A'}
+                    {user?.createdAt
+                      ? new Date(user.createdAt).toLocaleDateString("en-IN")
+                      : "N/A"}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-red-100">Last Login</span>
                   <span className="font-medium">
-                    {user?.lastLogin ? new Date(user.lastLogin).toLocaleDateString('en-IN') : 'Never'}
+                    {user?.lastLogin
+                      ? new Date(user.lastLogin).toLocaleDateString("en-IN")
+                      : "Never"}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -336,11 +369,13 @@ const UserProfilePage = () => {
           {/* Main Content Area */}
           <div className="md:w-3/4">
             {/* Profile Tab */}
-            {activeTab === 'profile' && (
+            {activeTab === "profile" && (
               <div className="bg-white rounded-xl shadow">
                 <div className="px-6 py-4 border-b border-gray-200">
                   <div className="flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-gray-800">Personal Information</h2>
+                    <h2 className="text-xl font-bold text-gray-800">
+                      Personal Information
+                    </h2>
                     <button
                       onClick={() => setEditing(!editing)}
                       className="flex items-center px-4 py-2 text-sm font-medium text-[#800000] hover:bg-red-50 rounded-lg transition-colors"
@@ -373,11 +408,18 @@ const UserProfilePage = () => {
                         <input
                           type="text"
                           value={profileData.name}
-                          onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                          onChange={(e) =>
+                            setProfileData({
+                              ...profileData,
+                              name: e.target.value,
+                            })
+                          }
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
                         />
                       ) : (
-                        <p className="text-gray-900 font-medium text-lg">{user?.name || 'Not set'}</p>
+                        <p className="text-gray-900 font-medium text-lg">
+                          {user?.name || "Not set"}
+                        </p>
                       )}
                     </div>
 
@@ -411,12 +453,19 @@ const UserProfilePage = () => {
                         <input
                           type="tel"
                           value={profileData.phone}
-                          onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
+                          onChange={(e) =>
+                            setProfileData({
+                              ...profileData,
+                              phone: e.target.value,
+                            })
+                          }
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
                           placeholder="Enter 10-digit phone number"
                         />
                       ) : (
-                        <p className="text-gray-900">{user?.phone || 'Not provided'}</p>
+                        <p className="text-gray-900">
+                          {user?.phone || "Not provided"}
+                        </p>
                       )}
                     </div>
 
@@ -428,7 +477,7 @@ const UserProfilePage = () => {
                           className="inline-flex items-center px-6 py-3 bg-[#800000] text-white font-medium rounded-lg hover:bg-[#900000] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                           <Save className="h-4 w-4 mr-2" />
-                          {isSubmitting ? 'Saving...' : 'Save Changes'}
+                          {isSubmitting ? "Saving..." : "Save Changes"}
                         </button>
                       </div>
                     )}
@@ -438,11 +487,13 @@ const UserProfilePage = () => {
             )}
 
             {/* Addresses Tab */}
-            {activeTab === 'addresses' && (
+            {activeTab === "addresses" && (
               <div className="bg-white rounded-xl shadow">
                 <div className="px-6 py-4 border-b border-gray-200">
                   <div className="flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-gray-800">My Addresses</h2>
+                    <h2 className="text-xl font-bold text-gray-800">
+                      My Addresses
+                    </h2>
                     <button
                       onClick={() => setShowAddressForm(true)}
                       className="inline-flex items-center px-4 py-2 bg-[#800000] text-white text-sm font-medium rounded-lg hover:bg-[#900000] transition-colors"
@@ -456,70 +507,116 @@ const UserProfilePage = () => {
                 {/* Add Address Form */}
                 {showAddressForm && (
                   <div className="p-6 border-b border-gray-200 bg-gray-50">
-                    <h3 className="text-lg font-medium text-gray-800 mb-4">Add New Address</h3>
+                    <h3 className="text-lg font-medium text-gray-800 mb-4">
+                      Add New Address
+                    </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Full Name *
+                        </label>
                         <input
                           type="text"
                           value={newAddress.fullName}
-                          onChange={(e) => setNewAddress({ ...newAddress, fullName: e.target.value })}
+                          onChange={(e) =>
+                            setNewAddress({
+                              ...newAddress,
+                              fullName: e.target.value,
+                            })
+                          }
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
                           placeholder="Enter full name"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Phone Number *
+                        </label>
                         <input
                           type="tel"
                           value={newAddress.phone}
-                          onChange={(e) => setNewAddress({ ...newAddress, phone: e.target.value })}
+                          onChange={(e) =>
+                            setNewAddress({
+                              ...newAddress,
+                              phone: e.target.value,
+                            })
+                          }
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
                           placeholder="10-digit number"
                         />
                       </div>
                       <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Address Line *</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Address Line *
+                        </label>
                         <input
                           type="text"
                           value={newAddress.addressLine}
-                          onChange={(e) => setNewAddress({ ...newAddress, addressLine: e.target.value })}
+                          onChange={(e) =>
+                            setNewAddress({
+                              ...newAddress,
+                              addressLine: e.target.value,
+                            })
+                          }
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
                           placeholder="House number, street, area"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">City *</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          City *
+                        </label>
                         <input
                           type="text"
                           value={newAddress.city}
-                          onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
+                          onChange={(e) =>
+                            setNewAddress({
+                              ...newAddress,
+                              city: e.target.value,
+                            })
+                          }
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
                           placeholder="City"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">State *</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          State *
+                        </label>
                         <input
                           type="text"
                           value={newAddress.state}
-                          onChange={(e) => setNewAddress({ ...newAddress, state: e.target.value })}
+                          onChange={(e) =>
+                            setNewAddress({
+                              ...newAddress,
+                              state: e.target.value,
+                            })
+                          }
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
                           placeholder="State"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Pincode *</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Pincode *
+                        </label>
                         <input
                           type="text"
                           value={newAddress.pincode}
-                          onChange={(e) => setNewAddress({ ...newAddress, pincode: e.target.value })}
+                          onChange={(e) =>
+                            setNewAddress({
+                              ...newAddress,
+                              pincode: e.target.value,
+                            })
+                          }
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
                           placeholder="6-digit pincode"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Country
+                        </label>
                         <input
                           type="text"
                           value={newAddress.country}
@@ -532,10 +629,18 @@ const UserProfilePage = () => {
                           type="checkbox"
                           id="default"
                           checked={newAddress.isDefault}
-                          onChange={(e) => setNewAddress({ ...newAddress, isDefault: e.target.checked })}
+                          onChange={(e) =>
+                            setNewAddress({
+                              ...newAddress,
+                              isDefault: e.target.checked,
+                            })
+                          }
                           className="h-4 w-4 text-[#800000] rounded focus:ring-[#800000]"
                         />
-                        <label htmlFor="default" className="ml-2 text-sm text-gray-600">
+                        <label
+                          htmlFor="default"
+                          className="ml-2 text-sm text-gray-600"
+                        >
                           Set as default address
                         </label>
                       </div>
@@ -554,7 +659,7 @@ const UserProfilePage = () => {
                         disabled={isSubmitting}
                         className="px-6 py-3 bg-[#800000] text-white font-medium rounded-lg hover:bg-[#900000] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       >
-                        {isSubmitting ? 'Adding...' : 'Save Address'}
+                        {isSubmitting ? "Adding..." : "Save Address"}
                       </button>
                       <button
                         onClick={() => setShowAddressForm(false)}
@@ -571,8 +676,12 @@ const UserProfilePage = () => {
                   {addresses.length === 0 ? (
                     <div className="text-center py-12">
                       <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">No addresses saved</h3>
-                      <p className="text-gray-600 mb-4">Add your first address to get started</p>
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">
+                        No addresses saved
+                      </h3>
+                      <p className="text-gray-600 mb-4">
+                        Add your first address to get started
+                      </p>
                       <button
                         onClick={() => setShowAddressForm(true)}
                         className="inline-flex items-center px-4 py-2 bg-[#800000] text-white font-medium rounded-lg hover:bg-[#900000] transition-colors"
@@ -586,13 +695,18 @@ const UserProfilePage = () => {
                       {addresses.map((address) => (
                         <div
                           key={address._id}
-                          className={`border rounded-xl p-5 transition-all ${address.isDefault ? 'border-[#800000] border-2 bg-red-50' : 'border-gray-200 hover:border-gray-300'
-                            }`}
+                          className={`border rounded-xl p-5 transition-all ${
+                            address.isDefault
+                              ? "border-[#800000] border-2 bg-red-50"
+                              : "border-gray-200 hover:border-gray-300"
+                          }`}
                         >
                           <div className="flex justify-between items-start mb-3">
                             <div>
                               <div className="flex items-center">
-                                <h3 className="font-medium text-gray-900 text-lg">{address.fullName}</h3>
+                                <h3 className="font-medium text-gray-900 text-lg">
+                                  {address.fullName}
+                                </h3>
                                 {address.isDefault && (
                                   <span className="inline-flex items-center ml-2 px-2 py-1 rounded text-xs font-medium bg-[#800000] text-white">
                                     <CheckCircle className="h-3 w-3 mr-1" />
@@ -625,15 +739,20 @@ const UserProfilePage = () => {
                           <div className="space-y-2">
                             <div className="flex items-start">
                               <Home className="h-4 w-4 text-gray-400 mr-2 mt-0.5 flex-shrink-0" />
-                              <p className="text-gray-600">{address.addressLine}</p>
+                              <p className="text-gray-600">
+                                {address.addressLine}
+                              </p>
                             </div>
                             <div className="flex items-start">
                               <Building className="h-4 w-4 text-gray-400 mr-2 mt-0.5 flex-shrink-0" />
                               <p className="text-gray-600">
-                                {address.city}, {address.state} - {address.pincode}
+                                {address.city}, {address.state} -{" "}
+                                {address.pincode}
                               </p>
                             </div>
-                            <p className="text-gray-600 text-sm">{address.country}</p>
+                            <p className="text-gray-600 text-sm">
+                              {address.country}
+                            </p>
                           </div>
                         </div>
                       ))}
@@ -644,17 +763,21 @@ const UserProfilePage = () => {
             )}
 
             {/* Orders Tab */}
-            {activeTab === 'orders' && (
+            {activeTab === "orders" && (
               <div className="bg-white rounded-xl shadow">
                 <div className="px-6 py-4 border-b border-gray-200">
                   <h2 className="text-xl font-bold text-gray-800">My Orders</h2>
                 </div>
                 <div className="p-6 text-center">
                   <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No orders yet</h3>
-                  <p className="text-gray-600 mb-6">Start shopping to see your orders here</p>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    No orders yet
+                  </h3>
+                  <p className="text-gray-600 mb-6">
+                    Start shopping to see your orders here
+                  </p>
                   <button
-                    onClick={() => window.location.href = '/products'}
+                    onClick={() => (window.location.href = "/products")}
                     className="inline-flex items-center px-6 py-3 bg-[#800000] text-white font-medium rounded-lg hover:bg-[#900000] transition-colors"
                   >
                     <ShoppingBag className="h-4 w-4 mr-2" />
@@ -665,15 +788,21 @@ const UserProfilePage = () => {
             )}
 
             {/* Payments Tab */}
-            {activeTab === 'payments' && (
+            {activeTab === "payments" && (
               <div className="bg-white rounded-xl shadow">
                 <div className="px-6 py-4 border-b border-gray-200">
-                  <h2 className="text-xl font-bold text-gray-800">Payment Methods</h2>
+                  <h2 className="text-xl font-bold text-gray-800">
+                    Payment Methods
+                  </h2>
                 </div>
                 <div className="p-6 text-center">
                   <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No saved payment methods</h3>
-                  <p className="text-gray-600">Add payment methods during checkout</p>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    No saved payment methods
+                  </h3>
+                  <p className="text-gray-600">
+                    Add payment methods during checkout
+                  </p>
                 </div>
               </div>
             )}

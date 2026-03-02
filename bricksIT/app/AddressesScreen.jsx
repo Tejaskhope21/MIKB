@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,31 +10,31 @@ import {
   Alert,
   SafeAreaView,
   ActivityIndicator,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import Icon from 'react-native-vector-icons/Ionicons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+} from "react-native";
+import { useRouter } from "expo-router";
+import Icon from "react-native-vector-icons/Ionicons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
 
-const API_BASE_URL = 'https://bricks-backend-qyea.onrender.com/api';
+const API_BASE_URL = "https://bricks-backend-qyea.onrender.com/api";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
   headers: {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
+    "Content-Type": "application/json",
+    Accept: "application/json",
   },
 });
 
 api.interceptors.request.use(async (config) => {
   try {
-    const token = await AsyncStorage.getItem('token');
+    const token = await AsyncStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
   } catch (error) {
-    console.log('Error getting token:', error);
+    console.log("Error getting token:", error);
   }
   return config;
 });
@@ -42,23 +42,23 @@ api.interceptors.request.use(async (config) => {
 const addressesAPI = {
   fetchUserAddresses: async () => {
     try {
-      const response = await api.get('/user/addresses');
+      const response = await api.get("/user/addresses");
       return response.data.addresses || response.data || [];
     } catch (error) {
-      console.log('Fetch addresses error:', error.message);
+      console.log("Fetch addresses error:", error.message);
       return [];
     }
   },
 
   addAddress: async (addressData) => {
     try {
-      const response = await api.post('/user/addresses', addressData);
+      const response = await api.post("/user/addresses", addressData);
       return { success: true, data: response.data };
     } catch (error) {
-      console.log('Add address error:', error);
-      return { 
-        success: false, 
-        message: error.response?.data?.message || 'Failed to add address' 
+      console.log("Add address error:", error);
+      return {
+        success: false,
+        message: error.response?.data?.message || "Failed to add address",
       };
     }
   },
@@ -68,10 +68,10 @@ const addressesAPI = {
       const response = await api.delete(`/user/addresses/${id}`);
       return { success: true, data: response.data };
     } catch (error) {
-      console.log('Delete address error:', error);
-      return { 
-        success: false, 
-        message: error.response?.data?.message || 'Failed to delete address' 
+      console.log("Delete address error:", error);
+      return {
+        success: false,
+        message: error.response?.data?.message || "Failed to delete address",
       };
     }
   },
@@ -81,10 +81,11 @@ const addressesAPI = {
       const response = await api.patch(`/user/addresses/${id}/default`);
       return { success: true, data: response.data };
     } catch (error) {
-      console.log('Set default address error:', error);
-      return { 
-        success: false, 
-        message: error.response?.data?.message || 'Failed to set default address' 
+      console.log("Set default address error:", error);
+      return {
+        success: false,
+        message:
+          error.response?.data?.message || "Failed to set default address",
       };
     }
   },
@@ -99,13 +100,13 @@ const AddressScreen = () => {
   const [submitting, setSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
-    fullName: '',
-    phone: '',
-    addressLine: '',
-    city: '',
-    state: '',
-    pincode: '',
-    country: 'India',
+    fullName: "",
+    phone: "",
+    addressLine: "",
+    city: "",
+    state: "",
+    pincode: "",
+    country: "India",
     isDefault: false,
   });
 
@@ -117,14 +118,14 @@ const AddressScreen = () => {
     try {
       setLoading(true);
       const data = await addressesAPI.fetchUserAddresses();
-      
+
       if (data.length === 0) {
         setAddresses(getSampleAddresses());
       } else {
         setAddresses(data);
       }
     } catch (error) {
-      console.error('Fetch addresses failed:', error);
+      console.error("Fetch addresses failed:", error);
       setAddresses(getSampleAddresses());
     } finally {
       setLoading(false);
@@ -134,41 +135,41 @@ const AddressScreen = () => {
   const getSampleAddresses = () => {
     return [
       {
-        _id: '1',
-        fullName: 'John Doe',
-        phone: '9876543210',
-        addressLine: '123 Main Street, Apartment 4B',
-        city: 'Mumbai',
-        state: 'Maharashtra',
-        pincode: '400001',
-        country: 'India',
+        _id: "1",
+        fullName: "John Doe",
+        phone: "9876543210",
+        addressLine: "123 Main Street, Apartment 4B",
+        city: "Mumbai",
+        state: "Maharashtra",
+        pincode: "400001",
+        country: "India",
         isDefault: true,
-        addressType: 'home'
+        addressType: "home",
       },
       {
-        _id: '2',
-        fullName: 'Jane Smith',
-        phone: '9876543211',
-        addressLine: '456 Park Avenue, Office 201',
-        city: 'Delhi',
-        state: 'Delhi',
-        pincode: '110001',
-        country: 'India',
+        _id: "2",
+        fullName: "Jane Smith",
+        phone: "9876543211",
+        addressLine: "456 Park Avenue, Office 201",
+        city: "Delhi",
+        state: "Delhi",
+        pincode: "110001",
+        country: "India",
         isDefault: false,
-        addressType: 'work'
-      }
+        addressType: "work",
+      },
     ];
   };
 
   const resetForm = () => {
     setFormData({
-      fullName: '',
-      phone: '',
-      addressLine: '',
-      city: '',
-      state: '',
-      pincode: '',
-      country: 'India',
+      fullName: "",
+      phone: "",
+      addressLine: "",
+      city: "",
+      state: "",
+      pincode: "",
+      country: "India",
       isDefault: false,
     });
   };
@@ -185,7 +186,7 @@ const AddressScreen = () => {
     state: formData.state.trim(),
     pincode: formData.pincode.trim(),
     country: formData.country.trim(),
-    addressType: 'home',
+    addressType: "home",
     isDefault: formData.isDefault,
   });
 
@@ -200,17 +201,17 @@ const AddressScreen = () => {
       !formData.state.trim() ||
       !formData.pincode.trim()
     ) {
-      Alert.alert('Error', 'Please fill all required fields');
+      Alert.alert("Error", "Please fill all required fields");
       return;
     }
 
     if (!/^[0-9]{10}$/.test(formData.phone)) {
-      Alert.alert('Error', 'Phone number must be exactly 10 digits');
+      Alert.alert("Error", "Phone number must be exactly 10 digits");
       return;
     }
 
     if (!/^[0-9]{6}$/.test(formData.pincode)) {
-      Alert.alert('Error', 'Pincode must be exactly 6 digits');
+      Alert.alert("Error", "Pincode must be exactly 6 digits");
       return;
     }
 
@@ -218,18 +219,18 @@ const AddressScreen = () => {
       setSubmitting(true);
 
       const result = await addressesAPI.addAddress(preparePayload());
-      
+
       if (result.success) {
-        Alert.alert('Success', 'Address added successfully!');
+        Alert.alert("Success", "Address added successfully!");
         resetForm();
         setModalVisible(false);
         await fetchAddresses();
       } else {
-        Alert.alert('Error', result.message || 'Failed to add address');
+        Alert.alert("Error", result.message || "Failed to add address");
       }
     } catch (error) {
-      console.error('ADD ADDRESS ERROR:', error);
-      Alert.alert('Error', 'Failed to add address. Please try again.');
+      console.error("ADD ADDRESS ERROR:", error);
+      Alert.alert("Error", "Failed to add address. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -239,66 +240,72 @@ const AddressScreen = () => {
     try {
       const result = await addressesAPI.setDefaultAddress(id);
       if (result.success) {
-        setAddresses(prev => 
-          prev.map(addr => ({
+        setAddresses((prev) =>
+          prev.map((addr) => ({
             ...addr,
-            isDefault: addr._id === id
-          }))
+            isDefault: addr._id === id,
+          })),
         );
-        Alert.alert('Success', 'Default address updated!');
+        Alert.alert("Success", "Default address updated!");
       } else {
-        Alert.alert('Error', result.message || 'Failed to set default');
+        Alert.alert("Error", result.message || "Failed to set default");
       }
     } catch (err) {
-      Alert.alert('Error', 'Failed to set default address');
+      Alert.alert("Error", "Failed to set default address");
     }
   };
 
   const handleDelete = async (id) => {
     if (!id) {
-      Alert.alert('Error', 'Invalid address ID');
+      Alert.alert("Error", "Invalid address ID");
       return;
     }
 
     const addr = addresses.find((a) => a._id === id);
     if (!addr) {
-      Alert.alert('Error', 'Address not found');
+      Alert.alert("Error", "Address not found");
       return;
     }
 
     if (addr.isDefault && addresses.length > 1) {
-      Alert.alert('Error', 'Set another address as default before deleting this one.');
+      Alert.alert(
+        "Error",
+        "Set another address as default before deleting this one.",
+      );
       return;
     }
 
     Alert.alert(
-      'Delete Address',
-      'Are you sure you want to delete this address?',
+      "Delete Address",
+      "Are you sure you want to delete this address?",
       [
         {
-          text: 'Cancel',
-          style: 'cancel'
+          text: "Cancel",
+          style: "cancel",
         },
         {
-          text: 'Delete',
-          style: 'destructive',
+          text: "Delete",
+          style: "destructive",
           onPress: async () => {
             try {
               const result = await addressesAPI.deleteAddress(id);
-              
+
               if (result.success) {
                 setAddresses((prev) => prev.filter((a) => a._id !== id));
-                Alert.alert('Success', 'Address deleted successfully!');
+                Alert.alert("Success", "Address deleted successfully!");
               } else {
-                Alert.alert('Error', result.message || 'Failed to delete address');
+                Alert.alert(
+                  "Error",
+                  result.message || "Failed to delete address",
+                );
               }
             } catch (err) {
-              console.error('DELETE ERROR:', err);
-              Alert.alert('Error', 'Failed to delete address');
+              console.error("DELETE ERROR:", err);
+              Alert.alert("Error", "Failed to delete address");
             }
-          }
-        }
-      ]
+          },
+        },
+      ],
     );
   };
 
@@ -364,13 +371,16 @@ const AddressScreen = () => {
       <SafeAreaView style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
             <Icon name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>My Addresses</Text>
           <View style={styles.headerRight} />
         </View>
-        
+
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#800000" />
           <Text style={styles.loadingText}>Loading addresses...</Text>
@@ -383,7 +393,10 @@ const AddressScreen = () => {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
           <Icon name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Addresses</Text>
@@ -407,7 +420,9 @@ const AddressScreen = () => {
             <View style={styles.emptyContainer}>
               <Icon name="location-outline" size={60} color="#ccc" />
               <Text style={styles.emptyText}>No addresses found</Text>
-              <Text style={styles.emptySubtext}>Add your first address to get started</Text>
+              <Text style={styles.emptySubtext}>
+                Add your first address to get started
+              </Text>
             </View>
           ) : (
             addresses.map(renderAddressCard)
@@ -440,13 +455,16 @@ const AddressScreen = () => {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={styles.modalBody}
+              showsVerticalScrollIndicator={false}
+            >
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Full Name *</Text>
                 <TextInput
                   style={styles.input}
                   value={formData.fullName}
-                  onChangeText={(v) => handleInputChange('fullName', v)}
+                  onChangeText={(v) => handleInputChange("fullName", v)}
                   placeholder="Enter full name"
                   placeholderTextColor="#999"
                   editable={!submitting}
@@ -458,7 +476,7 @@ const AddressScreen = () => {
                 <TextInput
                   style={styles.input}
                   value={formData.phone}
-                  onChangeText={(v) => handleInputChange('phone', v)}
+                  onChangeText={(v) => handleInputChange("phone", v)}
                   placeholder="Enter 10-digit number"
                   keyboardType="phone-pad"
                   maxLength={10}
@@ -472,7 +490,7 @@ const AddressScreen = () => {
                 <TextInput
                   style={[styles.input, styles.textArea]}
                   value={formData.addressLine}
-                  onChangeText={(v) => handleInputChange('addressLine', v)}
+                  onChangeText={(v) => handleInputChange("addressLine", v)}
                   placeholder="House no, street, area"
                   placeholderTextColor="#999"
                   multiline
@@ -486,7 +504,7 @@ const AddressScreen = () => {
                 <TextInput
                   style={styles.input}
                   value={formData.city}
-                  onChangeText={(v) => handleInputChange('city', v)}
+                  onChangeText={(v) => handleInputChange("city", v)}
                   placeholder="Enter city"
                   placeholderTextColor="#999"
                   editable={!submitting}
@@ -498,7 +516,7 @@ const AddressScreen = () => {
                 <TextInput
                   style={styles.input}
                   value={formData.state}
-                  onChangeText={(v) => handleInputChange('state', v)}
+                  onChangeText={(v) => handleInputChange("state", v)}
                   placeholder="Enter state"
                   placeholderTextColor="#999"
                   editable={!submitting}
@@ -510,7 +528,7 @@ const AddressScreen = () => {
                 <TextInput
                   style={styles.input}
                   value={formData.pincode}
-                  onChangeText={(v) => handleInputChange('pincode', v)}
+                  onChangeText={(v) => handleInputChange("pincode", v)}
                   placeholder="6-digit pincode"
                   keyboardType="numeric"
                   maxLength={6}
@@ -532,7 +550,9 @@ const AddressScreen = () => {
               <View style={styles.checkboxContainer}>
                 <TouchableOpacity
                   style={styles.checkboxRow}
-                  onPress={() => handleInputChange('isDefault', !formData.isDefault)}
+                  onPress={() =>
+                    handleInputChange("isDefault", !formData.isDefault)
+                  }
                   disabled={submitting}
                 >
                   <View
@@ -541,9 +561,13 @@ const AddressScreen = () => {
                       formData.isDefault && styles.checkboxInputChecked,
                     ]}
                   >
-                    {formData.isDefault && <Icon name="checkmark" size={14} color="white" />}
+                    {formData.isDefault && (
+                      <Icon name="checkmark" size={14} color="white" />
+                    )}
                   </View>
-                  <Text style={styles.checkboxLabel}>Set as default address</Text>
+                  <Text style={styles.checkboxLabel}>
+                    Set as default address
+                  </Text>
                 </TouchableOpacity>
               </View>
 
@@ -582,23 +606,23 @@ const AddressScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: "#f8f9fa",
   },
   header: {
-    backgroundColor: '#800000',
+    backgroundColor: "#800000",
     padding: 16,
     paddingTop: 45,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   backButton: {
     padding: 4,
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: "bold",
+    color: "#fff",
   },
   headerRight: {
     width: 40,
@@ -609,35 +633,35 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f8f9fa',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f8f9fa",
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#666',
+    color: "#666",
   },
   addAddressBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fff",
     borderWidth: 2,
-    borderStyle: 'dashed',
-    borderColor: '#800000',
+    borderStyle: "dashed",
+    borderColor: "#800000",
     padding: 16,
     borderRadius: 10,
     marginBottom: 20,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
   addAddressText: {
-    color: '#800000',
-    fontWeight: '600',
+    color: "#800000",
+    fontWeight: "600",
     fontSize: 16,
     marginLeft: 10,
   },
@@ -645,47 +669,47 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   addressCard: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 10,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#e1e5eb',
+    borderColor: "#e1e5eb",
     elevation: 3,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
   },
   defaultBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#e8f5e9',
-    alignSelf: 'flex-start',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#e8f5e9",
+    alignSelf: "flex-start",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
     marginBottom: 12,
   },
   defaultBadgeText: {
-    color: '#2e7d32',
+    color: "#2e7d32",
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
     marginLeft: 4,
   },
   addressName: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2c3e50',
+    fontWeight: "bold",
+    color: "#2c3e50",
     marginBottom: 8,
   },
   phoneContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 16,
   },
   phoneText: {
-    color: '#555',
+    color: "#555",
     fontSize: 15,
     marginLeft: 8,
   },
@@ -693,112 +717,112 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   addressText: {
-    color: '#555',
+    color: "#555",
     fontSize: 15,
     lineHeight: 20,
     marginBottom: 4,
   },
   addressActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
+    flexDirection: "row",
+    justifyContent: "flex-end",
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: "#eee",
   },
   defaultAddressActions: {
     flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   defaultText: {
-    color: '#2e7d32',
-    fontWeight: '600',
+    color: "#2e7d32",
+    fontWeight: "600",
     fontSize: 14,
   },
   setDefaultBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f0f4ff',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f0f4ff",
     paddingHorizontal: 15,
     paddingVertical: 10,
     borderRadius: 6,
     marginRight: 10,
   },
   setDefaultText: {
-    color: '#800000',
-    fontWeight: '600',
+    color: "#800000",
+    fontWeight: "600",
     fontSize: 14,
     marginLeft: 6,
   },
   deleteBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff5f5',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff5f5",
     paddingHorizontal: 15,
     paddingVertical: 10,
     borderRadius: 6,
   },
   deleteOnlyBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   deleteText: {
-    color: '#ff4444',
-    fontWeight: '600',
+    color: "#ff4444",
+    fontWeight: "600",
     fontSize: 14,
     marginLeft: 6,
   },
   emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 60,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 10,
     padding: 20,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
   },
   emptyText: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#666',
+    fontWeight: "600",
+    color: "#666",
     marginTop: 16,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#999',
-    textAlign: 'center',
+    color: "#999",
+    textAlign: "center",
     paddingHorizontal: 20,
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '90%',
+    maxHeight: "90%",
   },
   modalHeader: {
-    backgroundColor: '#800000',
+    backgroundColor: "#800000",
     padding: 20,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: 'white',
+    fontWeight: "600",
+    color: "white",
   },
   modalBody: {
     padding: 20,
@@ -809,88 +833,88 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#444',
+    fontWeight: "600",
+    color: "#444",
     marginBottom: 6,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
     borderRadius: 8,
     padding: 14,
     fontSize: 16,
-    backgroundColor: '#fff',
-    color: '#333',
+    backgroundColor: "#fff",
+    color: "#333",
   },
   disabledInput: {
-    backgroundColor: '#f5f5f5',
-    color: '#666',
+    backgroundColor: "#f5f5f5",
+    color: "#666",
   },
   textArea: {
     minHeight: 80,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
   },
   checkboxContainer: {
     marginBottom: 20,
   },
   checkboxRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   checkboxInput: {
     width: 20,
     height: 20,
     borderWidth: 2,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
     borderRadius: 4,
     marginRight: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   checkboxInputChecked: {
-    backgroundColor: '#800000',
-    borderColor: '#800000',
+    backgroundColor: "#800000",
+    borderColor: "#800000",
   },
   checkboxLabel: {
     fontSize: 16,
-    color: '#444',
+    color: "#444",
   },
   modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginTop: 10,
     paddingTop: 20,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: "#eee",
   },
   cancelBtn: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
     padding: 16,
     borderRadius: 8,
     marginRight: 10,
-    alignItems: 'center',
+    alignItems: "center",
   },
   cancelBtnText: {
-    color: '#666',
-    fontWeight: '600',
+    color: "#666",
+    fontWeight: "600",
     fontSize: 16,
   },
   saveBtn: {
     flex: 1,
-    backgroundColor: '#800000',
+    backgroundColor: "#800000",
     padding: 16,
     borderRadius: 8,
     marginLeft: 10,
-    alignItems: 'center',
+    alignItems: "center",
   },
   saveBtnDisabled: {
-    backgroundColor: '#a05252',
+    backgroundColor: "#a05252",
     opacity: 0.7,
   },
   saveBtnText: {
-    color: 'white',
-    fontWeight: '600',
+    color: "white",
+    fontWeight: "600",
     fontSize: 16,
   },
 });

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -11,131 +11,137 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   SafeAreaView,
-} from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
-import { useRouter } from 'expo-router';
-import Icon from 'react-native-vector-icons/Ionicons';
+} from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
+import { useRouter } from "expo-router";
+import Icon from "react-native-vector-icons/Ionicons";
 
-const API_URL = 'https://bricks-backend-qyea.onrender.com/api';
+const API_URL = "https://bricks-backend-qyea.onrender.com/api";
 
 export default function Login() {
   const router = useRouter();
 
-  const [role, setRole] = useState('user');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [role, setRole] = useState("user");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
-      setError('Email and password are required');
+      setError("Email and password are required");
       return;
     }
 
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
-      let endpoint = '';
+      let endpoint = "";
 
-      if (role === 'user') {
+      if (role === "user") {
         endpoint = `${API_URL}/auth/user/login`;
-      } else if (role === 'seller') {
+      } else if (role === "seller") {
         endpoint = `${API_URL}/auth/seller/login`;
-      } else if (role === 'contractor') {
+      } else if (role === "contractor") {
         endpoint = `${API_URL}/contractor/auth/login`;
       }
 
-      console.log('Login endpoint:', endpoint);
+      console.log("Login endpoint:", endpoint);
 
-      const response = await axios.post(endpoint, {
-        email,
-        password,
-      }, {
-        timeout: 15000,
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await axios.post(
+        endpoint,
+        {
+          email,
+          password,
         },
-      });
+        {
+          timeout: 15000,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      );
 
-      console.log('Login response:', response.data);
+      console.log("Login response:", response.data);
 
       const token = response.data.token;
       const userData =
-        response.data.user ||
-        response.data.seller ||
-        response.data.contractor;
+        response.data.user || response.data.seller || response.data.contractor;
 
       if (!token || !userData) {
-        throw new Error('Invalid server response');
+        throw new Error("Invalid server response");
       }
 
       await AsyncStorage.multiSet([
-        ['token', token],
-        ['userRole', role],
-        ['userData', JSON.stringify(userData)],
-        ['isLoggedIn', 'true'],
-        ['loginTime', new Date().toISOString()],
+        ["token", token],
+        ["userRole", role],
+        ["userData", JSON.stringify(userData)],
+        ["isLoggedIn", "true"],
+        ["loginTime", new Date().toISOString()],
       ]);
 
-      console.log('User data saved to AsyncStorage:', { role, token: token ? 'present' : 'missing' });
+      console.log("User data saved to AsyncStorage:", {
+        role,
+        token: token ? "present" : "missing",
+      });
 
-      Alert.alert('Success', 'Login successful');
+      Alert.alert("Success", "Login successful");
 
       // Redirect based on role
-      if (role === 'seller') {
-        router.replace('/(seller)/dashboard');
-      } else if (role === 'contractor') {
+      if (role === "seller") {
+        router.replace("/(seller)/dashboard");
+      } else if (role === "contractor") {
         // Updated route to contractor portfolio
-        router.replace('/portfolio/');
+        router.replace("/portfolio/");
       } else {
-        router.replace('/(tabs)');
+        router.replace("/(tabs)");
       }
     } catch (err) {
-      console.error('Login error details:', {
+      console.error("Login error details:", {
         message: err.message,
         code: err.code,
         response: err.response?.data,
         status: err.response?.status,
         config: {
           url: err.config?.url,
-        }
+        },
       });
-      
-      let errorMessage = 'Unable to login. Please try again.';
-      
+
+      let errorMessage = "Unable to login. Please try again.";
+
       if (err.response) {
-        errorMessage = err.response.data?.message || `Server error: ${err.response.status}`;
-        
+        errorMessage =
+          err.response.data?.message || `Server error: ${err.response.status}`;
+
         // Handle specific error cases
         if (err.response.status === 401) {
-          errorMessage = 'Invalid email or password';
+          errorMessage = "Invalid email or password";
         } else if (err.response.status === 400) {
-          errorMessage = 'Invalid login data. Please check your credentials.';
+          errorMessage = "Invalid login data. Please check your credentials.";
         } else if (err.response.status === 404) {
-          errorMessage = 'Account not found. Please check your email.';
+          errorMessage = "Account not found. Please check your email.";
         } else if (err.response.status === 403) {
-          if (role === 'contractor') {
-            errorMessage = 'Contractor account is pending approval';
-          } else if (role === 'seller') {
-            errorMessage = 'Seller account is pending approval';
+          if (role === "contractor") {
+            errorMessage = "Contractor account is pending approval";
+          } else if (role === "seller") {
+            errorMessage = "Seller account is pending approval";
           } else {
-            errorMessage = 'Account not approved yet';
+            errorMessage = "Account not approved yet";
           }
         }
       } else if (err.request) {
-        errorMessage = 'No response from server. Check your connection.';
-      } else if (err.code === 'ECONNABORTED') {
-        errorMessage = 'Request timeout. Server might be busy.';
-      } else if (err.message.includes('Network Error')) {
-        errorMessage = 'Network error. Check your internet connection.';
-      } else if (err.message === 'Invalid server response') {
-        errorMessage = 'Invalid server response. Please try again.';
+        errorMessage = "No response from server. Check your connection.";
+      } else if (err.code === "ECONNABORTED") {
+        errorMessage = "Request timeout. Server might be busy.";
+      } else if (err.message.includes("Network Error")) {
+        errorMessage = "Network error. Check your internet connection.";
+      } else if (err.message === "Invalid server response") {
+        errorMessage = "Invalid server response. Please try again.";
       }
-      
+
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -143,24 +149,24 @@ export default function Login() {
   };
 
   const handleSignUp = () => {
-    router.push('/Register');
+    router.push("/Register");
   };
 
   const handleForgotPassword = () => {
     Alert.alert(
-      'Forgot Password',
-      'Please contact your administrator to reset your password.',
-      [{ text: 'OK' }]
+      "Forgot Password",
+      "Please contact your administrator to reset your password.",
+      [{ text: "OK" }],
     );
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.container}
       >
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -180,29 +186,28 @@ export default function Login() {
           <View style={styles.card}>
             {/* Role Selection Tabs */}
             <View style={styles.tabsContainer}>
-              {['user', 'seller', 'contractor'].map(r => (
+              {["user", "seller", "contractor"].map((r) => (
                 <TouchableOpacity
                   key={r}
-                  style={[
-                    styles.tab,
-                    role === r && styles.activeTab
-                  ]}
+                  style={[styles.tab, role === r && styles.activeTab]}
                   onPress={() => setRole(r)}
                   disabled={loading}
                 >
-                  <Icon 
+                  <Icon
                     name={
-                      r === 'user' ? 'person' : 
-                      r === 'seller' ? 'storefront' : 'construct'
-                    } 
-                    size={18} 
-                    color={role === r ? '#fff' : '#666'} 
+                      r === "user"
+                        ? "person"
+                        : r === "seller"
+                          ? "storefront"
+                          : "construct"
+                    }
+                    size={18}
+                    color={role === r ? "#fff" : "#666"}
                     style={styles.tabIcon}
                   />
-                  <Text style={[
-                    styles.tabText,
-                    role === r && styles.activeTabText
-                  ]}>
+                  <Text
+                    style={[styles.tabText, role === r && styles.activeTabText]}
+                  >
                     {r.charAt(0).toUpperCase() + r.slice(1)}
                   </Text>
                 </TouchableOpacity>
@@ -220,7 +225,12 @@ export default function Login() {
             {/* Email Input */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>
-                <Icon name="mail" size={16} color="#666" style={{marginRight: 6}} />
+                <Icon
+                  name="mail"
+                  size={16}
+                  color="#666"
+                  style={{ marginRight: 6 }}
+                />
                 Email Address
               </Text>
               <TextInput
@@ -238,12 +248,21 @@ export default function Login() {
             {/* Password Input */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>
-                <Icon name="lock-closed" size={16} color="#666" style={{marginRight: 6}} />
+                <Icon
+                  name="lock-closed"
+                  size={16}
+                  color="#666"
+                  style={{ marginRight: 6 }}
+                />
                 Password
               </Text>
               <View style={styles.passwordContainer}>
                 <TextInput
-                  style={[styles.input, styles.passwordInput, loading && styles.disabledInput]}
+                  style={[
+                    styles.input,
+                    styles.passwordInput,
+                    loading && styles.disabledInput,
+                  ]}
                   placeholder="Enter your password"
                   placeholderTextColor="#9ca3af"
                   value={password}
@@ -257,7 +276,7 @@ export default function Login() {
                   disabled={loading}
                 >
                   <Icon
-                    name={showPassword ? 'eye-off' : 'eye'}
+                    name={showPassword ? "eye-off" : "eye"}
                     size={22}
                     color="#6b7280"
                   />
@@ -271,7 +290,9 @@ export default function Login() {
               onPress={handleForgotPassword}
               disabled={loading}
             >
-              <Text style={styles.forgotPasswordText}>Forgot your password?</Text>
+              <Text style={styles.forgotPasswordText}>
+                Forgot your password?
+              </Text>
             </TouchableOpacity>
 
             {/* Login Button */}
@@ -300,7 +321,9 @@ export default function Login() {
 
           {/* Footer */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>© 2024 BricksIT. All rights reserved.</Text>
+            <Text style={styles.footerText}>
+              © 2024 BricksIT. All rights reserved.
+            </Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -311,7 +334,7 @@ export default function Login() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: "#f8f9fa",
   },
   container: {
     flex: 1,
@@ -320,7 +343,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   header: {
-    backgroundColor: '#800000',
+    backgroundColor: "#800000",
     paddingVertical: 40,
     paddingHorizontal: 24,
     borderBottomLeftRadius: 30,
@@ -328,43 +351,43 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   headerContent: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   logoContainer: {
     width: 70,
     height: 70,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
     borderRadius: 35,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 16,
   },
   headerTitle: {
     fontSize: 32,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: "bold",
+    color: "#fff",
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   headerSubtitle: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
-    textAlign: 'center',
+    color: "rgba(255, 255, 255, 0.9)",
+    textAlign: "center",
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 20,
     padding: 24,
     marginHorizontal: 24,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 5,
   },
   tabsContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#f1f5f9',
+    flexDirection: "row",
+    backgroundColor: "#f1f5f9",
     borderRadius: 12,
     padding: 4,
     marginBottom: 24,
@@ -373,31 +396,31 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     paddingHorizontal: 8,
-    alignItems: 'center',
+    alignItems: "center",
     borderRadius: 8,
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
   },
   activeTab: {
-    backgroundColor: '#800000',
+    backgroundColor: "#800000",
   },
   tabIcon: {
     marginRight: 6,
   },
   tabText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#6b7280',
+    fontWeight: "600",
+    color: "#6b7280",
   },
   activeTabText: {
-    color: '#fff',
+    color: "#fff",
   },
   errorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fef2f2',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fef2f2",
     borderWidth: 1,
-    borderColor: '#fecaca',
+    borderColor: "#fecaca",
     borderRadius: 8,
     padding: 12,
     marginBottom: 20,
@@ -406,61 +429,61 @@ const styles = StyleSheet.create({
   errorText: {
     flex: 1,
     fontSize: 14,
-    color: '#dc2626',
+    color: "#dc2626",
   },
   inputGroup: {
     marginBottom: 20,
   },
   label: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
+    fontWeight: "600",
+    color: "#374151",
     marginBottom: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   input: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: "#d1d5db",
     borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: '#111827',
-    backgroundColor: '#fff',
+    color: "#111827",
+    backgroundColor: "#fff",
   },
   disabledInput: {
-    backgroundColor: '#f3f4f6',
-    color: '#9ca3af',
+    backgroundColor: "#f3f4f6",
+    color: "#9ca3af",
   },
   passwordContainer: {
-    position: 'relative',
+    position: "relative",
   },
   passwordInput: {
     paddingRight: 50,
   },
   eyeButton: {
-    position: 'absolute',
+    position: "absolute",
     right: 16,
     top: 14,
     padding: 4,
   },
   forgotPasswordLink: {
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     marginBottom: 24,
   },
   forgotPasswordText: {
     fontSize: 14,
-    color: '#800000',
-    fontWeight: '600',
+    color: "#800000",
+    fontWeight: "600",
   },
   loginButton: {
-    backgroundColor: '#800000',
+    backgroundColor: "#800000",
     borderRadius: 10,
     paddingVertical: 16,
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 24,
-    shadowColor: '#800000',
+    shadowColor: "#800000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -470,34 +493,34 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   loginButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   signUpContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     paddingVertical: 8,
   },
   signUpText: {
     fontSize: 15,
-    color: '#6b7280',
+    color: "#6b7280",
   },
   signUpLink: {
     fontSize: 15,
-    color: '#800000',
-    fontWeight: '600',
-    textDecorationLine: 'underline',
+    color: "#800000",
+    fontWeight: "600",
+    textDecorationLine: "underline",
   },
   footer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 32,
     paddingBottom: 20,
     paddingHorizontal: 24,
   },
   footerText: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: "#9ca3af",
   },
 });

@@ -1,363 +1,176 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
-import { fetchCategories } from '../../services/api';
-import { Search } from 'lucide-react';
-import Skeleton from '../Skeleton/Skeleton';
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const CategorySection = () => {
-    const [categories, setCategories] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [activeCategory, setActiveCategory] = useState(0);
-    const [canScrollLeft, setCanScrollLeft] = useState(false);
-    const [canScrollRight, setCanScrollRight] = useState(true);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
-    const autoSlideRef = useRef(null);
-    const carouselRef = useRef(null);
+  const API = axios.create({
+    baseURL: "https://bricks-backend-qyea.onrender.com/api/v1",
+  });
 
-    const slideDuration = 5000;
-
-    // Check scroll position
-    const checkScroll = () => {
-        if (carouselRef.current) {
-            const { scrollLeft, scrollWidth, clientWidth } = carouselRef.current;
-            setCanScrollLeft(scrollLeft > 0);
-            setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
-            
-            // Update active dot based on scroll position
-            const scrollPosition = scrollLeft;
-            const cardWidth = carouselRef.current.children[0]?.clientWidth || 200;
-            const gap = 16; // gap-4 = 1rem = 16px
-            const visibleCards = Math.floor(clientWidth / (cardWidth + gap));
-            const activeIndex = Math.floor(scrollPosition / ((cardWidth + gap) * visibleCards));
-            setActiveCategory(activeIndex);
-        }
-    };
-
-    // Scroll handlers
-    const scrollLeft = () => {
-        if (carouselRef.current) {
-            carouselRef.current.scrollBy({ left: -300, behavior: "smooth" });
-            resetAutoSlide();
-        }
-    };
-
-    const scrollRight = () => {
-        if (carouselRef.current) {
-            carouselRef.current.scrollBy({ left: 300, behavior: "smooth" });
-            resetAutoSlide();
-        }
-    };
-
-    // Auto scroll function
-    const startAutoScroll = () => {
-        if (autoSlideRef.current) {
-            clearInterval(autoSlideRef.current);
-        }
-
-        autoSlideRef.current = setInterval(() => {
-            if (carouselRef.current) {
-                const { scrollLeft, scrollWidth, clientWidth } = carouselRef.current;
-
-                if (scrollLeft >= scrollWidth - clientWidth - 10) {
-                    // Reached the end, scroll back to start
-                    carouselRef.current.scrollTo({ left: 0, behavior: "smooth" });
-                } else {
-                    // Scroll to the right
-                    carouselRef.current.scrollBy({ left: 300, behavior: "smooth" });
-                }
-            }
-        }, slideDuration);
-    };
-
-    // Reset auto slide timer
-    const resetAutoSlide = () => {
-        if (autoSlideRef.current) {
-            clearInterval(autoSlideRef.current);
-        }
-        startAutoScroll();
-    };
-
-    // Load categories
-    useEffect(() => {
-        const loadCategories = async () => {
-            try {
-                const data = await fetchCategories();
-                const enriched = data.map(cat => ({
-                    ...cat,
-                    id: cat.numericId || cat._id || cat.id,
-                    color: cat.color || 'blue',
-                    icon: cat.icon || '🔧',
-                    image: cat.image || `https://source.unsplash.com/featured/400x400/?${encodeURIComponent(cat.name)},construction`,
-                    description: cat.description || 'Explore quality products',
-                    subcategories: cat.subcategories || []
-                }));
-                setCategories(enriched);
-                setError(null);
-            } catch (err) {
-                setError(err.message);
-                console.error('Failed to load categories:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        loadCategories();
-    }, []);
-
-    // Set up scroll event listener and auto scroll
-    useEffect(() => {
-        if (loading || error || categories.length === 0) return;
-
-        const carousel = carouselRef.current;
-        if (carousel) {
-            carousel.addEventListener("scroll", checkScroll);
-            checkScroll();
-        }
-
-        startAutoScroll();
-
-        return () => {
-            if (carousel) {
-                carousel.removeEventListener("scroll", checkScroll);
-            }
-            if (autoSlideRef.current) {
-                clearInterval(autoSlideRef.current);
-            }
-        };
-    }, [loading, error, categories.length]);
-
-    // Handle mouse enter/leave for pausing
-    const handleMouseEnter = () => {
-        if (autoSlideRef.current) {
-            clearInterval(autoSlideRef.current);
-        }
-    };
-
-    const handleMouseLeave = () => {
-        startAutoScroll();
-    };
-
-    // Filter categories based on search
-    const filteredCategories = categories.filter((category) =>
-        category.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    // Get color classes
-    const getColorClasses = (color) => {
-        const map = {
-            blue: 'border-blue-200 hover:border-blue-300',
-            gray: 'border-gray-200 hover:border-gray-300',
-            yellow: 'border-yellow-200 hover:border-yellow-300',
-            cyan: 'border-cyan-200 hover:border-cyan-300',
-            orange: 'border-orange-200 hover:border-orange-300',
-            purple: 'border-purple-200 hover:border-purple-300',
-            red: 'border-red-200 hover:border-red-300',
-            pink: 'border-pink-200 hover:border-pink-300'
-        };
-        return map[color] || map.blue;
-    };
-
-    // Loading State Component
-    if (loading) {
-        return (
-              <section className="w-full py-8 md:py-12 bg-gradient-to-b from-gray-50 to-white">
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <Skeleton.Header />
-        <Skeleton.CategoryGrid count={5} />
-    </div>
-</section>
-        );
+  const fetchPublicCategories = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const res = await API.get("/categories/public/categories");
+      setCategories(res.data.data || []);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load categories. Please try again.");
+    } finally {
+      setLoading(false);
     }
+  };
 
-    if (error) {
-        return (
-            <section className="w-full py-8 md:py-12 bg-gradient-to-b from-gray-50 to-white">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="text-center mb-10">
-                        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Shop by Category</h2>
-                        <p className="text-gray-600">Discover products by category</p>
-                    </div>
-                    <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
-                        <p className="text-red-600 text-lg mb-2">⚠️ {error}</p>
-                        <p className="text-sm text-gray-500">Make sure your backend is running on port 5000</p>
-                    </div>
-                </div>
-            </section>
-        );
-    }
+  useEffect(() => {
+    fetchPublicCategories();
+  }, []);
 
-    if (categories.length === 0) {
-        return (
-            <section className="w-full py-8 md:py-12 bg-gradient-to-b from-gray-50 to-white">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="text-center mb-10">
-                        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Shop by Category</h2>
-                        <p className="text-gray-600">Discover products by category</p>
-                    </div>
-                    <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
-                        <p className="text-gray-500">No categories available yet</p>
-                    </div>
-                </div>
-            </section>
-        );
-    }
+  // Skeleton Loading Component
+  const SkeletonLoader = () => (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+      <div className="h-8 w-64 bg-gray-200 rounded-lg mb-8 md:mb-10 animate-pulse mx-auto md:mx-0"></div>
 
-    return (
-        <section 
-            className="w-full py-8 md:py-12 bg-gradient-to-b from-gray-50 to-white"
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
-        >
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                {/* Header with search */}
-                <div className="flex flex-col lg:flex-row justify-between items-center mb-8 gap-4">
-                    <div>
-                        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
-                            Shop by Category
-                        </h2>
-                        <p className="text-gray-600">Discover products by category</p>
-                    </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5 sm:gap-6">
+        {[...Array(12)].map((_, index) => (
+          <div
+            key={index}
+            className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100"
+          >
+            {/* Image Skeleton */}
+            <div className="aspect-square bg-gray-200 animate-pulse"></div>
 
-            
-                </div>
-
-                {/* Navigation Indicators (dots for pages) */}
-                {filteredCategories.length > 5 && (
-                    <div className="flex justify-center mb-6">
-                        <div className="flex gap-2">
-                            {[...Array(Math.ceil(filteredCategories.length / 5))].map((_, i) => (
-                                <button
-                                    key={i}
-                                    onClick={() => {
-                                        if (carouselRef.current) {
-                                            const scrollAmount = carouselRef.current.clientWidth * i;
-                                            carouselRef.current.scrollTo({ left: scrollAmount, behavior: "smooth" });
-                                            resetAutoSlide();
-                                        }
-                                    }}
-                                    className={`w-2 h-2 rounded-full transition-all ${
-                                        activeCategory === i 
-                                            ? "bg-blue-600 w-6" 
-                                            : "bg-gray-300 hover:bg-gray-400"
-                                    }`}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Carousel Container */}
-                <div className="relative group">
-                    {/* Left Navigation Button */}
-                    {canScrollLeft && (
-                        <button
-                            onClick={scrollLeft}
-                            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white shadow-lg rounded-full p-3 transition-all opacity-0 group-hover:opacity-100 hover:scale-110 -ml-4"
-                            aria-label="Scroll left"
-                        >
-                            <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                            </svg>
-                        </button>
-                    )}
-
-                    {/* Category Carousel */}
-                    <div
-                        ref={carouselRef}
-                        className="overflow-x-auto scroll-smooth pb-4 hide-scrollbar"
-                        style={{
-                            msOverflowStyle: "none",
-                            scrollbarWidth: "none",
-                        }}
-                    >
-                        <style jsx>{`
-                            .hide-scrollbar::-webkit-scrollbar {
-                                display: none;
-                            }
-                        `}</style>
-
-                        <div className="flex gap-4 md:gap-6 pb-2 min-w-min mt-4">
-                            {filteredCategories.map((category) => {
-                                const borderColor = getColorClasses(category.color);
-                                return (
-                                    <Link
-                                        key={category.id}
-                                        to={`/category/${category.id}`}
-                                        className="flex-shrink-0 w-40 sm:w-44 md:w-48 lg:w-52 xl:w-56"
-                                    >
-                                        {/* Category Card - REMOVED rounded-xl */}
-                                        <div className={`relative overflow-hidden bg-white shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-3 border border-gray-100 cursor-pointer h-[330px] ${borderColor}`}>
-                                            {/* Image Container */}
-                                            <div className="aspect-square flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
-                                                <img
-                                                    src={category.image}
-                                                    alt={category.name}
-                                                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                                                    loading="lazy"
-                                                    onError={(e) => {
-                                                        e.target.onerror = null;
-                                                        e.target.src = `https://source.unsplash.com/featured/400x400/?construction,building`;
-                                                    }}
-                                                />
-                                            </div>
-
-                                            {/* Category Info */}
-                                            <div className="p-5 text-center">
-                                                <h3 className="font-semibold text-gray-900 text-base sm:text-lg mb-2 line-clamp-1">
-                                                    {category.name}
-                                                </h3>
-                                                <p className="text-sm text-gray-500 line-clamp-2">
-                                                    {category.description}
-                                                </p>
-                                            </div>
-
-                                           
-
-                                            {/* Hover Overlay */}
-                                            <div className="absolute inset-0 bg-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-                                        </div>
-                                    </Link>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    {/* Right Navigation Button */}
-                    {canScrollRight && (
-                        <button
-                            onClick={scrollRight}
-                            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white shadow-lg rounded-full p-3 transition-all opacity-0 group-hover:opacity-100 hover:scale-110 -mr-4"
-                            aria-label="Scroll right"
-                        >
-                            <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
-                        </button>
-                    )}
-                </div>
-
-                {/* Empty State */}
-                {filteredCategories.length === 0 && (
-                    <div className="text-center py-12">
-                        <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center bg-gray-100 rounded-full">
-                            <Search className="w-8 h-8 text-gray-400" />
-                        </div>
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">No categories found</h3>
-                        <p className="text-gray-600">Try searching for something else</p>
-                        <button
-                            onClick={() => setSearchQuery("")}
-                            className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                        >
-                            Clear Search
-                        </button>
-                    </div>
-                )}
-
-              
+            {/* Text Skeleton */}
+            <div className="p-4">
+              <div className="h-4 bg-gray-200 rounded animate-pulse mb-2"></div>
+              <div className="h-3 bg-gray-100 rounded animate-pulse w-2/3 mx-auto"></div>
             </div>
-        </section>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  if (loading) {
+    return <SkeletonLoader />;
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
+          <div className="text-red-500 text-4xl mb-4">⚠️</div>
+          <h3 className="text-xl font-semibold text-red-700 mb-2">
+            Oops! Something went wrong
+          </h3>
+          <p className="text-red-600 mb-6">{error}</p>
+          <button
+            onClick={fetchPublicCategories}
+            className="px-6 py-3 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors inline-flex items-center gap-2"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+            Retry Loading
+          </button>
+        </div>
+      </div>
     );
+  }
+
+  return (
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+      <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8 md:mb-10 text-center md:text-left">
+        Shop by Category
+      </h2>
+
+      {categories.length === 0 ? (
+        <div className="text-center py-16 border-2 border-dashed border-gray-300 rounded-2xl bg-gray-50">
+          <div className="text-gray-400 text-5xl mb-4">📂</div>
+          <h3 className="text-xl font-medium text-gray-600 mb-2">
+            No categories found
+          </h3>
+          <p className="text-gray-500">
+            Categories will appear here once they're available
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5 sm:gap-6">
+          {categories.map((category) => (
+            <div
+              key={category._id}
+              onClick={() => navigate(`/category/${category._id}`)}
+              className="group bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden cursor-pointer border border-gray-100 hover:border-indigo-200"
+            >
+              {/* Image Container with Shimmer Effect */}
+              <div className="aspect-square overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 relative">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <img
+                  src={
+                    category.image ||
+                    "https://via.placeholder.com/300x300/e5e7eb/6b7280?text=" +
+                      encodeURIComponent(category.name)
+                  }
+                  alt={category.name}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  onError={(e) => {
+                    e.target.src = `https://via.placeholder.com/300x300/e5e7eb/6b7280?text=${encodeURIComponent(category.name)}`;
+                  }}
+                />
+              </div>
+
+              {/* Category Name with Gradient Text */}
+              <div className="p-4 text-center">
+                <h3 className="font-semibold text-gray-800 group-hover:text-indigo-700 transition-colors duration-300 text-sm md:text-base relative inline-block">
+                  {category.name}
+                  <span className="absolute -bottom-1 left-0 w-0 group-hover:w-full h-0.5 bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-300"></span>
+                </h3>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* View All Button for many categories */}
+      {categories.length > 12 && (
+        <div className="mt-12 text-center">
+          <button
+            onClick={() => navigate("/categories")}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-medium rounded-full hover:shadow-lg hover:scale-[1.02] transition-all duration-300"
+          >
+            View All Categories
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M14 5l7 7m0 0l-7 7m7-7H3"
+              />
+            </svg>
+          </button>
+        </div>
+      )}
+    </section>
+  );
 };
 
 export default CategorySection;
