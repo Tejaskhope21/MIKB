@@ -50,7 +50,8 @@ const corsOptions = {
         'http://localhost:5175',
         'https://bricksitnow.netlify.app',
         'https://bricks-com.vercel.app',
-        'https://bricksitnow.co.in',
+        'https://infrakarts.co.in',
+        "https://www.infrakarts.co.in",
         process.env.FRONTEND_URL
     ].filter(Boolean),
     credentials: true,
