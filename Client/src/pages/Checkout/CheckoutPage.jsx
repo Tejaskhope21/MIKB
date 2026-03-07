@@ -9,6 +9,9 @@ import {
   Upload,
   CheckCircle,
   Truck,
+  AlertCircle,
+  ArrowLeft,
+  Shield,
 } from "lucide-react";
 
 const API_URL =
@@ -206,14 +209,43 @@ const CheckoutPage = () => {
     upiId: "khopetejas6-1@oksbi",
   };
 
+  // Skeleton Loader
+  const SkeletonLoader = () => (
+    <div className="grid lg:grid-cols-3 gap-8">
+      <div className="lg:col-span-2 space-y-8">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+            <div className="h-8 bg-gray-200 rounded w-48 animate-pulse mb-6"></div>
+            <div className="space-y-4">
+              <div className="h-24 bg-gray-100 rounded animate-pulse"></div>
+              <div className="h-24 bg-gray-100 rounded animate-pulse"></div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="lg:col-span-1">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+          <div className="h-8 bg-gray-200 rounded w-32 animate-pulse mb-6"></div>
+          <div className="space-y-4">
+            <div className="h-16 bg-gray-100 rounded animate-pulse"></div>
+            <div className="h-16 bg-gray-100 rounded animate-pulse"></div>
+            <div className="h-12 bg-orange-200 rounded animate-pulse mt-6"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   if (cartItems.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center p-8 bg-white rounded-xl shadow">
-          <h1 className="text-3xl font-bold mb-4">Your cart is empty</h1>
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center p-4">
+        <div className="text-center bg-white rounded-xl shadow-lg border border-orange-200 p-12 max-w-md">
+          <div className="text-8xl mb-6 text-gray-300">🛒</div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">Your cart is empty</h1>
+          <p className="text-gray-600 mb-8">Looks like you haven't added any products to your cart yet.</p>
           <Link
             to="/"
-            className="bg-[#800000] text-white px-8 py-3 rounded-lg hover:bg-[#900000]"
+            className="inline-block bg-orange-600 hover:bg-orange-700 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-300 shadow-sm hover:shadow-xl transform hover:scale-[1.02]"
           >
             Continue Shopping
           </Link>
@@ -223,373 +255,425 @@ const CheckoutPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4">
-        <h1 className="text-4xl font-bold text-gray-900 mb-10">Checkout</h1>
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+        {/* Header */}
+        <div className="mb-8">
+          <Link
+            to="/cart"
+            className="inline-flex items-center gap-2 text-gray-600 hover:text-orange-600 mb-4 transition-colors group"
+          >
+            <ArrowLeft className="w-4 h-4 transform group-hover:-translate-x-1 transition-transform" />
+            Back to Cart
+          </Link>
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 tracking-tight">Checkout</h1>
+          <p className="text-gray-600 mt-2 text-lg">Complete your purchase in a few simple steps</p>
+        </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Forms Section */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Address */}
-            <div className="bg-white rounded-2xl shadow-lg p-8">
-              <div className="flex items-center mb-8">
-                <MapPin className="w-8 h-8 text-[#800000] mr-4" />
-                <h2 className="text-2xl font-bold">Delivery Address</h2>
-              </div>
-
-              {addresses.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-gray-600 mb-6">No saved addresses</p>
-                  <Link
-                    to="/profile?tab=addresses"
-                    className="text-[#800000] font-semibold"
-                  >
-                    Add Address
-                  </Link>
-                </div>
-              ) : (
-                <>
-                  <div className="grid md:grid-cols-2 gap-6">
-                    {addresses.map((addr) => (
-                      <div
-                        key={addr._id}
-                        onClick={() => setSelectedAddress(addr._id)}
-                        className={`p-6 rounded-xl border-2 cursor-pointer transition-all ${
-                          selectedAddress === addr._id
-                            ? "border-[#800000] bg-red-50"
-                            : "border-gray-200 hover:border-gray-400"
-                        }`}
-                      >
-                        <div className="flex justify-between mb-3">
-                          <h3 className="font-bold text-lg">{addr.fullName}</h3>
-                          {selectedAddress === addr._id && (
-                            <CheckCircle className="w-6 h-6 text-green-600" />
-                          )}
-                        </div>
-                        {addr.isDefault && (
-                          <span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full">
-                            Default
-                          </span>
-                        )}
-                        <p className="text-gray-700 mt-3">
-                          {addr.addressLine || addr.address}
-                          <br />
-                          {addr.city}, {addr.state} - {addr.pincode}
-                        </p>
-                        <p className="text-gray-600 mt-2">
-                          Phone: {addr.phone}
-                        </p>
-                      </div>
-                    ))}
+        {loading ? (
+          <SkeletonLoader />
+        ) : (
+          <div className="grid lg:grid-cols-3 gap-8">
+            {/* Forms Section */}
+            <div className="lg:col-span-2 space-y-8">
+              {/* Address Section */}
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
+                <div className="flex items-center mb-8">
+                  <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mr-4">
+                    <MapPin className="w-6 h-6 text-orange-600" />
                   </div>
-                  <Link
-                    to="/profile?tab=addresses"
-                    className="mt-8 inline-block text-[#800000] font-semibold"
-                  >
-                    + Add New Address
-                  </Link>
-                </>
-              )}
-            </div>
-
-            {/* Payment */}
-            <div className="bg-white rounded-2xl shadow-lg p-8">
-              <div className="flex items-center mb-8">
-                <CreditCard className="w-8 h-8 text-[#800000] mr-4" />
-                <h2 className="text-2xl font-bold">Payment Method</h2>
-              </div>
-
-              {/* COD */}
-              <div
-                onClick={() => handlePaymentMethodChange("cod")}
-                className={`p-6 rounded-xl border-2 cursor-pointer mb-6 transition-all ${
-                  paymentMethod === "cod"
-                    ? "border-[#800000] bg-red-50"
-                    : "border-gray-200"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="bg-red-600 text-white px-4 py-2 rounded-lg font-bold mr-4">
-                      COD
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-lg">Cash on Delivery</h3>
-                      <p className="text-gray-600">
-                        Pay with cash when you receive your order
-                      </p>
-                    </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Delivery Address</h2>
+                    <p className="text-gray-600 text-sm">Select where to deliver your order</p>
                   </div>
-                  {paymentMethod === "cod" && (
-                    <CheckCircle className="w-6 h-6 text-green-600" />
-                  )}
-                </div>
-              </div>
-
-              {/* Bank Transfer */}
-              <div
-                onClick={() => handlePaymentMethodChange("bank_transfer")}
-                className={`p-6 rounded-xl border-2 cursor-pointer transition-all ${
-                  paymentMethod === "bank_transfer"
-                    ? "border-[#800000] bg-red-50"
-                    : "border-gray-200"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center">
-                    <Building className="w-6 h-6 text-blue-600 mr-4" />
-                    <div>
-                      <h3 className="font-bold text-lg">Bank Transfer / UPI</h3>
-                      <p className="text-gray-600">
-                        Direct bank or UPI payment
-                      </p>
-                    </div>
-                  </div>
-                  {paymentMethod === "bank_transfer" && (
-                    <CheckCircle className="w-6 h-6 text-green-600" />
-                  )}
                 </div>
 
-                {paymentMethod === "bank_transfer" && (
-                  <div className="mt-6 space-y-6">
-                    <div className="bg-blue-50 p-6 rounded-xl">
-                      <h4 className="font-bold mb-4">
-                        Transfer to Company Account
-                      </h4>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <strong>Account Name:</strong>{" "}
-                          {bankDetails.accountName}
-                        </div>
-                        <div>
-                          <strong>Account No:</strong>{" "}
-                          {bankDetails.accountNumber}
-                        </div>
-                        <div>
-                          <strong>IFSC:</strong> {bankDetails.ifscCode}
-                        </div>
-                        <div>
-                          <strong>UPI ID:</strong> {bankDetails.upiId}
-                        </div>
-                        <div>
-                          <strong>Bank:</strong> {bankDetails.bankName}
-                        </div>
-                        <div>
-                          <strong>Branch:</strong> {bankDetails.branch}
-                        </div>
-                      </div>
-                      <p className="mt-4 text-yellow-800 bg-yellow-100 p-3 rounded-lg font-semibold">
-                        Transfer exactly ₹{total.toFixed(2)}
-                      </p>
-                    </div>
-
-                    <div className="space-y-4">
-                      <h4 className="font-bold text-gray-800">
-                        Your Payment Details (Optional)
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input
-                          type="text"
-                          placeholder="Transaction ID / UPI Reference *"
-                          value={bankTransferDetails.transactionId}
-                          onChange={(e) =>
-                            setBankTransferDetails((prev) => ({
-                              ...prev,
-                              transactionId: e.target.value,
-                            }))
-                          }
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000]"
-                        />
-                        <input
-                          type="text"
-                          placeholder="Your Bank Name *"
-                          value={bankTransferDetails.bankName}
-                          onChange={(e) =>
-                            setBankTransferDetails((prev) => ({
-                              ...prev,
-                              bankName: e.target.value,
-                            }))
-                          }
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000]"
-                        />
-                        <input
-                          type="text"
-                          placeholder="Your Account Name (Optional)"
-                          value={bankTransferDetails.accountName}
-                          onChange={(e) =>
-                            setBankTransferDetails((prev) => ({
-                              ...prev,
-                              accountName: e.target.value,
-                            }))
-                          }
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000]"
-                        />
-                        <input
-                          type="text"
-                          placeholder="Your Account Number (Optional)"
-                          value={bankTransferDetails.accountNumber}
-                          onChange={(e) =>
-                            setBankTransferDetails((prev) => ({
-                              ...prev,
-                              accountNumber: e.target.value,
-                            }))
-                          }
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000]"
-                        />
-                        <input
-                          type="text"
-                          placeholder="Your IFSC Code (Optional)"
-                          value={bankTransferDetails.ifscCode}
-                          onChange={(e) =>
-                            setBankTransferDetails((prev) => ({
-                              ...prev,
-                              ifscCode: e.target.value,
-                            }))
-                          }
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000]"
-                        />
-                        <input
-                          type="text"
-                          placeholder="Your UPI ID (Optional)"
-                          value={bankTransferDetails.upiId}
-                          onChange={(e) =>
-                            setBankTransferDetails((prev) => ({
-                              ...prev,
-                              upiId: e.target.value,
-                            }))
-                          }
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000]"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="border-2 border-dashed border-gray-400 rounded-xl p-8 text-center">
-                      {bankTransferDetails.screenshot ? (
-                        <div>
-                          <img
-                            src={bankTransferDetails.screenshot}
-                            alt="Proof"
-                            className="mx-auto max-h-64 rounded-lg shadow"
-                          />
-                          <button
-                            onClick={() =>
-                              setBankTransferDetails((prev) => ({
-                                ...prev,
-                                screenshot: null,
-                              }))
-                            }
-                            className="mt-4 text-red-600 font-medium"
-                          >
-                            Remove Image
-                          </button>
-                        </div>
-                      ) : (
-                        <>
-                          <Upload className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                          <p className="text-gray-600 mb-4">
-                            Upload payment proof (screenshot)
+                {addresses.length === 0 ? (
+                  <div className="text-center py-12 bg-orange-50 rounded-xl border border-orange-200">
+                    <AlertCircle className="w-12 h-12 text-orange-400 mx-auto mb-4" />
+                    <p className="text-gray-600 mb-6">No saved addresses found</p>
+                    <Link
+                      to="/profile?tab=addresses"
+                      className="inline-block bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-300 shadow-sm"
+                    >
+                      Add New Address
+                    </Link>
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {addresses.map((addr) => (
+                        <div
+                          key={addr._id}
+                          onClick={() => setSelectedAddress(addr._id)}
+                          className={`p-6 rounded-xl border-2 cursor-pointer transition-all ${
+                            selectedAddress === addr._id
+                              ? "border-orange-600 bg-orange-50/50 shadow-md"
+                              : "border-gray-200 hover:border-orange-300 hover:bg-orange-50/30"
+                          }`}
+                        >
+                          <div className="flex justify-between items-start mb-3">
+                            <div>
+                              <h3 className="font-bold text-gray-900 text-lg">{addr.fullName}</h3>
+                              {addr.isDefault && (
+                                <span className="inline-block mt-1 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                                  Default
+                                </span>
+                              )}
+                            </div>
+                            {selectedAddress === addr._id && (
+                              <CheckCircle className="w-6 h-6 text-orange-600" />
+                            )}
+                          </div>
+                          <p className="text-gray-700 mt-2">
+                            {addr.addressLine || addr.address}
+                            <br />
+                            {addr.city}, {addr.state} - {addr.pincode}
                           </p>
-                          <label className="cursor-pointer bg-[#800000] text-white px-6 py-3 rounded-lg hover:bg-[#900000]">
-                            Choose File
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={handleFileUpload}
-                              className="hidden"
-                            />
-                          </label>
-                          <p className="text-xs text-gray-500 mt-3">
-                            Max 5MB (PNG, JPG, JPEG)
+                          <p className="text-gray-600 mt-2 text-sm">
+                            <span className="font-medium">Phone:</span> {addr.phone}
                           </p>
-                        </>
-                      )}
+                        </div>
+                      ))}
                     </div>
-                  </div>
+                    <Link
+                      to="/profile?tab=addresses"
+                      className="mt-6 inline-flex items-center text-orange-600 hover:text-orange-700 font-medium transition-colors"
+                    >
+                      + Add New Address
+                    </Link>
+                  </>
                 )}
               </div>
+
+              {/* Payment Section */}
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
+                <div className="flex items-center mb-8">
+                  <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mr-4">
+                    <CreditCard className="w-6 h-6 text-orange-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Payment Method</h2>
+                    <p className="text-gray-600 text-sm">Choose how you want to pay</p>
+                  </div>
+                </div>
+
+                {/* COD Option */}
+                <div
+                  onClick={() => handlePaymentMethodChange("cod")}
+                  className={`p-6 rounded-xl border-2 cursor-pointer mb-4 transition-all ${
+                    paymentMethod === "cod"
+                      ? "border-orange-600 bg-orange-50/50 shadow-md"
+                      : "border-gray-200 hover:border-orange-300 hover:bg-orange-50/30"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mr-4">
+                        <Truck className="w-6 h-6 text-green-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-gray-900 text-lg">Cash on Delivery</h3>
+                        <p className="text-gray-600 text-sm">
+                          Pay with cash when you receive your order
+                        </p>
+                      </div>
+                    </div>
+                    {paymentMethod === "cod" && (
+                      <CheckCircle className="w-6 h-6 text-orange-600" />
+                    )}
+                  </div>
+                </div>
+
+                {/* Bank Transfer Option */}
+                <div
+                  onClick={() => handlePaymentMethodChange("bank_transfer")}
+                  className={`p-6 rounded-xl border-2 cursor-pointer transition-all ${
+                    paymentMethod === "bank_transfer"
+                      ? "border-orange-600 bg-orange-50/50 shadow-md"
+                      : "border-gray-200 hover:border-orange-300 hover:bg-orange-50/30"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center">
+                      <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mr-4">
+                        <Building className="w-6 h-6 text-blue-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-gray-900 text-lg">Bank Transfer / UPI</h3>
+                        <p className="text-gray-600 text-sm">
+                          Direct bank transfer or UPI payment
+                        </p>
+                      </div>
+                    </div>
+                    {paymentMethod === "bank_transfer" && (
+                      <CheckCircle className="w-6 h-6 text-orange-600" />
+                    )}
+                  </div>
+
+                  {paymentMethod === "bank_transfer" && (
+                    <div className="mt-6 space-y-6 border-t pt-6">
+                      {/* Company Bank Details */}
+                      <div className="bg-gradient-to-r from-orange-50 to-amber-50 p-6 rounded-xl border border-orange-200">
+                        <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                          <Shield className="w-5 h-5 text-orange-600" />
+                          Transfer to Company Account
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                          <div className="bg-white p-3 rounded-lg border border-orange-100">
+                            <span className="text-gray-600">Account Name:</span>
+                            <span className="font-medium text-gray-900 block">{bankDetails.accountName}</span>
+                          </div>
+                          <div className="bg-white p-3 rounded-lg border border-orange-100">
+                            <span className="text-gray-600">Account No:</span>
+                            <span className="font-medium text-gray-900 block">{bankDetails.accountNumber}</span>
+                          </div>
+                          <div className="bg-white p-3 rounded-lg border border-orange-100">
+                            <span className="text-gray-600">IFSC:</span>
+                            <span className="font-medium text-gray-900 block">{bankDetails.ifscCode}</span>
+                          </div>
+                          <div className="bg-white p-3 rounded-lg border border-orange-100">
+                            <span className="text-gray-600">UPI ID:</span>
+                            <span className="font-medium text-gray-900 block">{bankDetails.upiId}</span>
+                          </div>
+                        </div>
+                        <p className="mt-4 bg-yellow-100 text-yellow-800 p-4 rounded-lg font-semibold border border-yellow-200">
+                          Transfer exactly: <span className="text-xl">₹{total.toLocaleString()}</span>
+                        </p>
+                      </div>
+
+                      {/* User Payment Details */}
+                      <div>
+                        <h4 className="font-bold text-gray-800 mb-4">Your Payment Details</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <input
+                            type="text"
+                            placeholder="Transaction ID / UPI Reference *"
+                            value={bankTransferDetails.transactionId}
+                            onChange={(e) =>
+                              setBankTransferDetails((prev) => ({
+                                ...prev,
+                                transactionId: e.target.value,
+                              }))
+                            }
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Your Bank Name *"
+                            value={bankTransferDetails.bankName}
+                            onChange={(e) =>
+                              setBankTransferDetails((prev) => ({
+                                ...prev,
+                                bankName: e.target.value,
+                              }))
+                            }
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Your Account Name (Optional)"
+                            value={bankTransferDetails.accountName}
+                            onChange={(e) =>
+                              setBankTransferDetails((prev) => ({
+                                ...prev,
+                                accountName: e.target.value,
+                              }))
+                            }
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Your Account Number (Optional)"
+                            value={bankTransferDetails.accountNumber}
+                            onChange={(e) =>
+                              setBankTransferDetails((prev) => ({
+                                ...prev,
+                                accountNumber: e.target.value,
+                              }))
+                            }
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Your IFSC Code (Optional)"
+                            value={bankTransferDetails.ifscCode}
+                            onChange={(e) =>
+                              setBankTransferDetails((prev) => ({
+                                ...prev,
+                                ifscCode: e.target.value,
+                              }))
+                            }
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Your UPI ID (Optional)"
+                            value={bankTransferDetails.upiId}
+                            onChange={(e) =>
+                              setBankTransferDetails((prev) => ({
+                                ...prev,
+                                upiId: e.target.value,
+                              }))
+                            }
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
+                          />
+                        </div>
+                      </div>
+
+                      {/* File Upload */}
+                      <div className="border-2 border-dashed border-orange-300 rounded-xl p-8 text-center bg-orange-50/30">
+                        {bankTransferDetails.screenshot ? (
+                          <div>
+                            <img
+                              src={bankTransferDetails.screenshot}
+                              alt="Payment Proof"
+                              className="mx-auto max-h-64 rounded-lg shadow-lg border-2 border-orange-200"
+                            />
+                            <button
+                              onClick={() =>
+                                setBankTransferDetails((prev) => ({
+                                  ...prev,
+                                  screenshot: null,
+                                }))
+                              }
+                              className="mt-4 text-red-600 hover:text-red-700 font-medium transition-colors"
+                            >
+                              Remove Image
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <Upload className="w-16 h-16 text-orange-400 mx-auto mb-4" />
+                            <p className="text-gray-600 mb-4">
+                              Upload payment screenshot (required)
+                            </p>
+                            <label className="cursor-pointer bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-300 shadow-sm hover:shadow-lg inline-block">
+                              Choose File
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleFileUpload}
+                                className="hidden"
+                              />
+                            </label>
+                            <p className="text-xs text-gray-500 mt-3">
+                              Max 5MB • Supported: PNG, JPG, JPEG
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Order Notes */}
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">Additional Notes</h2>
+                <p className="text-gray-600 text-sm mb-4">Optional - Add delivery instructions or special requests</p>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows="4"
+                  placeholder="E.g., Call before delivery, Leave at gate, etc."
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition resize-none"
+                />
+              </div>
             </div>
 
-            {/* Notes */}
-            <div className="bg-white rounded-2xl shadow-lg p-8">
-              <h2 className="text-2xl font-bold mb-4">
-                Additional Notes (Optional)
-              </h2>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows="4"
-                placeholder="Any special delivery instructions..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000]"
-              />
-            </div>
-          </div>
+            {/* Order Summary Sidebar */}
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-2xl shadow-lg border border-orange-100 p-6 sticky top-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Order Summary</h2>
 
-          {/* Summary Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-lg p-8 sticky top-8">
-              <h2 className="text-2xl font-bold mb-6">Order Summary</h2>
-
-              <div className="space-y-4 mb-8 max-h-96 overflow-y-auto">
-                {cartItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex justify-between pb-4 border-b"
-                  >
-                    <div className="flex-1">
-                      <p className="font-semibold">{item.name}</p>
-                      <p className="text-sm text-gray-500">
-                        {item.quantity} × ₹{item.price.toLocaleString()}
+                {/* Items List */}
+                <div className="space-y-4 mb-6 max-h-80 overflow-y-auto pr-2">
+                  {cartItems.map((item) => (
+                    <div key={item.id} className="flex justify-between pb-3 border-b border-gray-100 last:border-0">
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">{item.name}</p>
+                        <p className="text-sm text-gray-500">
+                          {item.quantity} × ₹{item.price.toLocaleString()}
+                        </p>
+                      </div>
+                      <p className="font-bold text-gray-900">
+                        ₹{(item.price * item.quantity).toLocaleString()}
                       </p>
                     </div>
-                    <p className="font-bold">
-                      ₹{(item.price * item.quantity).toLocaleString()}
-                    </p>
+                  ))}
+                </div>
+
+                {/* Price Breakdown */}
+                <div className="space-y-3 border-t border-gray-200 pt-4">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Subtotal</span>
+                    <span className="font-medium text-gray-900">₹{subtotal.toLocaleString()}</span>
                   </div>
-                ))}
-              </div>
-
-              <div className="space-y-4 border-t pt-6">
-                <div className="flex justify-between text-lg">
-                  <span>Subtotal</span>
-                  <span>₹{subtotal.toLocaleString()}</span>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Shipping</span>
+                    <span className={`font-medium ${shipping === 0 ? 'text-green-600' : 'text-gray-900'}`}>
+                      {shipping === 0 ? "Free" : `₹${shipping}`}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">GST (18%)</span>
+                    <span className="font-medium text-gray-900">₹{tax.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-xl font-bold pt-4 border-t border-gray-200">
+                    <span className="text-gray-900">Total</span>
+                    <span className="text-orange-600">₹{total.toLocaleString()}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span>Shipping</span>
-                  <span>{shipping === 0 ? "Free" : `₹${shipping}`}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>GST (18%)</span>
-                  <span>₹{tax.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-2xl font-bold pt-4 border-t">
-                  <span>Total</span>
-                  <span>₹{total.toLocaleString()}</span>
-                </div>
-              </div>
 
-              <div className="my-8 flex items-center text-green-700 bg-green-50 p-4 rounded-lg">
-                <Truck className="w-6 h-6 mr-3" />
-                <span className="font-semibold">
-                  Estimated Delivery: 3-7 hours
-                </span>
-              </div>
+                {/* Delivery Estimate */}
+                <div className="my-6 p-4 bg-orange-50 rounded-xl border border-orange-200">
+                  <div className="flex items-center text-orange-700">
+                    <Truck className="w-5 h-5 mr-3 flex-shrink-0" />
+                    <div>
+                      <span className="font-semibold block">Estimated Delivery</span>
+                      <span className="text-sm text-orange-600">3-7 business days</span>
+                    </div>
+                  </div>
+                </div>
 
-              <button
-                onClick={handlePlaceOrder}
-                disabled={loading}
-                className="w-full bg-[#800000] hover:bg-[#900000] text-white font-bold text-xl py-5 rounded-xl disabled:opacity-60 transition"
-              >
-                {loading ? "Placing Order..." : "Place Order"}
-              </button>
+                {/* Place Order Button */}
+                <button
+                  onClick={handlePlaceOrder}
+                  disabled={loading}
+                  className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold text-xl py-5 rounded-xl disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
+                >
+                  {loading ? (
+                    <span className="flex items-center justify-center">
+                      <svg className="animate-spin h-5 w-5 mr-3" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Placing Order...
+                    </span>
+                  ) : (
+                    "Place Order"
+                  )}
+                </button>
 
-              <div className="text-center mt-6">
-                <Link to="/cart" className="text-gray-600 hover:text-[#800000]">
-                  ← Back to Cart
-                </Link>
+                {/* Secure Checkout Note */}
+                <div className="mt-4 text-center">
+                  <p className="text-xs text-gray-500 flex items-center justify-center">
+                    <Shield className="w-4 h-4 mr-1 text-orange-600" />
+                    Secure SSL Encrypted Checkout
+                  </p>
+                </div>
+
+                {/* Back to Cart Link */}
+                <div className="text-center mt-6">
+                  <Link to="/cart" className="text-gray-600 hover:text-orange-600 text-sm transition-colors">
+                    ← Back to Cart
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

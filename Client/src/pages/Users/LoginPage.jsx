@@ -128,17 +128,17 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       {/* Login Form */}
       <div className="flex items-center justify-center py-12 px-4">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-800">Welcome Back</h1>
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 tracking-tight">Welcome Back</h1>
             <p className="text-gray-600 mt-2">Sign in to your account</p>
           </div>
 
           {/* Role Tabs */}
-          <div className="bg-white rounded-xl shadow-lg p-1 mb-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-1 mb-6">
             <div className="flex space-x-1">
               {["user", "seller", "contractor"].map((role) => (
                 <button
@@ -146,8 +146,8 @@ const LoginPage = () => {
                   onClick={() => handleTabChange(role)}
                   className={`flex-1 py-3 px-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                     activeTab === role
-                      ? "bg-[#800000] text-white shadow-md"
-                      : "text-gray-600 hover:text-[#800000] hover:bg-gray-100"
+                      ? "bg-orange-600 text-white shadow-sm"
+                      : "text-gray-600 hover:text-orange-600 hover:bg-orange-50"
                   }`}
                 >
                   <div className="flex items-center justify-center space-x-1">
@@ -162,7 +162,7 @@ const LoginPage = () => {
           </div>
 
           {/* Login Card */}
-          <div className="bg-white rounded-2xl shadow-xl p-8">
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
             {error && (
               <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
                 <div className="flex items-center">
@@ -176,7 +176,7 @@ const LoginPage = () => {
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   <div className="flex items-center">
-                    <Mail className="w-4 h-4 mr-2" /> Email Address
+                    <Mail className="w-4 h-4 mr-2 text-orange-600" /> Email Address
                   </div>
                 </label>
                 <input
@@ -185,7 +185,7 @@ const LoginPage = () => {
                   value={formData.email}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition text-gray-900 placeholder-gray-500"
                   placeholder="Enter your email"
                   disabled={loading}
                 />
@@ -194,7 +194,7 @@ const LoginPage = () => {
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   <div className="flex items-center">
-                    <Lock className="w-4 h-4 mr-2" /> Password
+                    <Lock className="w-4 h-4 mr-2 text-orange-600" /> Password
                   </div>
                 </label>
                 <div className="relative">
@@ -204,14 +204,14 @@ const LoginPage = () => {
                     value={formData.password}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000] pr-12"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition text-gray-900 placeholder-gray-500 pr-12"
                     placeholder="Enter your password"
                     disabled={loading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-orange-600 transition-colors"
                     disabled={loading}
                   >
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -222,17 +222,22 @@ const LoginPage = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-[#800000] text-white py-3.5 px-4 rounded-lg font-medium hover:bg-[#900000] transition-all disabled:opacity-50"
+                className="w-full bg-orange-600 text-white py-3.5 px-4 rounded-lg font-medium hover:bg-orange-700 transition-all duration-300 shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading
-                  ? "Signing in..."
-                  : `Sign in as ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}`}
+                {loading ? (
+                  <div className="flex items-center justify-center">
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
+                    Signing in...
+                  </div>
+                ) : (
+                  `Sign in as ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}`
+                )}
               </button>
 
               <div className="text-center mt-4">
                 <button
                   type="button"
-                  className="text-sm text-[#800000] hover:underline"
+                  className="text-sm text-orange-600 hover:text-orange-700 hover:underline transition-colors"
                   onClick={() => navigate("/forgot-password")}
                 >
                   Forgot your password?
@@ -240,12 +245,12 @@ const LoginPage = () => {
               </div>
             </form>
 
-            <div className="text-center mt-8">
+            <div className="text-center mt-8 pt-6 border-t border-gray-200">
               <p className="text-gray-600">
                 Don't have an account?{" "}
                 <button
                   type="button"
-                  className="text-[#800000] font-semibold hover:underline"
+                  className="text-orange-600 font-semibold hover:text-orange-700 hover:underline transition-colors"
                   onClick={() => navigate("/register")}
                 >
                   Sign up now
@@ -255,7 +260,7 @@ const LoginPage = () => {
           </div>
 
           <div className="text-center mt-8 text-sm text-gray-500">
-            <p>© 2025 BricksIT. All rights reserved.</p>
+            <p>© 2025 InfraKarts. All rights reserved.</p>
           </div>
         </div>
       </div>

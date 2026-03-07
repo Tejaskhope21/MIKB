@@ -1,5 +1,5 @@
 import Product from '../models/Product.model.js';
-
+import mongoose from 'mongoose';
 
 
 /* =================================================

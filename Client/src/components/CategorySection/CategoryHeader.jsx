@@ -14,14 +14,12 @@ const CategoryHeader = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        // Prefer relative path → assumes Vite proxy is configured
         const res = await fetch(
           "https://bricks-backend-qyea.onrender.com/api/categories/public/categories",
           {
             headers: {
               Accept: "application/json",
             },
-            // credentials: 'include', // uncomment only if you need cookies/auth
           },
         );
 
@@ -121,7 +119,7 @@ const CategoryHeader = () => {
               >
                 <Link
                   to={`/category/${catSlug}`}
-                  className="py-4 md:py-5 block px-2 hover:text-[#800000] transition-colors uppercase tracking-wide whitespace-nowrap"
+                  className="py-4 md:py-5 block px-2 hover:text-[#f97316] transition-colors uppercase tracking-wide whitespace-nowrap"
                 >
                   {cat.name}
                 </Link>
@@ -149,7 +147,7 @@ const CategoryHeader = () => {
                               <h3 className="font-bold text-gray-900 uppercase text-xs sm:text-sm tracking-wide">
                                 <Link
                                   to={`/category/${catSlug}/${subSlug}`}
-                                  className="hover:text-[#800000] transition-colors"
+                                  className="hover:text-[#f97316] transition-colors"
                                 >
                                   {subName}
                                 </Link>
@@ -171,7 +169,7 @@ const CategoryHeader = () => {
                                       <li key={item._id}>
                                         <Link
                                           to={`/category/${catSlug}/${subSlug}/${itemSlug}`}
-                                          className="hover:text-[#800000] hover:underline transition-colors block py-0.5 text-gray-600"
+                                          className="hover:text-[#f97316] hover:underline transition-colors block py-0.5 text-gray-600"
                                         >
                                           {item.name}
                                         </Link>
@@ -189,7 +187,6 @@ const CategoryHeader = () => {
                         })}
                       </div>
 
-                      {/* Optional: Add a footer section with a view all button */}
                       <div className="border-t border-gray-100 px-6 md:px-10 py-4 bg-gray-50">
                         <div className="flex justify-between items-center">
                           <p className="text-sm text-gray-500">
@@ -197,7 +194,7 @@ const CategoryHeader = () => {
                           </p>
                           <Link
                             to={`/category/${catSlug}`}
-                            className="text-sm text-[#800000] hover:text-red-700 font-medium flex items-center gap-1"
+                            className="text-sm text-[#f97316] hover:text-orange-700 font-medium flex items-center gap-1 transition-colors"
                           >
                             View all in {cat.name}
                             <span className="ml-1">→</span>

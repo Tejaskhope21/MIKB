@@ -17,6 +17,7 @@ import {
   CheckCircle,
   Home,
   Building,
+  AlertCircle,
 } from "lucide-react";
 import axios from "axios";
 import { useSearchParams } from "react-router-dom";
@@ -251,53 +252,81 @@ const UserProfilePage = () => {
     return null;
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#800000]"></div>
+  // Skeleton Loader
+  const SkeletonLoader = () => (
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex flex-col md:flex-row gap-8">
+          <div className="md:w-1/4">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center space-x-4 mb-6">
+                <div className="w-16 h-16 bg-gray-200 rounded-full animate-pulse"></div>
+                <div className="space-y-2">
+                  <div className="h-5 bg-gray-200 rounded w-32 animate-pulse"></div>
+                  <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="h-12 bg-gray-100 rounded animate-pulse"></div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="md:w-3/4">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="h-8 bg-gray-200 rounded w-48 animate-pulse mb-6"></div>
+              <div className="space-y-4">
+                <div className="h-16 bg-gray-100 rounded animate-pulse"></div>
+                <div className="h-16 bg-gray-100 rounded animate-pulse"></div>
+                <div className="h-16 bg-gray-100 rounded animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-    );
+    </div>
+  );
+
+  if (loading) {
+    return <SkeletonLoader />;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       {/* Success Message */}
       {success && (
-        <div className="fixed top-4 right-4 z-50 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded shadow-lg">
-          <div className="flex items-center">
-            <CheckCircle className="h-5 w-5 mr-2" />
-            {success}
-          </div>
+        <div className="fixed top-4 right-4 z-50 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-xl shadow-lg flex items-center animate-slideIn">
+          <CheckCircle className="h-5 w-5 mr-2 flex-shrink-0" />
+          <span>{success}</span>
         </div>
       )}
 
       {/* Error Message */}
       {error && (
-        <div className="fixed top-4 right-4 z-50 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded shadow-lg">
-          <div className="flex items-center">
-            <X className="h-5 w-5 mr-2" />
-            {error}
-          </div>
+        <div className="fixed top-4 right-4 z-50 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl shadow-lg flex items-center animate-slideIn">
+          <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0" />
+          <span>{error}</span>
         </div>
       )}
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
         <div className="flex flex-col md:flex-row gap-8">
           {/* Sidebar */}
           <div className="md:w-1/4">
-            <div className="bg-white rounded-xl shadow p-6 mb-6">
+            <div className="bg-white rounded-xl shadow-lg border border-orange-100 p-6 mb-6">
               <div className="flex items-center space-x-4 mb-6">
-                <div className="w-16 h-16 bg-gradient-to-r from-[#800000] to-[#a00000] rounded-full flex items-center justify-center shadow-md">
+                <div className="w-16 h-16 bg-gradient-to-r from-orange-600 to-orange-500 rounded-full flex items-center justify-center shadow-md">
                   <User className="h-8 w-8 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-800">
+                  <h2 className="text-xl font-bold text-gray-900">
                     {user?.name || "User"}
                   </h2>
                   <p className="text-gray-600 text-sm">{user?.email}</p>
                   <div className="flex items-center mt-1">
                     <Shield className="h-3 w-3 text-green-500 mr-1" />
-                    <span className="text-xs text-green-600">
+                    <span className="text-xs text-green-600 font-medium">
                       Verified User
                     </span>
                   </div>
@@ -316,8 +345,8 @@ const UserProfilePage = () => {
                     onClick={() => setActiveTab(item.id)}
                     className={`w-full flex items-center px-4 py-3 rounded-lg text-left transition-all ${
                       activeTab === item.id
-                        ? "bg-[#800000] bg-opacity-10 text-[#800000] border-l-4 border-[#800000] font-semibold"
-                        : "text-gray-700 hover:bg-gray-100 hover:text-[#800000]"
+                        ? "bg-orange-50 text-orange-600 border-l-4 border-orange-600 font-semibold"
+                        : "text-gray-700 hover:bg-orange-50 hover:text-orange-600"
                     }`}
                   >
                     <item.icon className="h-5 w-5 mr-3" />
@@ -328,7 +357,7 @@ const UserProfilePage = () => {
 
               <button
                 onClick={handleLogout}
-                className="w-full mt-6 flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 hover:text-[#800000] transition-colors"
+                className="w-full mt-6 flex items-center justify-center px-4 py-3 border-2 border-gray-300 rounded-lg text-gray-700 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-300 transition-all duration-300"
               >
                 <LogOut className="h-5 w-5 mr-2" />
                 Logout
@@ -336,27 +365,35 @@ const UserProfilePage = () => {
             </div>
 
             {/* Account Overview */}
-            <div className="bg-gradient-to-r from-[#800000] to-[#a00000] rounded-xl shadow p-6 text-white">
+            <div className="bg-gradient-to-r from-orange-600 to-orange-500 rounded-xl shadow-lg p-6 text-white">
               <h3 className="font-semibold mb-4 text-lg">Account Overview</h3>
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-red-100">Member Since</span>
+                  <span className="text-orange-100">Member Since</span>
                   <span className="font-medium">
                     {user?.createdAt
-                      ? new Date(user.createdAt).toLocaleDateString("en-IN")
+                      ? new Date(user.createdAt).toLocaleDateString("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })
                       : "N/A"}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-red-100">Last Login</span>
+                  <span className="text-orange-100">Last Login</span>
                   <span className="font-medium">
                     {user?.lastLogin
-                      ? new Date(user.lastLogin).toLocaleDateString("en-IN")
+                      ? new Date(user.lastLogin).toLocaleDateString("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })
                       : "Never"}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-red-100">Status</span>
+                  <span className="text-orange-100">Status</span>
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                     <CheckCircle className="h-3 w-3 mr-1" />
                     Active
@@ -370,15 +407,19 @@ const UserProfilePage = () => {
           <div className="md:w-3/4">
             {/* Profile Tab */}
             {activeTab === "profile" && (
-              <div className="bg-white rounded-xl shadow">
-                <div className="px-6 py-4 border-b border-gray-200">
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200">
+                <div className="px-6 py-5 border-b border-gray-200">
                   <div className="flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-gray-800">
+                    <h2 className="text-2xl font-bold text-gray-900">
                       Personal Information
                     </h2>
                     <button
                       onClick={() => setEditing(!editing)}
-                      className="flex items-center px-4 py-2 text-sm font-medium text-[#800000] hover:bg-red-50 rounded-lg transition-colors"
+                      className={`flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                        editing
+                          ? "text-gray-600 hover:bg-gray-100"
+                          : "text-orange-600 hover:bg-orange-50"
+                      }`}
                     >
                       {editing ? (
                         <>
@@ -400,7 +441,7 @@ const UserProfilePage = () => {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         <div className="flex items-center">
-                          <User className="h-4 w-4 mr-2" />
+                          <User className="h-4 w-4 mr-2 text-orange-600" />
                           Full Name
                         </div>
                       </label>
@@ -414,7 +455,7 @@ const UserProfilePage = () => {
                               name: e.target.value,
                             })
                           }
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition text-gray-900"
                         />
                       ) : (
                         <p className="text-gray-900 font-medium text-lg">
@@ -426,7 +467,7 @@ const UserProfilePage = () => {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         <div className="flex items-center">
-                          <Mail className="h-4 w-4 mr-2" />
+                          <Mail className="h-4 w-4 mr-2 text-orange-600" />
                           Email Address
                         </div>
                       </label>
@@ -435,7 +476,7 @@ const UserProfilePage = () => {
                           type="email"
                           value={profileData.email}
                           disabled
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 cursor-not-allowed"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 cursor-not-allowed text-gray-500"
                         />
                       ) : (
                         <p className="text-gray-900">{user?.email}</p>
@@ -445,7 +486,7 @@ const UserProfilePage = () => {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         <div className="flex items-center">
-                          <Phone className="h-4 w-4 mr-2" />
+                          <Phone className="h-4 w-4 mr-2 text-orange-600" />
                           Phone Number
                         </div>
                       </label>
@@ -459,7 +500,7 @@ const UserProfilePage = () => {
                               phone: e.target.value,
                             })
                           }
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition text-gray-900"
                           placeholder="Enter 10-digit phone number"
                         />
                       ) : (
@@ -470,11 +511,11 @@ const UserProfilePage = () => {
                     </div>
 
                     {editing && (
-                      <div className="pt-4 border-t border-gray-200">
+                      <div className="pt-6 border-t border-gray-200">
                         <button
                           onClick={handleProfileUpdate}
                           disabled={isSubmitting}
-                          className="inline-flex items-center px-6 py-3 bg-[#800000] text-white font-medium rounded-lg hover:bg-[#900000] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          className="inline-flex items-center px-6 py-3 bg-orange-600 text-white font-medium rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-sm hover:shadow-lg"
                         >
                           <Save className="h-4 w-4 mr-2" />
                           {isSubmitting ? "Saving..." : "Save Changes"}
@@ -488,15 +529,15 @@ const UserProfilePage = () => {
 
             {/* Addresses Tab */}
             {activeTab === "addresses" && (
-              <div className="bg-white rounded-xl shadow">
-                <div className="px-6 py-4 border-b border-gray-200">
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200">
+                <div className="px-6 py-5 border-b border-gray-200">
                   <div className="flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-gray-800">
+                    <h2 className="text-2xl font-bold text-gray-900">
                       My Addresses
                     </h2>
                     <button
                       onClick={() => setShowAddressForm(true)}
-                      className="inline-flex items-center px-4 py-2 bg-[#800000] text-white text-sm font-medium rounded-lg hover:bg-[#900000] transition-colors"
+                      className="inline-flex items-center px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 transition-all duration-300 shadow-sm hover:shadow-lg"
                     >
                       <MapPin className="h-4 w-4 mr-2" />
                       Add New Address
@@ -506,8 +547,8 @@ const UserProfilePage = () => {
 
                 {/* Add Address Form */}
                 {showAddressForm && (
-                  <div className="p-6 border-b border-gray-200 bg-gray-50">
-                    <h3 className="text-lg font-medium text-gray-800 mb-4">
+                  <div className="p-6 border-b border-gray-200 bg-orange-50">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
                       Add New Address
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -524,7 +565,7 @@ const UserProfilePage = () => {
                               fullName: e.target.value,
                             })
                           }
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
                           placeholder="Enter full name"
                         />
                       </div>
@@ -541,7 +582,7 @@ const UserProfilePage = () => {
                               phone: e.target.value,
                             })
                           }
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
                           placeholder="10-digit number"
                         />
                       </div>
@@ -558,7 +599,7 @@ const UserProfilePage = () => {
                               addressLine: e.target.value,
                             })
                           }
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
                           placeholder="House number, street, area"
                         />
                       </div>
@@ -575,7 +616,7 @@ const UserProfilePage = () => {
                               city: e.target.value,
                             })
                           }
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
                           placeholder="City"
                         />
                       </div>
@@ -592,7 +633,7 @@ const UserProfilePage = () => {
                               state: e.target.value,
                             })
                           }
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
                           placeholder="State"
                         />
                       </div>
@@ -609,7 +650,7 @@ const UserProfilePage = () => {
                               pincode: e.target.value,
                             })
                           }
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
                           placeholder="6-digit pincode"
                         />
                       </div>
@@ -621,7 +662,7 @@ const UserProfilePage = () => {
                           type="text"
                           value={newAddress.country}
                           disabled
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-500"
                         />
                       </div>
                       <div className="flex items-center pt-6">
@@ -635,11 +676,11 @@ const UserProfilePage = () => {
                               isDefault: e.target.checked,
                             })
                           }
-                          className="h-4 w-4 text-[#800000] rounded focus:ring-[#800000]"
+                          className="h-4 w-4 text-orange-600 rounded focus:ring-orange-500 border-gray-300"
                         />
                         <label
                           htmlFor="default"
-                          className="ml-2 text-sm text-gray-600"
+                          className="ml-2 text-sm text-gray-700"
                         >
                           Set as default address
                         </label>
@@ -657,13 +698,13 @@ const UserProfilePage = () => {
                           handleAddAddress();
                         }}
                         disabled={isSubmitting}
-                        className="px-6 py-3 bg-[#800000] text-white font-medium rounded-lg hover:bg-[#900000] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="px-6 py-3 bg-orange-600 text-white font-medium rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-sm hover:shadow-lg"
                       >
                         {isSubmitting ? "Adding..." : "Save Address"}
                       </button>
                       <button
                         onClick={() => setShowAddressForm(false)}
-                        className="px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                        className="px-6 py-3 border-2 border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-all duration-300"
                       >
                         Cancel
                       </button>
@@ -675,16 +716,16 @@ const UserProfilePage = () => {
                 <div className="p-6">
                   {addresses.length === 0 ? (
                     <div className="text-center py-12">
-                      <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      <MapPin className="h-16 w-16 text-orange-300 mx-auto mb-4" />
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">
                         No addresses saved
                       </h3>
-                      <p className="text-gray-600 mb-4">
+                      <p className="text-gray-600 mb-6">
                         Add your first address to get started
                       </p>
                       <button
                         onClick={() => setShowAddressForm(true)}
-                        className="inline-flex items-center px-4 py-2 bg-[#800000] text-white font-medium rounded-lg hover:bg-[#900000] transition-colors"
+                        className="inline-flex items-center px-6 py-3 bg-orange-600 text-white font-medium rounded-lg hover:bg-orange-700 transition-all duration-300 shadow-sm hover:shadow-lg"
                       >
                         <MapPin className="h-4 w-4 mr-2" />
                         Add Address
@@ -697,18 +738,18 @@ const UserProfilePage = () => {
                           key={address._id}
                           className={`border rounded-xl p-5 transition-all ${
                             address.isDefault
-                              ? "border-[#800000] border-2 bg-red-50"
-                              : "border-gray-200 hover:border-gray-300"
+                              ? "border-orange-600 border-2 bg-orange-50 shadow-md"
+                              : "border-gray-200 hover:border-orange-300 hover:shadow-md"
                           }`}
                         >
                           <div className="flex justify-between items-start mb-3">
                             <div>
-                              <div className="flex items-center">
-                                <h3 className="font-medium text-gray-900 text-lg">
+                              <div className="flex items-center flex-wrap gap-2">
+                                <h3 className="font-semibold text-gray-900 text-lg">
                                   {address.fullName}
                                 </h3>
                                 {address.isDefault && (
-                                  <span className="inline-flex items-center ml-2 px-2 py-1 rounded text-xs font-medium bg-[#800000] text-white">
+                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-600 text-white">
                                     <CheckCircle className="h-3 w-3 mr-1" />
                                     Default
                                   </span>
@@ -723,29 +764,29 @@ const UserProfilePage = () => {
                               {!address.isDefault && (
                                 <button
                                   onClick={() => handleSetDefault(address._id)}
-                                  className="text-sm text-[#800000] hover:text-[#900000] font-medium"
+                                  className="text-sm text-orange-600 hover:text-orange-700 font-medium transition-colors"
                                 >
                                   Set Default
                                 </button>
                               )}
                               <button
                                 onClick={() => handleDeleteAddress(address._id)}
-                                className="text-sm text-red-600 hover:text-red-800 font-medium"
+                                className="text-sm text-red-600 hover:text-red-700 font-medium transition-colors"
                               >
                                 Delete
                               </button>
                             </div>
                           </div>
-                          <div className="space-y-2">
+                          <div className="space-y-2 mt-3">
                             <div className="flex items-start">
                               <Home className="h-4 w-4 text-gray-400 mr-2 mt-0.5 flex-shrink-0" />
-                              <p className="text-gray-600">
+                              <p className="text-gray-700">
                                 {address.addressLine}
                               </p>
                             </div>
                             <div className="flex items-start">
                               <Building className="h-4 w-4 text-gray-400 mr-2 mt-0.5 flex-shrink-0" />
-                              <p className="text-gray-600">
+                              <p className="text-gray-700">
                                 {address.city}, {address.state} -{" "}
                                 {address.pincode}
                               </p>
@@ -764,13 +805,13 @@ const UserProfilePage = () => {
 
             {/* Orders Tab */}
             {activeTab === "orders" && (
-              <div className="bg-white rounded-xl shadow">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <h2 className="text-xl font-bold text-gray-800">My Orders</h2>
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200">
+                <div className="px-6 py-5 border-b border-gray-200">
+                  <h2 className="text-2xl font-bold text-gray-900">My Orders</h2>
                 </div>
-                <div className="p-6 text-center">
-                  <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                <div className="p-12 text-center">
+                  <Package className="h-16 w-16 text-orange-300 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
                     No orders yet
                   </h3>
                   <p className="text-gray-600 mb-6">
@@ -778,7 +819,7 @@ const UserProfilePage = () => {
                   </p>
                   <button
                     onClick={() => (window.location.href = "/products")}
-                    className="inline-flex items-center px-6 py-3 bg-[#800000] text-white font-medium rounded-lg hover:bg-[#900000] transition-colors"
+                    className="inline-flex items-center px-6 py-3 bg-orange-600 text-white font-medium rounded-lg hover:bg-orange-700 transition-all duration-300 shadow-sm hover:shadow-lg"
                   >
                     <ShoppingBag className="h-4 w-4 mr-2" />
                     Start Shopping
@@ -789,19 +830,19 @@ const UserProfilePage = () => {
 
             {/* Payments Tab */}
             {activeTab === "payments" && (
-              <div className="bg-white rounded-xl shadow">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <h2 className="text-xl font-bold text-gray-800">
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200">
+                <div className="px-6 py-5 border-b border-gray-200">
+                  <h2 className="text-2xl font-bold text-gray-900">
                     Payment Methods
                   </h2>
                 </div>
-                <div className="p-6 text-center">
-                  <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                <div className="p-12 text-center">
+                  <CreditCard className="h-16 w-16 text-orange-300 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
                     No saved payment methods
                   </h3>
                   <p className="text-gray-600">
-                    Add payment methods during checkout
+                    Add payment methods during checkout for faster transactions
                   </p>
                 </div>
               </div>

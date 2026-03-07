@@ -262,7 +262,7 @@ const RegisterPage = () => {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             <div className="flex items-center">
-              <User className="w-4 h-4 mr-2" />
+              <User className="w-4 h-4 mr-2 text-orange-600" />
               Full Name *
             </div>
           </label>
@@ -272,7 +272,7 @@ const RegisterPage = () => {
             value={userForm.name}
             onChange={handleUserChange}
             required
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition text-gray-900 placeholder-gray-500"
             placeholder="John Doe"
             disabled={loading}
           />
@@ -280,7 +280,7 @@ const RegisterPage = () => {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             <div className="flex items-center">
-              <Phone className="w-4 h-4 mr-2" />
+              <Phone className="w-4 h-4 mr-2 text-orange-600" />
               Phone Number
             </div>
           </label>
@@ -289,7 +289,7 @@ const RegisterPage = () => {
             name="phone"
             value={userForm.phone}
             onChange={handleUserChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition text-gray-900 placeholder-gray-500"
             placeholder="9876543210"
             disabled={loading}
           />
@@ -298,7 +298,7 @@ const RegisterPage = () => {
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           <div className="flex items-center">
-            <Mail className="w-4 h-4 mr-2" />
+            <Mail className="w-4 h-4 mr-2 text-orange-600" />
             Email Address *
           </div>
         </label>
@@ -308,7 +308,7 @@ const RegisterPage = () => {
           value={userForm.email}
           onChange={handleUserChange}
           required
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition text-gray-900 placeholder-gray-500"
           placeholder="john@example.com"
           disabled={loading}
         />
@@ -316,7 +316,7 @@ const RegisterPage = () => {
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           <div className="flex items-center">
-            <Lock className="w-4 h-4 mr-2" />
+            <Lock className="w-4 h-4 mr-2 text-orange-600" />
             Password *
           </div>
         </label>
@@ -328,14 +328,14 @@ const RegisterPage = () => {
             onChange={handleUserChange}
             required
             minLength="6"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000] pr-12"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition text-gray-900 placeholder-gray-500 pr-12"
             placeholder="At least 6 characters"
             disabled={loading}
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-orange-600 transition-colors"
             disabled={loading}
           >
             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -354,7 +354,7 @@ const RegisterPage = () => {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             <div className="flex items-center">
-              <User className="w-4 h-4 mr-2" />
+              <User className="w-4 h-4 mr-2 text-orange-600" />
               Owner Name *
             </div>
           </label>
@@ -364,7 +364,7 @@ const RegisterPage = () => {
             value={sellerForm.name}
             onChange={handleSellerChange}
             required
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition text-gray-900 placeholder-gray-500"
             placeholder="John Doe"
             disabled={loading}
           />
@@ -372,7 +372,7 @@ const RegisterPage = () => {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             <div className="flex items-center">
-              <Store className="w-4 h-4 mr-2" />
+              <Store className="w-4 h-4 mr-2 text-orange-600" />
               Business Name *
             </div>
           </label>
@@ -382,7 +382,7 @@ const RegisterPage = () => {
             value={sellerForm.businessName}
             onChange={handleSellerChange}
             required
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition text-gray-900 placeholder-gray-500"
             placeholder="ABC Enterprises"
             disabled={loading}
           />
@@ -391,7 +391,7 @@ const RegisterPage = () => {
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           <div className="flex items-center">
-            <Mail className="w-4 h-4 mr-2" />
+            <Mail className="w-4 h-4 mr-2 text-orange-600" />
             Email Address *
           </div>
         </label>
@@ -401,7 +401,7 @@ const RegisterPage = () => {
           value={sellerForm.email}
           onChange={handleSellerChange}
           required
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition text-gray-900 placeholder-gray-500"
           placeholder="business@example.com"
           disabled={loading}
         />
@@ -410,7 +410,7 @@ const RegisterPage = () => {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             <div className="flex items-center">
-              <Lock className="w-4 h-4 mr-2" />
+              <Lock className="w-4 h-4 mr-2 text-orange-600" />
               Password *
             </div>
           </label>
@@ -422,14 +422,14 @@ const RegisterPage = () => {
               onChange={handleSellerChange}
               required
               minLength="6"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000] pr-12"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition text-gray-900 placeholder-gray-500 pr-12"
               placeholder="At least 6 characters"
               disabled={loading}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-orange-600 transition-colors"
               disabled={loading}
             >
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -439,7 +439,7 @@ const RegisterPage = () => {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             <div className="flex items-center">
-              <PhoneCall className="w-4 h-4 mr-2" />
+              <PhoneCall className="w-4 h-4 mr-2 text-orange-600" />
               Contact Number *
             </div>
           </label>
@@ -450,7 +450,7 @@ const RegisterPage = () => {
             onChange={handleSellerChange}
             required
             pattern="[0-9]{10}"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition text-gray-900 placeholder-gray-500"
             placeholder="9876543210"
             disabled={loading}
           />
@@ -466,7 +466,7 @@ const RegisterPage = () => {
             value={sellerForm.businessType}
             onChange={handleSellerChange}
             required
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition text-gray-900"
             disabled={loading}
           >
             <option value="">Select Type</option>
@@ -487,7 +487,7 @@ const RegisterPage = () => {
             onChange={handleSellerChange}
             required
             pattern="^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000] uppercase"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition text-gray-900 placeholder-gray-500 uppercase"
             placeholder="22ABCDE1234F1Z5"
             disabled={loading}
           />
@@ -496,7 +496,7 @@ const RegisterPage = () => {
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           <div className="flex items-center">
-            <Building className="w-4 h-4 mr-2" />
+            <Building className="w-4 h-4 mr-2 text-orange-600" />
             Business Address *
           </div>
         </label>
@@ -506,7 +506,7 @@ const RegisterPage = () => {
           onChange={handleSellerChange}
           required
           rows="3"
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000] resize-none"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition text-gray-900 placeholder-gray-500 resize-none"
           placeholder="Enter complete business address"
           disabled={loading}
         />
@@ -515,7 +515,7 @@ const RegisterPage = () => {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             <div className="flex items-center">
-              <CreditCard className="w-4 h-4 mr-2" />
+              <CreditCard className="w-4 h-4 mr-2 text-orange-600" />
               Bank Account Number *
             </div>
           </label>
@@ -526,7 +526,7 @@ const RegisterPage = () => {
             onChange={handleSellerChange}
             required
             pattern="^[0-9]{9,18}$"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition text-gray-900 placeholder-gray-500"
             placeholder="123456789012"
             disabled={loading}
           />
@@ -541,7 +541,7 @@ const RegisterPage = () => {
             value={sellerForm.bankAccountName}
             onChange={handleSellerChange}
             required
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition text-gray-900 placeholder-gray-500"
             placeholder="Account holder name"
             disabled={loading}
           />
@@ -557,7 +557,7 @@ const RegisterPage = () => {
             onChange={handleSellerChange}
             required
             pattern="^[A-Z]{4}0[A-Z0-9]{6}$"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000] uppercase"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition text-gray-900 placeholder-gray-500 uppercase"
             placeholder="SBIN0000123"
             disabled={loading}
           />
@@ -572,7 +572,7 @@ const RegisterPage = () => {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             <div className="flex items-center">
-              <User className="w-4 h-4 mr-2" />
+              <User className="w-4 h-4 mr-2 text-orange-600" />
               Full Name *
             </div>
           </label>
@@ -582,7 +582,7 @@ const RegisterPage = () => {
             value={contractorForm.name}
             onChange={handleContractorChange}
             required
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition text-gray-900 placeholder-gray-500"
             placeholder="John Contractor"
             disabled={loading}
           />
@@ -590,7 +590,7 @@ const RegisterPage = () => {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             <div className="flex items-center">
-              <Phone className="w-4 h-4 mr-2" />
+              <Phone className="w-4 h-4 mr-2 text-orange-600" />
               Phone Number *
             </div>
           </label>
@@ -601,7 +601,7 @@ const RegisterPage = () => {
             onChange={handleContractorChange}
             required
             pattern="[0-9]{10}"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition text-gray-900 placeholder-gray-500"
             placeholder="9876543210"
             disabled={loading}
           />
@@ -610,7 +610,7 @@ const RegisterPage = () => {
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           <div className="flex items-center">
-            <Mail className="w-4 h-4 mr-2" />
+            <Mail className="w-4 h-4 mr-2 text-orange-600" />
             Email Address *
           </div>
         </label>
@@ -620,7 +620,7 @@ const RegisterPage = () => {
           value={contractorForm.email}
           onChange={handleContractorChange}
           required
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition text-gray-900 placeholder-gray-500"
           placeholder="contractor@example.com"
           disabled={loading}
         />
@@ -628,7 +628,7 @@ const RegisterPage = () => {
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           <div className="flex items-center">
-            <Lock className="w-4 h-4 mr-2" />
+            <Lock className="w-4 h-4 mr-2 text-orange-600" />
             Password *
           </div>
         </label>
@@ -640,14 +640,14 @@ const RegisterPage = () => {
             onChange={handleContractorChange}
             required
             minLength="6"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000] pr-12"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition text-gray-900 placeholder-gray-500 pr-12"
             placeholder="At least 6 characters"
             disabled={loading}
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-orange-600 transition-colors"
             disabled={loading}
           >
             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -658,7 +658,7 @@ const RegisterPage = () => {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             <div className="flex items-center">
-              <Briefcase className="w-4 h-4 mr-2" />
+              <Briefcase className="w-4 h-4 mr-2 text-orange-600" />
               Company Name *
             </div>
           </label>
@@ -668,7 +668,7 @@ const RegisterPage = () => {
             value={contractorForm.companyName}
             onChange={handleContractorChange}
             required
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition text-gray-900 placeholder-gray-500"
             placeholder="ABC Construction Co."
             disabled={loading}
           />
@@ -682,7 +682,7 @@ const RegisterPage = () => {
             value={contractorForm.contractorType}
             onChange={handleContractorChange}
             required
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition text-gray-900"
             disabled={loading}
           >
             <option value="">Select Type</option>
@@ -698,7 +698,7 @@ const RegisterPage = () => {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             <div className="flex items-center">
-              <Award className="w-4 h-4 mr-2" />
+              <Award className="w-4 h-4 mr-2 text-orange-600" />
               Experience (Years) *
             </div>
           </label>
@@ -709,7 +709,7 @@ const RegisterPage = () => {
             onChange={handleContractorChange}
             required
             min="1"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition text-gray-900 placeholder-gray-500"
             placeholder="5"
             disabled={loading}
           />
@@ -724,7 +724,7 @@ const RegisterPage = () => {
             value={contractorForm.licenseNumber}
             onChange={handleContractorChange}
             required
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition text-gray-900 placeholder-gray-500"
             placeholder="LIC-123456"
             disabled={loading}
           />
@@ -732,7 +732,7 @@ const RegisterPage = () => {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             <div className="flex items-center">
-              <Users className="w-4 h-4 mr-2" />
+              <Users className="w-4 h-4 mr-2 text-orange-600" />
               Team Size *
             </div>
           </label>
@@ -741,7 +741,7 @@ const RegisterPage = () => {
             value={contractorForm.teamSize}
             onChange={handleContractorChange}
             required
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition text-gray-900"
             disabled={loading}
           >
             <option value="">Select Size</option>
@@ -762,16 +762,20 @@ const RegisterPage = () => {
               key={specialty}
               type="button"
               onClick={() => handleSpecialtyToggle(specialty)}
-              className={`px-4 py-3 rounded-lg border text-left ${
+              className={`px-4 py-3 rounded-lg border text-left transition-all ${
                 contractorForm.specialties.includes(specialty)
-                  ? "bg-blue-50 border-blue-500 text-blue-700"
-                  : "border-gray-300 text-gray-700 hover:border-gray-400"
+                  ? "bg-orange-50 border-orange-500 text-orange-700"
+                  : "border-gray-300 text-gray-700 hover:border-orange-300 hover:bg-orange-50/50"
               }`}
               disabled={loading}
             >
               <div className="flex items-center">
                 <CheckSquare
-                  className={`w-4 h-4 mr-2 ${contractorForm.specialties.includes(specialty) ? "opacity-100" : "opacity-0"}`}
+                  className={`w-4 h-4 mr-2 transition-opacity ${
+                    contractorForm.specialties.includes(specialty) 
+                      ? "text-orange-600 opacity-100" 
+                      : "opacity-0"
+                  }`}
                 />
                 {specialty}
               </div>
@@ -785,7 +789,7 @@ const RegisterPage = () => {
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           <div className="flex items-center">
-            <MapPin className="w-4 h-4 mr-2" />
+            <MapPin className="w-4 h-4 mr-2 text-orange-600" />
             Address *
           </div>
         </label>
@@ -795,7 +799,7 @@ const RegisterPage = () => {
           onChange={handleContractorChange}
           required
           rows="2"
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition text-gray-900 placeholder-gray-500"
           placeholder="Complete address"
           disabled={loading}
         />
@@ -803,7 +807,7 @@ const RegisterPage = () => {
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           <div className="flex items-center">
-            <Globe className="w-4 h-4 mr-2" />
+            <Globe className="w-4 h-4 mr-2 text-orange-600" />
             Website (Optional)
           </div>
         </label>
@@ -812,7 +816,7 @@ const RegisterPage = () => {
           name="website"
           value={contractorForm.website}
           onChange={handleContractorChange}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition text-gray-900 placeholder-gray-500"
           placeholder="https://yourcompany.com"
           disabled={loading}
         />
@@ -827,7 +831,7 @@ const RegisterPage = () => {
           value={contractorForm.projectsCompleted}
           onChange={handleContractorChange}
           min="0"
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-[#800000]"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition text-gray-900 placeholder-gray-500"
           placeholder="0"
           disabled={loading}
         />
@@ -836,21 +840,21 @@ const RegisterPage = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-6xl">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+      <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
         {/* Logo & Title */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-[#800000] to-[#a00000] rounded-full mb-4 shadow-lg">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-orange-600 to-orange-500 rounded-full mb-4 shadow-lg">
             <ShoppingBag className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-800">Join BricksIT</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 tracking-tight">Join InfraKarts</h1>
           <p className="text-gray-600 mt-2">
             Choose your account type to get started
           </p>
         </div>
 
         {/* Tabs */}
-        <div className="bg-white rounded-xl shadow-lg p-1 mb-8 max-w-2xl mx-auto">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-1 mb-8 max-w-2xl mx-auto">
           <div className="grid grid-cols-3 gap-1">
             {["user", "seller", "contractor"].map((role) => (
               <button
@@ -860,7 +864,11 @@ const RegisterPage = () => {
                   setError("");
                   setSuccess("");
                 }}
-                className={`flex-1 py-4 px-4 rounded-lg text-sm font-medium transition-all ${activeTab === role ? "bg-gradient-to-r from-[#800000] to-[#a00000] text-white shadow-md" : "text-gray-600 hover:text-[#800000] hover:bg-gray-100"}`}
+                className={`flex-1 py-4 px-4 rounded-lg text-sm font-medium transition-all ${
+                  activeTab === role 
+                    ? "bg-orange-600 text-white shadow-sm" 
+                    : "text-gray-600 hover:text-orange-600 hover:bg-orange-50"
+                }`}
               >
                 <div className="flex items-center justify-center space-x-2">
                   {role === "user" && <User size={18} />}
@@ -874,10 +882,10 @@ const RegisterPage = () => {
         </div>
 
         {/* Main Form Card */}
-        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
           <div className="md:flex">
             {/* Left Benefits Panel */}
-            <div className="md:w-2/5 bg-gradient-to-b from-[#800000] to-[#a00000] p-8 text-white">
+            <div className="md:w-2/5 bg-gradient-to-b from-orange-600 to-orange-500 p-8 text-white">
               <h2 className="text-2xl font-bold mb-6">
                 {activeTab === "user"
                   ? "Customer Benefits"
@@ -889,57 +897,57 @@ const RegisterPage = () => {
                 {activeTab === "user" ? (
                   <>
                     <li className="flex items-start">
-                      <CheckCircle className="w-5 h-5 mr-3 mt-1 flex-shrink-0" />
+                      <CheckCircle className="w-5 h-5 mr-3 mt-1 flex-shrink-0 text-white/90" />
                       <span>Fast & secure checkout</span>
                     </li>
                     <li className="flex items-start">
-                      <CheckCircle className="w-5 h-5 mr-3 mt-1 flex-shrink-0" />
+                      <CheckCircle className="w-5 h-5 mr-3 mt-1 flex-shrink-0 text-white/90" />
                       <span>Personalized experience</span>
                     </li>
                     <li className="flex items-start">
-                      <CheckCircle className="w-5 h-5 mr-3 mt-1 flex-shrink-0" />
+                      <CheckCircle className="w-5 h-5 mr-3 mt-1 flex-shrink-0 text-white/90" />
                       <span>Order tracking</span>
                     </li>
                     <li className="flex items-start">
-                      <CheckCircle className="w-5 h-5 mr-3 mt-1 flex-shrink-0" />
+                      <CheckCircle className="w-5 h-5 mr-3 mt-1 flex-shrink-0 text-white/90" />
                       <span>Exclusive discounts</span>
                     </li>
                   </>
                 ) : activeTab === "seller" ? (
                   <>
                     <li className="flex items-start">
-                      <CheckCircle className="w-5 h-5 mr-3 mt-1 flex-shrink-0" />
+                      <CheckCircle className="w-5 h-5 mr-3 mt-1 flex-shrink-0 text-white/90" />
                       <span>Reach millions of customers</span>
                     </li>
                     <li className="flex items-start">
-                      <CheckCircle className="w-5 h-5 mr-3 mt-1 flex-shrink-0" />
+                      <CheckCircle className="w-5 h-5 mr-3 mt-1 flex-shrink-0 text-white/90" />
                       <span>Secure payments</span>
                     </li>
                     <li className="flex items-start">
-                      <CheckCircle className="w-5 h-5 mr-3 mt-1 flex-shrink-0" />
+                      <CheckCircle className="w-5 h-5 mr-3 mt-1 flex-shrink-0 text-white/90" />
                       <span>Seller dashboard</span>
                     </li>
                     <li className="flex items-start">
-                      <CheckCircle className="w-5 h-5 mr-3 mt-1 flex-shrink-0" />
+                      <CheckCircle className="w-5 h-5 mr-3 mt-1 flex-shrink-0 text-white/90" />
                       <span>Dedicated support</span>
                     </li>
                   </>
                 ) : (
                   <>
                     <li className="flex items-start">
-                      <CheckCircle className="w-5 h-5 mr-3 mt-1 flex-shrink-0" />
+                      <CheckCircle className="w-5 h-5 mr-3 mt-1 flex-shrink-0 text-white/90" />
                       <span>Bulk material access</span>
                     </li>
                     <li className="flex items-start">
-                      <CheckCircle className="w-5 h-5 mr-3 mt-1 flex-shrink-0" />
+                      <CheckCircle className="w-5 h-5 mr-3 mt-1 flex-shrink-0 text-white/90" />
                       <span>Portfolio showcase</span>
                     </li>
                     <li className="flex items-start">
-                      <CheckCircle className="w-5 h-5 mr-3 mt-1 flex-shrink-0" />
+                      <CheckCircle className="w-5 h-5 mr-3 mt-1 flex-shrink-0 text-white/90" />
                       <span>Connect with clients</span>
                     </li>
                     <li className="flex items-start">
-                      <CheckCircle className="w-5 h-5 mr-3 mt-1 flex-shrink-0" />
+                      <CheckCircle className="w-5 h-5 mr-3 mt-1 flex-shrink-0 text-white/90" />
                       <span>Professional network</span>
                     </li>
                   </>
@@ -956,8 +964,8 @@ const RegisterPage = () => {
                 </div>
               )}
               {success && (
-                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
+                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start">
+                  <CheckCircle className="w-5 h-5 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
                   <p className="text-green-600 text-sm whitespace-pre-line">
                     {success}
                   </p>
@@ -976,21 +984,21 @@ const RegisterPage = () => {
                     <input
                       type="checkbox"
                       required
-                      className="mt-1 mr-3 h-4 w-4 text-[#800000] rounded focus:ring-[#800000]"
+                      className="mt-1 mr-3 h-4 w-4 text-orange-600 rounded focus:ring-orange-500 border-gray-300"
                       disabled={loading}
                     />
                     <span className="text-sm text-gray-600">
                       I agree to the{" "}
                       <button
                         type="button"
-                        className="text-[#800000] hover:underline"
+                        className="text-orange-600 hover:underline"
                       >
                         Terms & Conditions
                       </button>{" "}
                       and{" "}
                       <button
                         type="button"
-                        className="text-[#800000] hover:underline"
+                        className="text-orange-600 hover:underline"
                       >
                         Privacy Policy
                       </button>
@@ -1001,7 +1009,7 @@ const RegisterPage = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full mt-8 bg-[#800000] text-white py-4 rounded-lg font-semibold hover:bg-[#900000] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+                  className="w-full mt-8 bg-orange-600 text-white py-4 rounded-lg font-semibold hover:bg-orange-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
                 >
                   {loading ? (
                     <span className="flex items-center justify-center">
@@ -1037,7 +1045,7 @@ const RegisterPage = () => {
                     <button
                       type="button"
                       onClick={() => navigate("/login")}
-                      className="text-[#800000] font-semibold hover:underline"
+                      className="text-orange-600 font-semibold hover:text-orange-700 hover:underline transition-colors"
                     >
                       Sign in here
                     </button>
@@ -1049,7 +1057,7 @@ const RegisterPage = () => {
         </div>
 
         <div className="text-center mt-8 text-sm text-gray-500">
-          <p>© {new Date().getFullYear()} BricksIT. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} InfraKarts. All rights reserved.</p>
         </div>
       </div>
     </div>

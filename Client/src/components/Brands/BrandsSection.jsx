@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 const brands = [
   { name: 'Ambuja Cement', src: '/ba2.jpg' },
   { name: 'ACC', src: '/ba1.jpg' },
-  { name: 'Baja Electricals Ltd', src: 'bb1.jpg' },
+  { name: 'Baja Electricals Ltd', src: '/bb1.jpg' },
   { name: 'Baja Tiles', src: '/bb2.jpg' },
   { name: 'CERA', src: '/bc1.jpg' },
   { name: 'Century', src: '/bc2.jpg' },
@@ -71,59 +71,63 @@ const BrandsSection = () => {
     }
   };
 
-  // Show more than 8 if you want — here showing first 12 for better visibility
-  const visibleBrands = brands.slice(0, 12);
+  // Showing first 16 brands
+  const visibleBrands = brands.slice(0, 16);
 
   return (
-    <section className="bg-white py-8 px-4 md:px-8 shadow-sm my-8 rounded-lg">
+    <section className="bg-white py-10 px-4 md:px-8 my-8 rounded-xl shadow-sm border border-gray-100">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Brands</h2>
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+          <h2 className="text-3xl md:text-3xl font-bold text-gray-900 tracking-tight">
+            Trusted Brands
+          </h2>
           <Link
             to="/products"
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg text-base font-medium hover:bg-blue-700 transition"
+            className="bg-orange-600 text-white px-7 py-3 rounded-lg text-base font-medium hover:bg-orange-700 active:bg-orange-800 transition shadow-sm hover:shadow-md transform hover:-translate-y-0.5"
           >
-            View All
+            View All Brands
           </Link>
         </div>
 
-        {/* Horizontal carousel with smooth scrolling and hidden scrollbar */}
         <div className="relative group">
           {/* Left Arrow */}
           <button
             onClick={scrollLeft}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg rounded-full p-3 opacity-0 group-hover:opacity-100 transition-all duration-300 hover:shadow-xl"
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg rounded-full p-3.5 opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-orange-50 hover:shadow-xl hover:scale-105 active:scale-95"
             aria-label="Scroll left"
           >
-            <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            <svg
+              className="w-7 h-7 text-gray-700 group-hover:text-orange-600 transition-colors"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth="2.5"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
 
-          {/* Scrollable Container */}
+          {/* Scrollable brands container - scrollbar completely hidden */}
           <div
             ref={scrollContainerRef}
-            className="flex overflow-x-auto gap-10 pb-4 scrollbar-hide scroll-smooth mx-12"
-            style={{
-              scrollbarWidth: 'none', /* Firefox */
-              msOverflowStyle: 'none', /* IE and Edge */
-            }}
+            className="flex overflow-x-auto gap-8 md:gap-10 pb-6 scroll-smooth px-4 sm:px-12 hide-scrollbar"
           >
-            {/* Extra CSS for Webkit browsers (Chrome, Safari) */}
-            <style jsx>{`
-              .scrollbar-hide::-webkit-scrollbar {
-                display: none;
-              }
-            `}</style>
-
             {visibleBrands.map((brand, index) => (
-              <div key={index} className="flex-shrink-0">
-                <img
-                  src={brand.src}
-                  alt={brand.name}
-                  className="h-20 w-auto object-contain transition-transform duration-300 hover:scale-110 filter grayscale-0 hover:grayscale-0"
-                  loading="lazy"
-                />
+              <div
+                key={index}
+                className="flex-shrink-0 transition-all duration-300 hover:scale-105 active:scale-95"
+              >
+                <div className="bg-white rounded-xl p-4 shadow-sm hover:shadow-md border border-gray-100 hover:border-orange-200/60 transition-all duration-300 min-w-[140px] sm:min-w-[160px] md:min-w-[180px] flex items-center justify-center h-28 sm:h-32">
+                  <img
+                    src={brand.src}
+                    alt={brand.name}
+                    className="max-h-20 max-w-full object-contain transition-all duration-400 hover:brightness-110"
+                    loading="lazy"
+                  />
+                </div>
+                <p className="text-center mt-3 text-sm font-medium text-gray-700 group-hover:text-orange-600 transition-colors">
+                  {brand.name}
+                </p>
               </div>
             ))}
           </div>
@@ -131,15 +135,32 @@ const BrandsSection = () => {
           {/* Right Arrow */}
           <button
             onClick={scrollRight}
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg rounded-full p-3 opacity-0 group-hover:opacity-100 transition-all duration-300 hover:shadow-xl"
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg rounded-full p-3.5 opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-orange-50 hover:shadow-xl hover:scale-105 active:scale-95"
             aria-label="Scroll right"
           >
-            <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            <svg
+              className="w-7 h-7 text-gray-700 group-hover:text-orange-600 transition-colors"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth="2.5"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
           </button>
         </div>
       </div>
+
+      {/* Global scrollbar hiding styles */}
+      <style jsx global>{`
+        .hide-scrollbar {
+          -ms-overflow-style: none;       /* IE and Edge */
+          scrollbar-width: none;          /* Firefox */
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;                  /* Chrome, Safari, Opera */
+        }
+      `}</style>
     </section>
   );
 };

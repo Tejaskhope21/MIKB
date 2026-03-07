@@ -13,7 +13,7 @@ import {
   FiTag,
 } from "react-icons/fi";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
-import logo from "/BricksKart.png";
+import logo from "/logo.png";
 import { useCart } from "../context/CartContext";
 import { searchAutocomplete, hasSearchResults } from "../services/api";
 import "../index.css";
@@ -322,36 +322,36 @@ export default function Navbar({ user, onLogout }) {
   const hasSuccessfulResults = hasSearchResults(searchResults);
 
   return (
-    <header className="sticky top-0 z-50 bg-[#800000] shadow-lg">
+    <header className="sticky top-0 z-50 bg-white shadow-md">
       <div className="w-full">
         {/* Top Navbar */}
-        <nav className="h-[80px] px-4 md:px-6 flex items-center justify-between">
+        <nav className="h-20 px-4 md:px-6 flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center h-full">
             <img
               src={logo}
-              alt="Logo"
-              className="h-[70px] w-auto object-contain"
+              alt="InfraKarts"
+              className="h-[160px] w-auto object-contain"
             />
           </Link>
 
           {/* Desktop Navigation Center */}
-          <div className="hidden lg:flex items-center space-x-8 text-white mx-8">
+          <div className="hidden lg:flex items-center gap-10 text-gray-800 text-base font-medium mx-8">
             <Link
               to="/"
-              className="hover:text-gray-300 transition-colors font-medium"
+              className="hover:text-orange-600 transition-colors"
             >
               Home
             </Link>
             <Link
               to="/products"
-              className="hover:text-gray-300 transition-colors font-medium"
+              className="hover:text-orange-600 transition-colors"
             >
               Products
             </Link>
             <Link
               to="/brands"
-              className="hover:text-gray-300 transition-colors font-medium"
+              className="hover:text-orange-600 transition-colors"
             >
               Brands
             </Link>
@@ -359,37 +359,40 @@ export default function Navbar({ user, onLogout }) {
 
           {/* Search Bar (Desktop) with Autocomplete */}
           <div
-            className="hidden lg:flex flex-1 max-w-xl mx-4 relative"
+            className="hidden lg:flex flex-1 max-w-2xl mx-6 relative"
             ref={searchRef}
           >
-            <form onSubmit={handleSearch} className="w-full relative">
+            <form onSubmit={handleSearch} className="w-full">
               <div className="relative">
                 <input
                   ref={searchInputRef}
                   type="text"
                   placeholder="Search products, brands, categories..."
-                  className="w-full h-12 px-4 pr-12 rounded-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent shadow-sm text-gray-900"
+                  className="w-full h-11 px-5 pr-12 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent shadow-sm text-gray-900 placeholder-gray-500"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={() => setShowAutocomplete(true)}
                 />
                 <button
                   type="submit"
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#800000]"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-orange-600 transition-colors"
                 >
                   <FiSearch size={20} />
                 </button>
 
                 {/* Autocomplete Dropdown */}
                 {showAutocomplete && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white shadow-2xl rounded-lg border border-gray-300 z-[9999] max-h-[500px] overflow-y-auto">
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white shadow-2xl rounded-xl border border-gray-200 z-50 max-h-[520px] overflow-y-auto">
                     {isSearching ? (
-                      <div className="p-6 text-center text-gray-500">
-                        <AiOutlineLoading3Quarters className="animate-spin inline-block mr-2 text-[#800000]" />
+                      <div className="p-8 text-center text-gray-500">
+                        <AiOutlineLoading3Quarters
+                          className="animate-spin inline-block mr-2 text-orange-600"
+                          size={24}
+                        />
                         Searching...
                       </div>
                     ) : !searchResults.success ? (
-                      <div className="p-6 text-center text-red-500">
+                      <div className="p-8 text-center text-red-600">
                         {searchResults.error ||
                           "Search failed. Please try again."}
                       </div>
@@ -398,7 +401,7 @@ export default function Navbar({ user, onLogout }) {
                         {/* Products Section */}
                         {searchResults.products.length > 0 && (
                           <div className="border-b border-gray-100">
-                            <div className="px-4 py-3 bg-gray-50 text-gray-700 text-sm font-semibold">
+                            <div className="px-5 py-3 bg-gray-50 text-sm font-semibold text-gray-700">
                               Products ({searchResults.products.length})
                             </div>
                             {searchResults.products.map((product) => (
@@ -409,7 +412,7 @@ export default function Navbar({ user, onLogout }) {
                                 onClick={() =>
                                   handleAutocompleteSelect("product", product)
                                 }
-                                className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 group border-b border-gray-50 last:border-b-0"
+                                className="w-full text-left px-5 py-3 hover:bg-orange-50 flex items-center gap-4 group border-b border-gray-100 last:border-b-0 transition-colors"
                               >
                                 <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center flex-shrink-0 border border-gray-200">
                                   {product.images?.[0] ? (
@@ -425,12 +428,12 @@ export default function Navbar({ user, onLogout }) {
                                   ) : (
                                     <FiPackage
                                       className="text-gray-400"
-                                      size={20}
+                                      size={24}
                                     />
                                   )}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <div className="font-medium text-gray-800 truncate group-hover:text-[#800000]">
+                                  <div className="font-medium text-gray-900 truncate group-hover:text-orange-600">
                                     {product.name || product.productName}
                                   </div>
                                   <div className="flex items-center gap-2 mt-1">
@@ -447,7 +450,7 @@ export default function Navbar({ user, onLogout }) {
                                   </div>
                                 </div>
                                 {product.price && (
-                                  <div className="text-sm font-semibold text-[#800000] whitespace-nowrap">
+                                  <div className="text-sm font-semibold text-orange-600 whitespace-nowrap">
                                     ₹{product.price.toLocaleString()}
                                   </div>
                                 )}
@@ -459,7 +462,7 @@ export default function Navbar({ user, onLogout }) {
                         {/* Categories Section */}
                         {searchResults.categories.length > 0 && (
                           <div className="border-b border-gray-100">
-                            <div className="px-4 py-3 bg-gray-50 text-gray-700 text-sm font-semibold">
+                            <div className="px-5 py-3 bg-gray-50 text-sm font-semibold text-gray-700">
                               Categories ({searchResults.categories.length})
                             </div>
                             {searchResults.categories.map((category) => (
@@ -472,13 +475,13 @@ export default function Navbar({ user, onLogout }) {
                                 onClick={() =>
                                   handleAutocompleteSelect("category", category)
                                 }
-                                className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 group border-b border-gray-50 last:border-b-0"
+                                className="w-full text-left px-5 py-3 hover:bg-orange-50 flex items-center gap-4 group border-b border-gray-100 last:border-b-0 transition-colors"
                               >
                                 <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center flex-shrink-0">
                                   <FiGrid className="text-blue-500" size={20} />
                                 </div>
                                 <div className="flex-1">
-                                  <div className="font-medium text-gray-800 group-hover:text-[#800000]">
+                                  <div className="font-medium text-gray-900 group-hover:text-orange-600">
                                     {category.name}
                                   </div>
                                   <div className="text-xs text-gray-500 mt-1">
@@ -506,7 +509,7 @@ export default function Navbar({ user, onLogout }) {
                         {/* Subcategories Section */}
                         {searchResults.subcategories.length > 0 && (
                           <div className="border-b border-gray-100">
-                            <div className="px-4 py-3 bg-gray-50 text-gray-700 text-sm font-semibold">
+                            <div className="px-5 py-3 bg-gray-50 text-sm font-semibold text-gray-700">
                               Subcategories (
                               {searchResults.subcategories.length})
                             </div>
@@ -523,13 +526,13 @@ export default function Navbar({ user, onLogout }) {
                                     subcategory,
                                   )
                                 }
-                                className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 group border-b border-gray-50 last:border-b-0"
+                                className="w-full text-left px-5 py-3 hover:bg-orange-50 flex items-center gap-4 group border-b border-gray-100 last:border-b-0 transition-colors"
                               >
                                 <div className="w-10 h-10 bg-green-50 rounded-full flex items-center justify-center flex-shrink-0">
                                   <FiTag className="text-green-500" size={16} />
                                 </div>
                                 <div className="flex-1">
-                                  <div className="font-medium text-gray-800 group-hover:text-[#800000]">
+                                  <div className="font-medium text-gray-900 group-hover:text-orange-600">
                                     {subcategory.title || subcategory.name}
                                   </div>
                                   <div className="flex items-center gap-1 mt-1">
@@ -561,7 +564,7 @@ export default function Navbar({ user, onLogout }) {
                         {searchResults.itemTypes &&
                           searchResults.itemTypes.length > 0 && (
                             <div className="border-b border-gray-100">
-                              <div className="px-4 py-3 bg-gray-50 text-gray-700 text-sm font-semibold">
+                              <div className="px-5 py-3 bg-gray-50 text-sm font-semibold text-gray-700">
                                 Item Types ({searchResults.itemTypes.length})
                               </div>
                               {searchResults.itemTypes.map((itemType) => (
@@ -577,7 +580,7 @@ export default function Navbar({ user, onLogout }) {
                                       itemType,
                                     )
                                   }
-                                  className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 group border-b border-gray-50 last:border-b-0"
+                                  className="w-full text-left px-5 py-3 hover:bg-orange-50 flex items-center gap-4 group border-b border-gray-100 last:border-b-0 transition-colors"
                                 >
                                   <div className="w-10 h-10 bg-purple-50 rounded-full flex items-center justify-center flex-shrink-0">
                                     <FiGrid
@@ -586,7 +589,7 @@ export default function Navbar({ user, onLogout }) {
                                     />
                                   </div>
                                   <div className="flex-1">
-                                    <div className="font-medium text-gray-800 group-hover:text-[#800000]">
+                                    <div className="font-medium text-gray-900 group-hover:text-orange-600">
                                       {itemType.name}
                                     </div>
                                     <div className="text-xs text-gray-500 mt-1">
@@ -617,7 +620,7 @@ export default function Navbar({ user, onLogout }) {
                         {/* View all results */}
                         {(searchResults.totalResults > 0 ||
                           searchQuery.length > 0) && (
-                          <div className="border-t border-gray-200 p-4 bg-gray-50">
+                          <div className="border-t border-gray-200 p-4 bg-gray-50 text-center">
                             <button
                               onClick={() => {
                                 setShowAutocomplete(false);
@@ -625,7 +628,7 @@ export default function Navbar({ user, onLogout }) {
                                   `/search?q=${encodeURIComponent(searchQuery)}`,
                                 );
                               }}
-                              className="w-full text-center text-[#800000] font-medium hover:underline py-2 flex items-center justify-center gap-2"
+                              className="text-orange-600 font-medium hover:underline py-2 inline-flex items-center justify-center gap-2"
                             >
                               View all results for "{searchQuery}"
                               <svg
@@ -646,7 +649,7 @@ export default function Navbar({ user, onLogout }) {
                         )}
                       </>
                     ) : searchQuery.length > 0 ? (
-                      <div className="p-8 text-center">
+                      <div className="p-10 text-center">
                         <div className="text-gray-400 text-4xl mb-4">🔍</div>
                         <p className="text-gray-600 font-medium">
                           No results found for
@@ -664,7 +667,7 @@ export default function Navbar({ user, onLogout }) {
                               `/search?q=${encodeURIComponent(searchQuery)}`,
                             );
                           }}
-                          className="mt-4 text-[#800000] font-medium hover:underline"
+                          className="mt-4 text-orange-600 font-medium hover:underline"
                         >
                           Search anyway →
                         </button>
@@ -682,23 +685,23 @@ export default function Navbar({ user, onLogout }) {
           </div>
 
           {/* Right Side Icons */}
-          <div className="hidden md:flex items-center space-x-6 text-white">
+          <div className="hidden md:flex items-center gap-6 text-gray-800">
             {/* Quick Links */}
             <button
               onClick={() => navigate("/contractors")}
-              className="hover:text-gray-300 transition-colors font-medium cursor-pointer"
+              className="hover:text-orange-600 transition-colors font-medium cursor-pointer"
             >
               Contractors
             </button>
             <button
               onClick={() => navigate("/seller")}
-              className="hover:text-gray-300 transition-colors font-medium cursor-pointer"
+              className="hover:text-orange-600 transition-colors font-medium cursor-pointer"
             >
               Seller
             </button>
             <Link
               to="/investors"
-              className="hover:text-gray-300 transition-colors font-medium"
+              className="hover:text-orange-600 transition-colors font-medium"
             >
               Investors
             </Link>
@@ -706,11 +709,11 @@ export default function Navbar({ user, onLogout }) {
             {/* Cart with Counter */}
             <Link
               to="/cart"
-              className="relative hover:text-gray-300 transition-colors"
+              className="relative hover:text-orange-600 transition-colors"
             >
-              <FiShoppingCart size={22} />
+              <FiShoppingCart size={24} />
               {cartCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-white text-[#800000] text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold border border-[#800000]">
+                <span className="absolute -top-1.5 -right-1.5 bg-orange-600 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
                   {cartCount > 99 ? "99+" : cartCount}
                 </span>
               )}
@@ -720,60 +723,58 @@ export default function Navbar({ user, onLogout }) {
             <div className="relative">
               <button
                 ref={profileButtonRef}
-                className="flex items-center gap-2 hover:text-gray-300 transition-colors"
+                className="flex items-center gap-2.5 hover:text-orange-600 transition-colors"
                 onClick={() => setDropdownOpen(!dropdownOpen)}
                 onMouseEnter={() => setDropdownOpen(true)}
               >
-                <div className="w-8 h-8 bg-white text-[#800000] rounded-full flex items-center justify-center font-semibold">
+                <div className="w-9 h-9 bg-gray-100 text-gray-700 rounded-full flex items-center justify-center font-semibold border border-gray-300">
                   {user ? (
                     user.name?.charAt(0).toUpperCase()
                   ) : (
-                    <FiUser size={16} />
+                    <FiUser size={18} />
                   )}
                 </div>
                 <span className="font-medium">
-                  {user ? user.name?.split(" ")[0] : "Profile"}
+                  {user ? user.name?.split(" ")[0] : "Account"}
                 </span>
               </button>
               {dropdownOpen && (
                 <div
                   ref={dropdownRef}
-                  className="absolute top-full right-0 mt-2 bg-white text-gray-800 shadow-lg rounded-lg border w-60 z-50"
+                  className="absolute right-0 top-full mt-2 w-64 bg-white shadow-xl rounded-xl border border-gray-200 overflow-hidden z-50"
                   onMouseEnter={() => setDropdownOpen(true)}
                   onMouseLeave={() => setDropdownOpen(false)}
                 >
-                  <div className="p-4">
-                    {user && (
-                      <div className="mb-4 pb-4 border-b">
-                        <p className="font-semibold text-gray-900">
-                          {user.name}
-                        </p>
-                        <p className="text-sm text-gray-600">{user.email}</p>
-                      </div>
-                    )}
-                    <div className="space-y-2">
-                      {profileItems.map((item, index) =>
-                        item.path ? (
-                          <Link
-                            key={index}
-                            to={item.path}
-                            onClick={() => setDropdownOpen(false)}
-                            className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors font-medium hover:text-[#800000]"
-                          >
-                            {item.label}
-                          </Link>
-                        ) : (
-                          <button
-                            key={index}
-                            onClick={item.action}
-                            className="w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors flex items-center font-medium hover:text-[#800000]"
-                          >
-                            {item.icon}
-                            {item.label}
-                          </button>
-                        ),
-                      )}
+                  {user && (
+                    <div className="p-4 border-b border-gray-100">
+                      <p className="font-semibold text-gray-900">
+                        {user.name}
+                      </p>
+                      <p className="text-sm text-gray-600">{user.email}</p>
                     </div>
+                  )}
+                  <div className="py-2">
+                    {profileItems.map((item, index) =>
+                      item.path ? (
+                        <Link
+                          key={index}
+                          to={item.path}
+                          onClick={() => setDropdownOpen(false)}
+                          className="block px-5 py-2.5 text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+                        >
+                          {item.label}
+                        </Link>
+                      ) : (
+                        <button
+                          key={index}
+                          onClick={item.action}
+                          className="w-full text-left px-5 py-2.5 text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors flex items-center"
+                        >
+                          {item.icon}
+                          {item.label}
+                        </button>
+                      ),
+                    )}
                   </div>
                 </div>
               )}
@@ -782,7 +783,7 @@ export default function Navbar({ user, onLogout }) {
             {/* Post Requirement Button */}
             <button
               onClick={() => navigate("/post-requirement")}
-              className="bg-white text-[#800000] px-4 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors shadow-sm hover:shadow border border-[#800000]"
+              className="bg-orange-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-orange-700 transition-colors shadow-sm"
             >
               Post Requirement
             </button>
@@ -790,7 +791,7 @@ export default function Navbar({ user, onLogout }) {
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden text-white"
+            className="md:hidden text-gray-800"
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label={menuOpen ? "Close menu" : "Open menu"}
           >
@@ -800,7 +801,7 @@ export default function Navbar({ user, onLogout }) {
 
         {/* Mobile Menu */}
         {menuOpen && (
-          <div className="md:hidden bg-[#800000] border-t border-gray-600 px-4 py-4 space-y-4">
+          <div className="md:hidden bg-white border-t border-gray-200 px-5 py-6 space-y-5">
             {/* Mobile Search */}
             <div className="relative mb-4" ref={searchRef}>
               <form onSubmit={handleSearch}>
@@ -808,14 +809,14 @@ export default function Navbar({ user, onLogout }) {
                   <input
                     type="text"
                     placeholder="Search products..."
-                    className="w-full h-12 px-4 pr-12 rounded-lg bg-white text-gray-900 border-0 focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent"
+                    className="w-full h-11 px-4 pr-12 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-400 text-gray-900"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onFocus={() => setShowAutocomplete(true)}
                   />
                   <button
                     type="submit"
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500"
                   >
                     <FiSearch size={20} />
                   </button>
@@ -824,10 +825,10 @@ export default function Navbar({ user, onLogout }) {
 
               {/* Mobile Autocomplete */}
               {showAutocomplete && searchQuery.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white shadow-2xl rounded-lg border border-gray-300 z-50 max-h-[400px] overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white shadow-2xl rounded-xl border border-gray-200 z-50 max-h-[400px] overflow-y-auto">
                   {isSearching ? (
                     <div className="p-4 text-center text-gray-500">
-                      <AiOutlineLoading3Quarters className="animate-spin inline-block mr-2" />
+                      <AiOutlineLoading3Quarters className="animate-spin inline-block mr-2 text-orange-600" />
                       Searching...
                     </div>
                   ) : hasSuccessfulResults ? (
@@ -835,7 +836,7 @@ export default function Navbar({ user, onLogout }) {
                       {/* Mobile Products */}
                       {searchResults.products.length > 0 && (
                         <div className="border-b border-gray-100">
-                          <div className="px-4 py-2 bg-gray-50 text-gray-700 text-sm font-semibold">
+                          <div className="px-4 py-2 bg-gray-50 text-sm font-semibold text-gray-700">
                             Products
                           </div>
                           {searchResults.products.slice(0, 3).map((product) => (
@@ -847,9 +848,9 @@ export default function Navbar({ user, onLogout }) {
                                 handleAutocompleteSelect("product", product);
                                 setMenuOpen(false);
                               }}
-                              className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 border-b border-gray-100 last:border-b-0"
+                              className="w-full text-left px-4 py-3 hover:bg-orange-50 flex items-center gap-3 border-b border-gray-100 last:border-b-0"
                             >
-                              <div className="font-medium text-gray-800 truncate">
+                              <div className="font-medium text-gray-800 truncate hover:text-orange-600">
                                 {product.name || product.productName}
                               </div>
                             </button>
@@ -860,7 +861,7 @@ export default function Navbar({ user, onLogout }) {
                       {/* Mobile Categories */}
                       {searchResults.categories.length > 0 && (
                         <div className="border-b border-gray-100">
-                          <div className="px-4 py-2 bg-gray-50 text-gray-700 text-sm font-semibold">
+                          <div className="px-4 py-2 bg-gray-50 text-sm font-semibold text-gray-700">
                             Categories
                           </div>
                           {searchResults.categories
@@ -879,9 +880,9 @@ export default function Navbar({ user, onLogout }) {
                                   );
                                   setMenuOpen(false);
                                 }}
-                                className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 border-b border-gray-100 last:border-b-0"
+                                className="w-full text-left px-4 py-3 hover:bg-orange-50 flex items-center gap-3 border-b border-gray-100 last:border-b-0"
                               >
-                                <div className="font-medium text-gray-800">
+                                <div className="font-medium text-gray-800 hover:text-orange-600">
                                   {category.name}
                                 </div>
                               </button>
@@ -899,7 +900,7 @@ export default function Navbar({ user, onLogout }) {
                             );
                             setMenuOpen(false);
                           }}
-                          className="w-full text-center text-[#800000] font-medium py-3 border-t border-gray-200"
+                          className="w-full text-center text-orange-600 font-medium py-3 border-t border-gray-200 hover:bg-orange-50"
                         >
                           View all {searchResults.totalResults} results
                         </button>
@@ -915,24 +916,24 @@ export default function Navbar({ user, onLogout }) {
             </div>
 
             {/* Mobile Links */}
-            <div className="space-y-3 text-white">
+            <div className="flex flex-col gap-4 text-gray-800 font-medium">
               <Link
                 to="/"
-                className="block py-2 hover:text-gray-300 font-medium"
+                className="hover:text-orange-600 transition-colors"
                 onClick={() => setMenuOpen(false)}
               >
                 Home
               </Link>
               <Link
                 to="/products"
-                className="block py-2 hover:text-gray-300 font-medium"
+                className="hover:text-orange-600 transition-colors"
                 onClick={() => setMenuOpen(false)}
               >
                 Products
               </Link>
               <Link
                 to="/brands"
-                className="block py-2 hover:text-gray-300 font-medium"
+                className="hover:text-orange-600 transition-colors"
                 onClick={() => setMenuOpen(false)}
               >
                 Brands
@@ -943,7 +944,7 @@ export default function Navbar({ user, onLogout }) {
                   navigate("/contractors");
                   setMenuOpen(false);
                 }}
-                className="block py-2 hover:text-gray-300 font-medium w-full text-left"
+                className="text-left hover:text-orange-600 transition-colors"
               >
                 Contractors
               </button>
@@ -952,90 +953,79 @@ export default function Navbar({ user, onLogout }) {
                   navigate("/seller");
                   setMenuOpen(false);
                 }}
-                className="block py-2 hover:text-gray-300 font-medium w-full text-left"
+                className="text-left hover:text-orange-600 transition-colors"
               >
                 Seller
               </button>
               <Link
                 to="/investors"
-                className="block py-2 hover:text-gray-300 font-medium"
+                className="hover:text-orange-600 transition-colors"
                 onClick={() => setMenuOpen(false)}
               >
                 Investors
               </Link>
 
-              {user && (
+              <Link
+                to="/cart"
+                className="flex items-center gap-2 hover:text-orange-600 transition-colors"
+                onClick={() => setMenuOpen(false)}
+              >
+                Cart
+                {cartCount > 0 && (
+                  <span className="bg-orange-600 text-white text-xs px-2 py-1 rounded-full">
+                    {cartCount > 99 ? "99+" : cartCount}
+                  </span>
+                )}
+              </Link>
+
+              {user ? (
                 <>
                   <Link
                     to="/profile"
-                    className="block py-2 hover:text-gray-300 font-medium"
+                    className="hover:text-orange-600 transition-colors"
                     onClick={() => setMenuOpen(false)}
                   >
                     My Profile
                   </Link>
                   <Link
                     to="/orders/my-orders"
-                    className="block py-2 hover:text-gray-300 font-medium"
+                    className="hover:text-orange-600 transition-colors"
                     onClick={() => setMenuOpen(false)}
                   >
                     My Orders
                   </Link>
-                  <Link
-                    to="/profile/addresses"
-                    className="block py-2 hover:text-gray-300 font-medium"
-                    onClick={() => setMenuOpen(false)}
+                  <button
+                    onClick={handleLogout}
+                    className="text-left flex items-center gap-2 hover:text-orange-600 transition-colors"
                   >
-                    My Addresses
-                  </Link>
+                    <FiLogOut /> Logout
+                  </button>
                 </>
-              )}
-
-              {!user ? (
+              ) : (
                 <>
                   <Link
                     to="/login"
-                    className="block py-2 hover:text-gray-300 font-medium"
+                    className="hover:text-orange-600 transition-colors"
                     onClick={() => setMenuOpen(false)}
                   >
                     Sign In
                   </Link>
                   <Link
                     to="/register"
-                    className="block py-2 hover:text-gray-300 font-medium"
+                    className="hover:text-orange-600 transition-colors"
                     onClick={() => setMenuOpen(false)}
                   >
                     Sign Up
                   </Link>
                 </>
-              ) : (
-                <button
-                  onClick={handleLogout}
-                  className="w-full text-left py-2 text-white hover:text-gray-300 flex items-center font-medium"
-                >
-                  <FiLogOut className="mr-2" />
-                  Logout
-                </button>
               )}
-
-              <Link
-                to="/cart"
-                className=" py-2 hover:text-gray-300 flex items-center gap-2 font-medium"
-                onClick={() => setMenuOpen(false)}
-              >
-                Cart
-                {cartCount > 0 && (
-                  <span className="bg-white text-[#800000] text-xs px-2 py-1 rounded-full font-bold border border-[#800000]">
-                    {cartCount > 99 ? "99+" : cartCount}
-                  </span>
-                )}
-              </Link>
 
               <button
                 onClick={() => {
                   navigate("/post-requirement");
                   setMenuOpen(false);
                 }}
-                className="w-full bg-white text-[#800000] py-3 rounded-lg font-medium mt-4 shadow-sm hover:bg-gray-100 border border-[#800000]"
+                className="w-full bg-orange-600 text-white py-3 rounded-lg font-medium hover:bg-orange-700 transition-colors shadow-sm mt-2"
               >
                 Post Requirement
               </button>

@@ -10,10 +10,9 @@ const AllProductsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  // ================= STATES =================
+  // States
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
-
   const [products, setProducts] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
   const [itemTypes, setItemTypes] = useState([]);
@@ -22,7 +21,7 @@ const AllProductsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // ================= FILTER STATE =================
+  // Filter state
   const [filters, setFilters] = useState({
     subCategoryId: searchParams.get("subCategoryId") || "",
     itemTypeId: searchParams.get("itemTypeId") || "",
@@ -31,10 +30,9 @@ const AllProductsPage = () => {
     maxPrice: searchParams.get("maxPrice") || "",
   });
 
-  // ================= ACTIVE FILTERS (for API calls) =================
   const [activeFilters, setActiveFilters] = useState({});
 
-  // ================= SYNC FILTERS → URL =================
+  // Sync filters → URL
   useEffect(() => {
     const params = {};
     Object.entries(filters).forEach(([key, value]) => {
@@ -43,20 +41,22 @@ const AllProductsPage = () => {
     setSearchParams(params, { replace: true });
   }, [filters, setSearchParams]);
 
-  // ================= FETCH CATEGORIES =================
+  // Fetch categories
   const fetchCategories = async () => {
     try {
       const res = await API.get("/categories/public/categories");
       const data = Array.isArray(res.data?.data) ? res.data.data : [];
-
       setCategories(data);
 
-      // Auto select first category
       if (data.length > 0) {
-        setSelectedCategory(data[0]);
-        setSubCategories(data[0].subCategories || []);
+        // Auto-select first category or try to match from URL
+        const initialCat =
+          data.find((c) => c._id === searchParams.get("categoryId")) ||
+          data[0];
+        setSelectedCategory(initialCat);
+        setSubCategories(initialCat.subCategories || []);
         setItemTypes(
-          data[0].subCategories?.flatMap((s) => s.items || []) || [],
+          initialCat.subCategories?.flatMap((s) => s.items || []) || []
         );
       }
     } catch (err) {
@@ -65,7 +65,7 @@ const AllProductsPage = () => {
     }
   };
 
-  // ================= FETCH PRODUCTS =================
+  // Fetch products
   const fetchProducts = async (categoryId) => {
     try {
       setLoading(true);
@@ -73,21 +73,21 @@ const AllProductsPage = () => {
 
       const res = await API.get(
         categoryId ? `/products/category/${categoryId}` : "/products/public",
-        { params: activeFilters },
+        { params: activeFilters }
       );
 
       const data = Array.isArray(res.data?.products)
         ? res.data.products
         : Array.isArray(res.data?.data)
-          ? res.data.data
-          : [];
+        ? res.data.data
+        : [];
 
       setProducts(data);
 
-      // Extract brands
+      // Extract unique brands
       const uniqueBrands = [
         ...new Set(data.map((p) => p.brand).filter(Boolean)),
-      ];
+      ].sort();
       setBrands(uniqueBrands);
     } catch (err) {
       console.error(err);
@@ -98,165 +98,160 @@ const AllProductsPage = () => {
     }
   };
 
-  // ================= CATEGORY CLICK =================
+  // Category selection
   const handleCategoryClick = (category) => {
     setSelectedCategory(category);
     setSubCategories(category.subCategories || []);
     setItemTypes(category.subCategories?.flatMap((s) => s.items || []) || []);
 
-    // Clear all filters when category changes
-    const newFilters = {
+    // Reset filters on category change
+    const resetFilters = {
       subCategoryId: "",
       itemTypeId: "",
       brand: "",
       minPrice: "",
       maxPrice: "",
     };
-
-    setFilters(newFilters);
-    setActiveFilters({}); // Also clear active filters
+    setFilters(resetFilters);
+    setActiveFilters(resetFilters);
   };
 
-  // ================= SUB CATEGORY CHANGE =================
+  // Subcategory change → update item types
   const handleSubCategoryChange = (subCategoryId) => {
     setFilters((prev) => ({
       ...prev,
       subCategoryId,
-      itemTypeId: "", // Clear item type when subcategory changes
+      itemTypeId: "", // reset item type
     }));
 
     if (!subCategoryId) {
       setItemTypes(
-        selectedCategory?.subCategories?.flatMap((s) => s.items || []) || [],
+        selectedCategory?.subCategories?.flatMap((s) => s.items || []) || []
       );
       return;
     }
 
     const sub = selectedCategory?.subCategories?.find(
-      (s) => s._id === subCategoryId,
+      (s) => s._id === subCategoryId
     );
-
     setItemTypes(sub?.items || []);
   };
 
-  // ================= APPLY FILTERS =================
+  // Apply current filters
   const applyFilters = () => {
-    // Set active filters to current filter values
     setActiveFilters({ ...filters });
   };
 
   const clearFilters = () => {
-    const clearedFilters = {
+    const cleared = {
       subCategoryId: "",
       itemTypeId: "",
       brand: "",
       minPrice: "",
       maxPrice: "",
     };
-
-    setFilters(clearedFilters);
-    setActiveFilters(clearedFilters); // Also clear active filters
-
-    // Reset item types to all items in selected category
+    setFilters(cleared);
+    setActiveFilters(cleared);
     setItemTypes(
-      selectedCategory?.subCategories?.flatMap((s) => s.items || []) || [],
+      selectedCategory?.subCategories?.flatMap((s) => s.items || []) || []
     );
   };
 
-  // ================= INITIAL LOAD =================
+  // Initial load
   useEffect(() => {
     fetchCategories();
   }, []);
 
-  // ================= FETCH PRODUCTS ON CHANGE =================
+  // Fetch products when category or active filters change
   useEffect(() => {
     if (selectedCategory?._id) {
       fetchProducts(selectedCategory._id);
     }
   }, [selectedCategory, activeFilters]);
 
-  // ================= HANDLE PRODUCT CLICK =================
   const handleProductClick = (productId) => {
     navigate(`/product/${productId}`);
   };
 
-  // ================= SKELETON LOADER =================
+  // Skeleton loader
   const SkeletonLoader = () => (
-    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      {[...Array(9)].map((_, index) => (
-        <div key={index} className="bg-white shadow-sm border border-gray-100">
-          <div className="h-64 bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse"></div>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {[...Array(9)].map((_, i) => (
+        <div
+          key={i}
+          className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-pulse"
+        >
+          <div className="h-64 bg-gray-200" />
           <div className="p-5 space-y-3">
-            <div className="h-5 bg-gray-200 rounded animate-pulse"></div>
-            <div className="h-4 bg-gray-100 rounded animate-pulse w-2/3"></div>
-            <div className="h-6 bg-gray-200 rounded animate-pulse w-1/4"></div>
+            <div className="h-5 bg-gray-200 rounded w-4/5" />
+            <div className="h-4 bg-gray-100 rounded w-3/5" />
+            <div className="h-6 bg-gray-200 rounded w-1/3" />
+            <div className="h-10 bg-gray-200 rounded mt-4" />
           </div>
         </div>
       ))}
     </div>
   );
 
-  // Check if any filter is active
-  const hasActiveFilters = Object.values(activeFilters).some(
-    (value) => value !== "",
-  );
+  const hasActiveFilters = Object.values(activeFilters).some((v) => v !== "");
 
-  // ================= UI =================
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* HEADER */}
-        <div className="mb-10">
-          <h1 className="text-3xl font-bold text-gray-900 mb-3">
-            All Products
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+        {/* Header */}
+        <div className="mb-10 text-center lg:text-left">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 tracking-tight">
+            {selectedCategory?.name || "All Products"}
           </h1>
-          <p className="text-gray-600">
-            Browse through our extensive collection of premium products
+          <p className="mt-2 text-gray-600 max-w-2xl">
+            Discover premium construction materials from trusted brands
           </p>
         </div>
 
-        {/* CATEGORY TABS */}
-        <div className="flex gap-3 mb-8 overflow-x-auto pb-2">
-          {categories.map((cat) => (
-            <button
-              key={cat._id}
-              onClick={() => handleCategoryClick(cat)}
-              className={`px-6 py-3 text-sm font-medium whitespace-nowrap transition-all ${
-                selectedCategory?._id === cat._id
-                  ? "text-white bg-[#800000] shadow-md"
-                  : "text-gray-700 bg-white hover:bg-gray-50 border border-gray-200"
-              }`}
-            >
-              {cat.name}
-            </button>
-          ))}
+        {/* Category Tabs */}
+        <div className="mb-10 border-b border-gray-200 pb-4">
+          <div className="flex flex-wrap gap-3">
+            {categories.map((cat) => (
+              <button
+                key={cat._id}
+                onClick={() => handleCategoryClick(cat)}
+                className={`px-6 py-3 text-sm md:text-base font-medium rounded-full transition-all duration-300 ${
+                  selectedCategory?._id === cat._id
+                    ? "bg-orange-600 text-white shadow-md"
+                    : "bg-white text-gray-700 hover:bg-orange-50 hover:text-orange-700 border border-gray-200"
+                }`}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* FILTERS SIDEBAR */}
+          {/* Filters Sidebar */}
           <aside className="lg:col-span-3">
-            <div className="bg-white p-6 shadow-sm border border-gray-100 sticky top-6">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sticky top-6">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="font-bold text-lg text-gray-900">Filters</h2>
+                <h2 className="text-xl font-bold text-gray-900">Filters</h2>
                 {hasActiveFilters && (
                   <button
                     onClick={clearFilters}
-                    className="text-sm font-medium text-[#800000] hover:text-[#600000] transition-colors"
+                    className="text-sm text-orange-600 hover:text-orange-700 font-medium transition-colors flex items-center gap-1"
                   >
-                    Clear All
+                    <span>Clear all</span>
                   </button>
                 )}
               </div>
 
-              {/* Sub Category Filter */}
+              {/* Sub Category */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Sub Category
                 </label>
                 <select
-                  className="w-full border border-gray-300 p-3 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-transparent transition"
                   value={filters.subCategoryId}
                   onChange={(e) => handleSubCategoryChange(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
                 >
                   <option value="">All Sub Categories</option>
                   {subCategories.map((sub) => (
@@ -267,17 +262,17 @@ const AllProductsPage = () => {
                 </select>
               </div>
 
-              {/* Item Type Filter */}
+              {/* Item Type */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Item Type
                 </label>
                 <select
-                  className="w-full border border-gray-300 p-3 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-transparent transition"
                   value={filters.itemTypeId}
                   onChange={(e) =>
                     setFilters({ ...filters, itemTypeId: e.target.value })
                   }
+                  className="w-full border border-gray-300 rounded-lg p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
                 >
                   <option value="">All Item Types</option>
                   {itemTypes.map((item) => (
@@ -288,17 +283,17 @@ const AllProductsPage = () => {
                 </select>
               </div>
 
-              {/* Brand Filter */}
+              {/* Brand */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Brand
                 </label>
                 <select
-                  className="w-full border border-gray-300 p-3 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-transparent transition"
                   value={filters.brand}
                   onChange={(e) =>
                     setFilters({ ...filters, brand: e.target.value })
                   }
+                  className="w-full border border-gray-300 rounded-lg p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
                 >
                   <option value="">All Brands</option>
                   {brands.map((b) => (
@@ -309,89 +304,76 @@ const AllProductsPage = () => {
                 </select>
               </div>
 
-              {/* Price Range Filter */}
-              <div className="mb-6">
+              {/* Price Range */}
+              <div className="mb-8">
                 <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Price Range
+                  Price Range (₹)
                 </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <input
-                      type="number"
-                      placeholder="Min ₹"
-                      className="w-full border border-gray-300 p-3 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-transparent transition"
-                      value={filters.minPrice}
-                      onChange={(e) =>
-                        setFilters({ ...filters, minPrice: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <input
-                      type="number"
-                      placeholder="Max ₹"
-                      className="w-full border border-gray-300 p-3 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-transparent transition"
-                      value={filters.maxPrice}
-                      onChange={(e) =>
-                        setFilters({ ...filters, maxPrice: e.target.value })
-                      }
-                    />
-                  </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <input
+                    type="number"
+                    placeholder="Min"
+                    value={filters.minPrice}
+                    onChange={(e) =>
+                      setFilters({ ...filters, minPrice: e.target.value })
+                    }
+                    className="border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Max"
+                    value={filters.maxPrice}
+                    onChange={(e) =>
+                      setFilters({ ...filters, maxPrice: e.target.value })
+                    }
+                    className="border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
+                  />
                 </div>
               </div>
 
-              {/* Apply Button */}
-              <button
-                onClick={applyFilters}
-                className="w-full bg-[#800000] hover:bg-[#600000] text-white font-medium py-3 hover:shadow-md transition-all duration-300 flex items-center justify-center gap-2"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+              {/* Apply & Reset */}
+              <div className="flex gap-3">
+                <button
+                  onClick={applyFilters}
+                  className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-medium py-3 rounded-lg transition-all duration-300 shadow-sm hover:shadow-md flex items-center justify-center gap-2"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-                  />
-                </svg>
-                Apply Filters
-              </button>
+                  Apply Filters
+                </button>
+              </div>
 
-              {/* Active Filters Indicator */}
+              {/* Active filters tags */}
               {hasActiveFilters && (
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <p className="text-sm font-medium text-gray-700 mb-2">
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <p className="text-sm font-medium text-gray-700 mb-3">
                     Active Filters:
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {activeFilters.subCategoryId && (
-                      <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">
-                        Sub Category:{" "}
-                        {subCategories.find(
-                          (s) => s._id === activeFilters.subCategoryId,
-                        )?.name || "Selected"}
+                      <span className="text-xs bg-orange-100 text-orange-800 px-3 py-1.5 rounded-full">
+                        {
+                          subCategories.find(
+                            (s) => s._id === activeFilters.subCategoryId
+                          )?.name
+                        }
                       </span>
                     )}
                     {activeFilters.itemTypeId && (
-                      <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">
-                        Item Type:{" "}
-                        {itemTypes.find(
-                          (i) => i._id === activeFilters.itemTypeId,
-                        )?.name || "Selected"}
+                      <span className="text-xs bg-orange-100 text-orange-800 px-3 py-1.5 rounded-full">
+                        {
+                          itemTypes.find(
+                            (i) => i._id === activeFilters.itemTypeId
+                          )?.name
+                        }
                       </span>
                     )}
                     {activeFilters.brand && (
-                      <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">
-                        Brand: {activeFilters.brand}
+                      <span className="text-xs bg-orange-100 text-orange-800 px-3 py-1.5 rounded-full">
+                        {activeFilters.brand}
                       </span>
                     )}
                     {(activeFilters.minPrice || activeFilters.maxPrice) && (
-                      <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">
-                        Price: ₹{activeFilters.minPrice || "0"} - ₹
+                      <span className="text-xs bg-orange-100 text-orange-800 px-3 py-1.5 rounded-full">
+                        ₹{activeFilters.minPrice || "0"} – ₹
                         {activeFilters.maxPrice || "∞"}
                       </span>
                     )}
@@ -401,36 +383,28 @@ const AllProductsPage = () => {
             </div>
           </aside>
 
-          {/* PRODUCTS MAIN CONTENT */}
+          {/* Main Products Area */}
           <main className="lg:col-span-9">
-            {/* Results Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+            {/* Results info & sort */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">
-                  {selectedCategory?.name || "All Products"}
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {products.length} Products
                   {hasActiveFilters && (
-                    <span className="ml-2 text-sm font-normal text-[#800000]">
-                      (Filtered Results)
+                    <span className="ml-3 text-sm font-normal text-orange-600">
+                      (filtered)
                     </span>
                   )}
                 </h2>
-                <p className="text-gray-600 text-sm mt-1">
-                  {products.length} products found
-                  {hasActiveFilters &&
-                    Object.values(filters).some((v) => v) && (
-                      <span className="text-gray-400 ml-2">
-                        • Filters set but not applied
-                      </span>
-                    )}
-                </p>
               </div>
+
               <div className="flex items-center gap-3">
                 <span className="text-gray-600 text-sm">Sort by:</span>
-                <select className="border border-gray-300 p-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-transparent">
+                <select className="border border-gray-300 rounded-lg px-4 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-orange-500">
                   <option>Featured</option>
                   <option>Price: Low to High</option>
                   <option>Price: High to Low</option>
-                  <option>Newest</option>
+                  <option>Newest First</option>
                   <option>Best Selling</option>
                 </select>
               </div>
@@ -440,160 +414,110 @@ const AllProductsPage = () => {
             {loading ? (
               <SkeletonLoader />
             ) : error ? (
-              <div className="bg-gradient-to-r from-red-50 to-pink-50 border border-red-100 p-8 text-center rounded">
-                <div className="text-red-500 text-4xl mb-4">⚠️</div>
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">
+              <div className="bg-orange-50 border border-orange-200 rounded-xl p-10 text-center">
+                <div className="text-orange-600 text-5xl mb-4">!</div>
+                <h3 className="text-xl font-semibold text-gray-800 mb-3">
                   {error}
                 </h3>
                 <button
                   onClick={() => fetchProducts(selectedCategory?._id)}
-                  className="mt-4 px-5 py-2 bg-[#800000] hover:bg-[#600000] text-white font-medium hover:shadow-md transition-all"
+                  className="mt-4 px-8 py-3 bg-orange-600 text-white font-medium rounded-lg hover:bg-orange-700 transition shadow-sm"
                 >
                   Try Again
                 </button>
               </div>
             ) : products.length === 0 ? (
-              <div className="bg-white p-12 text-center border border-gray-200">
-                <div className="text-gray-400 text-5xl mb-4">📦</div>
-                <h3 className="text-xl font-semibold text-gray-700 mb-2">
+              <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+                <div className="text-gray-400 text-6xl mb-6">📦</div>
+                <h3 className="text-2xl font-semibold text-gray-800 mb-3">
                   No products found
                 </h3>
-                <p className="text-gray-500 mb-4">
+                <p className="text-gray-600 mb-6 max-w-md mx-auto">
                   {hasActiveFilters
-                    ? "No products match your filters. Try adjusting them."
-                    : "Try adjusting your filters or browse other categories"}
+                    ? "Try adjusting your filters or clear them to see more results."
+                    : "This category might be empty or still loading."}
                 </p>
                 {hasActiveFilters && (
                   <button
                     onClick={clearFilters}
-                    className="mt-2 px-6 py-3 bg-[#800000] hover:bg-[#600000] text-white font-medium hover:shadow-md transition-all inline-flex items-center gap-2"
+                    className="px-8 py-3 bg-orange-600 text-white font-medium rounded-lg hover:bg-orange-700 transition shadow-sm"
                   >
                     Clear Filters
                   </button>
                 )}
               </div>
             ) : (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {products.map((product) => (
                   <div
                     key={product._id}
                     onClick={() => handleProductClick(product._id)}
-                    className="group bg-white shadow-sm hover:shadow-lg border border-gray-100 hover:border-[#800000]/20 transition-all duration-300 cursor-pointer"
+                    className="group bg-white rounded-xl shadow-sm hover:shadow-xl border border-gray-200 hover:border-orange-200/70 transition-all duration-300 overflow-hidden cursor-pointer"
                   >
-                    {/* Product Image */}
-                    <div className="relative overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
+                    {/* Image */}
+                    <div className="relative aspect-[4/3] overflow-hidden bg-gray-50">
                       <img
                         src={
                           product.images?.[0] ||
-                          "https://via.placeholder.com/400x400/cccccc/ffffff?text=Product"
+                          "https://via.placeholder.com/400x300/eeeeee/cccccc?text=Product"
                         }
                         alt={product.name}
-                        className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-500"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                       />
-                      {product.discount && (
+                      {product.discount > 0 && (
                         <div className="absolute top-3 left-3">
-                          <span className="bg-[#800000] text-white text-xs font-bold px-3 py-1">
+                          <span className="bg-orange-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">
                             -{product.discount}%
-                          </span>
-                        </div>
-                      )}
-                      {product.isNew && (
-                        <div className="absolute top-3 right-3">
-                          <span className="bg-blue-600 text-white text-xs font-bold px-3 py-1">
-                            NEW
                           </span>
                         </div>
                       )}
                     </div>
 
-                    {/* Product Info */}
+                    {/* Content */}
                     <div className="p-5">
-                      {/* Category/Brand */}
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-medium text-gray-500">
-                          {product.category || selectedCategory?.name}
+                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                          {product.brand || "Brand"}
                         </span>
                         {product.rating && (
                           <div className="flex items-center gap-1">
-                            <svg
-                              className="w-4 h-4 text-yellow-400"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                            </svg>
-                            <span className="text-sm font-semibold text-gray-700">
+                            <span className="text-yellow-500">★</span>
+                            <span className="text-sm font-medium text-gray-700">
                               {product.rating}
                             </span>
                           </div>
                         )}
                       </div>
 
-                      {/* Product Name */}
-                      <h3 className="font-bold text-gray-900 text-lg mb-2 line-clamp-2 group-hover:text-[#800000] transition-colors h-14">
+                      <h3 className="font-semibold text-gray-900 text-lg mb-2 line-clamp-2 group-hover:text-orange-700 transition-colors min-h-[3rem]">
                         {product.name}
                       </h3>
 
-                      {/* Brand */}
-                      {product.brand && (
-                        <p className="text-sm text-gray-600 mb-3">
-                          Brand:{" "}
-                          <span className="font-semibold">{product.brand}</span>
-                        </p>
-                      )}
-
-                      {/* Price */}
-                      <div className="flex items-center gap-3 mb-4">
+                      <div className="flex items-baseline gap-3 mb-4">
                         <span className="text-2xl font-bold text-gray-900">
-                          ₹{product.price}
+                          ₹{product.price?.toLocaleString() || "—"}
                         </span>
                         {product.originalPrice && (
-                          <span className="text-lg line-through text-gray-400">
-                            ₹{product.originalPrice}
-                          </span>
-                        )}
-                        {product.originalPrice && (
-                          <span className="text-sm font-bold text-green-600">
-                            Save ₹{product.originalPrice - product.price}
-                          </span>
+                          <>
+                            <span className="text-lg text-gray-400 line-through">
+                              ₹{product.originalPrice.toLocaleString()}
+                            </span>
+                            <span className="text-sm font-medium text-green-600">
+                              Save{" "}
+                              {Math.round(
+                                ((product.originalPrice - product.price) /
+                                  product.originalPrice) *
+                                  100
+                              )}
+                              %
+                            </span>
+                          </>
                         )}
                       </div>
 
-                      {/* Action Button */}
-                      <button className="w-full bg-[#800000] hover:bg-[#600000] text-white font-medium py-3 hover:shadow-md transition-all duration-300 group-hover:scale-[1.02]">
+                      <button className="w-full bg-orange-600 hover:bg-orange-700 text-white font-medium py-3 rounded-lg transition-all duration-300 shadow-sm hover:shadow-md group-hover:scale-[1.02]">
                         View Details
                       </button>
-
-                      {/* Quick Info */}
-                      <div className="mt-4 pt-4 border-t border-gray-100">
-                        <div className="grid grid-cols-2 gap-3 text-xs text-gray-500">
-                          <div className="flex items-center gap-1">
-                            <svg
-                              className="w-4 h-4 text-green-500"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                            In Stock
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <svg
-                              className="w-4 h-4 text-blue-500"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
-                              <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1v-1h4.05a2.5 2.5 0 014.9 0H19a1 1 0 001-1v-2a1 1 0 00-.293-.707L18 8.586V6a1 1 0 00-1-1h-1V3a1 1 0 00-1-1H8a1 1 0 00-1 1v2H6a1 1 0 00-1 1v2.586L3.293 11.293A1 1 0 003 12v2z" />
-                            </svg>
-                            Free Shipping
-                          </div>
-                        </div>
-                      </div>
                     </div>
                   </div>
                 ))}

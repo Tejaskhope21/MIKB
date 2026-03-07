@@ -164,13 +164,14 @@ const ItemTypeProducts = () => {
       {[...Array(9)].map((_, index) => (
         <div
           key={index}
-          className="bg-white shadow-sm border border-gray-100 rounded-xl overflow-hidden"
+          className="bg-white shadow-sm border border-gray-200 rounded-xl overflow-hidden"
         >
           <div className="h-64 bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse"></div>
           <div className="p-5 space-y-3">
             <div className="h-5 bg-gray-200 rounded animate-pulse"></div>
             <div className="h-4 bg-gray-100 rounded animate-pulse w-2/3"></div>
             <div className="h-6 bg-gray-200 rounded animate-pulse w-1/4"></div>
+            <div className="h-10 bg-gray-200 rounded animate-pulse mt-4"></div>
           </div>
         </div>
       ))}
@@ -191,12 +192,12 @@ const ItemTypeProducts = () => {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="bg-gradient-to-r from-red-50 to-pink-50 border border-red-100 p-12 text-center rounded-xl">
-            <div className="text-red-500 text-5xl mb-4">⚠️</div>
+          <div className="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-100 p-12 text-center rounded-xl">
+            <div className="text-orange-600 text-5xl mb-4">⚠️</div>
             <h3 className="text-2xl font-bold text-gray-800 mb-4">{error}</h3>
             <Link
               to="/"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-[#800000] hover:bg-[#600000] text-white font-medium rounded-lg hover:shadow-md transition-all"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white font-medium rounded-lg hover:shadow-md transition-all"
             >
               <svg
                 className="w-5 h-5"
@@ -229,7 +230,7 @@ const ItemTypeProducts = () => {
         <nav className="flex items-center text-sm text-gray-600 mb-8 flex-wrap">
           <Link
             to="/"
-            className="hover:text-[#800000] transition-colors inline-flex items-center gap-1"
+            className="hover:text-orange-600 transition-colors inline-flex items-center gap-1"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
               <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
@@ -239,7 +240,7 @@ const ItemTypeProducts = () => {
           <span className="mx-2">›</span>
           <Link
             to={`/category/${ids.categoryId}`}
-            className="hover:text-[#800000] transition-colors capitalize"
+            className="hover:text-orange-600 transition-colors capitalize"
           >
             {categoryData?.name || categorySlug?.replace(/-/g, " ")}
           </Link>
@@ -248,14 +249,14 @@ const ItemTypeProducts = () => {
             {subCategoryData?.name || subCategorySlug?.replace(/-/g, " ")}
           </span>
           <span className="mx-2">›</span>
-          <span className="font-bold text-[#800000] capitalize">
+          <span className="font-bold text-orange-600 capitalize">
             {itemTypeData?.name || itemTypeSlug?.replace(/-/g, " ")}
           </span>
         </nav>
 
         {/* HEADER */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-3 capitalize">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 tracking-tight mb-3 capitalize">
             {itemTypeData?.name || itemTypeSlug?.replace(/-/g, " ")}
           </h1>
           {itemTypeData?.description && (
@@ -268,13 +269,13 @@ const ItemTypeProducts = () => {
         <div className="grid lg:grid-cols-12 gap-8">
           {/* FILTER SIDEBAR */}
           <aside className="lg:col-span-3">
-            <div className="bg-white p-6 shadow-sm border border-gray-100 rounded-xl sticky top-6">
+            <div className="bg-white p-6 shadow-sm border border-gray-200 rounded-xl sticky top-6">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="font-bold text-lg text-gray-900">Filters</h2>
                 {hasActiveFilters && (
                   <button
                     onClick={clearFilters}
-                    className="text-sm font-medium text-[#800000] hover:text-[#600000] transition-colors"
+                    className="text-sm font-medium text-orange-600 hover:text-orange-700 transition-colors"
                   >
                     Clear All
                   </button>
@@ -287,7 +288,7 @@ const ItemTypeProducts = () => {
                   Brand
                 </label>
                 <select
-                  className="w-full border border-gray-300 p-3 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-transparent transition rounded-lg"
+                  className="w-full border border-gray-300 p-3 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition rounded-lg"
                   value={filters.brand}
                   onChange={(e) =>
                     setFilters({ ...filters, brand: e.target.value })
@@ -311,7 +312,7 @@ const ItemTypeProducts = () => {
                   <input
                     type="number"
                     placeholder="Minimum Price"
-                    className="w-full border border-gray-300 p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-transparent transition rounded-lg"
+                    className="w-full border border-gray-300 p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition rounded-lg"
                     value={filters.minPrice}
                     onChange={(e) =>
                       setFilters({ ...filters, minPrice: e.target.value })
@@ -320,7 +321,7 @@ const ItemTypeProducts = () => {
                   <input
                     type="number"
                     placeholder="Maximum Price"
-                    className="w-full border border-gray-300 p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-transparent transition rounded-lg"
+                    className="w-full border border-gray-300 p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition rounded-lg"
                     value={filters.maxPrice}
                     onChange={(e) =>
                       setFilters({ ...filters, maxPrice: e.target.value })
@@ -332,7 +333,7 @@ const ItemTypeProducts = () => {
               {/* APPLY BUTTON */}
               <button
                 onClick={applyFilters}
-                className="w-full bg-[#800000] hover:bg-[#600000] text-white font-medium py-3 rounded-lg hover:shadow-md transition-all duration-300 flex items-center justify-center gap-2"
+                className="w-full bg-orange-600 hover:bg-orange-700 text-white font-medium py-3 rounded-lg hover:shadow-md transition-all duration-300 flex items-center justify-center gap-2"
               >
                 <svg
                   className="w-5 h-5"
@@ -358,12 +359,12 @@ const ItemTypeProducts = () => {
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {activeFilters.brand && (
-                      <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">
+                      <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded">
                         Brand: {activeFilters.brand}
                       </span>
                     )}
                     {(activeFilters.minPrice || activeFilters.maxPrice) && (
-                      <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">
+                      <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded">
                         Price: ₹{activeFilters.minPrice || "0"} - ₹
                         {activeFilters.maxPrice || "∞"}
                       </span>
@@ -382,7 +383,7 @@ const ItemTypeProducts = () => {
                 <h2 className="text-xl font-bold text-gray-900">
                   {products.length} Products Found
                   {hasActiveFilters && (
-                    <span className="ml-2 text-sm font-normal text-[#800000]">
+                    <span className="ml-2 text-sm font-normal text-orange-600">
                       (Filtered Results)
                     </span>
                   )}
@@ -395,7 +396,7 @@ const ItemTypeProducts = () => {
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-gray-600 text-sm">Sort by:</span>
-                <select className="border border-gray-300 p-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#800000] focus:border-transparent rounded-lg">
+                <select className="border border-gray-300 p-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent rounded-lg">
                   <option>Featured</option>
                   <option>Price: Low to High</option>
                   <option>Price: High to Low</option>
@@ -422,7 +423,7 @@ const ItemTypeProducts = () => {
                 {hasActiveFilters && (
                   <button
                     onClick={clearFilters}
-                    className="mt-2 px-6 py-3 bg-[#800000] hover:bg-[#600000] text-white font-medium hover:shadow-md transition-all rounded-lg inline-flex items-center gap-2"
+                    className="mt-2 px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white font-medium hover:shadow-md transition-all rounded-lg inline-flex items-center gap-2"
                   >
                     Clear Filters
                   </button>
@@ -434,7 +435,7 @@ const ItemTypeProducts = () => {
                   <div
                     key={product._id}
                     onClick={() => handleProductClick(product._id)}
-                    className="group bg-white shadow-sm hover:shadow-xl border border-gray-100 hover:border-[#800000]/20 transition-all duration-300 cursor-pointer rounded-xl overflow-hidden"
+                    className="group bg-white shadow-sm hover:shadow-xl border border-gray-200 hover:border-orange-200 transition-all duration-300 cursor-pointer rounded-xl overflow-hidden"
                   >
                     {/* PRODUCT IMAGE */}
                     <div className="relative overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
@@ -448,14 +449,14 @@ const ItemTypeProducts = () => {
                       />
                       {product.discount && (
                         <div className="absolute top-3 left-3">
-                          <span className="bg-[#800000] text-white text-xs font-bold px-3 py-1 rounded">
+                          <span className="bg-orange-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">
                             -{product.discount}% OFF
                           </span>
                         </div>
                       )}
                       {product.isNew && (
                         <div className="absolute top-3 right-3">
-                          <span className="bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded">
+                          <span className="bg-green-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">
                             NEW
                           </span>
                         </div>
@@ -466,7 +467,7 @@ const ItemTypeProducts = () => {
                     <div className="p-5">
                       {/* RATING & CATEGORY */}
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-medium text-gray-500">
+                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
                           {product.category || itemTypeData?.name}
                         </span>
                         {product.rating && (
@@ -486,7 +487,7 @@ const ItemTypeProducts = () => {
                       </div>
 
                       {/* PRODUCT NAME */}
-                      <h3 className="font-bold text-gray-900 text-lg mb-2 line-clamp-2 group-hover:text-[#800000] transition-colors h-14">
+                      <h3 className="font-bold text-gray-900 text-lg mb-2 line-clamp-2 group-hover:text-orange-600 transition-colors min-h-[3.5rem]">
                         {product.name}
                       </h3>
 
@@ -501,22 +502,22 @@ const ItemTypeProducts = () => {
                       {/* PRICE */}
                       <div className="flex items-center gap-3 mb-4">
                         <span className="text-2xl font-bold text-gray-900">
-                          ₹{product.price}
+                          ₹{product.price?.toLocaleString()}
                         </span>
                         {product.originalPrice && (
                           <span className="text-lg line-through text-gray-400">
-                            ₹{product.originalPrice}
-                          </span>
-                        )}
-                        {product.originalPrice && (
-                          <span className="text-sm font-bold text-green-600">
-                            Save ₹{product.originalPrice - product.price}
+                            ₹{product.originalPrice?.toLocaleString()}
                           </span>
                         )}
                       </div>
+                      {product.originalPrice && (
+                        <div className="text-sm font-bold text-green-600 mb-3">
+                          Save ₹{(product.originalPrice - product.price).toLocaleString()}
+                        </div>
+                      )}
 
                       {/* VIEW DETAILS BUTTON */}
-                      <button className="w-full bg-[#800000] hover:bg-[#600000] text-white font-medium py-3 rounded-lg hover:shadow-md transition-all duration-300 group-hover:scale-[1.02]">
+                      <button className="w-full bg-orange-600 hover:bg-orange-700 text-white font-medium py-3 rounded-lg hover:shadow-md transition-all duration-300 group-hover:scale-[1.02]">
                         View Details
                       </button>
 

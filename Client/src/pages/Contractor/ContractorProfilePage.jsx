@@ -188,26 +188,49 @@ const ContractorProfilePage = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading contractor profile...</p>
+  // Skeleton Loader
+  const SkeletonLoader = () => (
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+      <div className="border-b border-gray-200 bg-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="h-5 bg-gray-200 rounded w-16 animate-pulse"></div>
         </div>
       </div>
-    );
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-white border border-gray-200 rounded-xl p-6">
+          <div className="flex flex-col md:flex-row items-start gap-6 mb-8">
+            <div className="w-32 h-32 bg-gray-200 rounded-lg animate-pulse"></div>
+            <div className="flex-1 space-y-3">
+              <div className="h-8 bg-gray-200 rounded w-64 animate-pulse"></div>
+              <div className="h-5 bg-gray-200 rounded w-48 animate-pulse"></div>
+              <div className="h-6 bg-gray-200 rounded w-24 animate-pulse"></div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-24 bg-gray-100 rounded-lg animate-pulse"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (loading) {
+    return <SkeletonLoader />;
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center p-4">
-        <div className="text-center">
-          <p className="text-red-600 mb-4">{error}</p>
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl shadow-lg border border-orange-100 p-8 max-w-md w-full text-center">
+          <div className="text-orange-600 text-5xl mb-4">⚠️</div>
+          <p className="text-gray-800 text-lg mb-4">{error}</p>
           <button
             onClick={() => navigate(-1)}
-            className="text-blue-600 hover:underline"
+            className="text-orange-600 hover:text-orange-700 font-medium inline-flex items-center gap-2"
           >
+            <ArrowLeft className="w-4 h-4" />
             Go Back
           </button>
         </div>
@@ -216,13 +239,13 @@ const ContractorProfilePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       {/* Simple Header */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-gray-200 bg-white shadow-sm">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+            className="flex items-center gap-2 text-gray-600 hover:text-orange-600 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
             <span>Back</span>
@@ -232,11 +255,11 @@ const ContractorProfilePage = () => {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Contractor Info */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8">
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow p-6 mb-8">
           <div className="flex flex-col md:flex-row items-start gap-6 mb-8">
             {/* Profile Image with Upload Option */}
             <div className="relative group">
-              <div className="w-32 h-32 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+              <div className="w-32 h-32 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl overflow-hidden flex items-center justify-center border-2 border-gray-200 group-hover:border-orange-200 transition-colors">
                 {contractor.profileImage ? (
                   <img
                     src={contractor.profileImage}
@@ -253,7 +276,7 @@ const ContractorProfilePage = () => {
                 <>
                   <button
                     onClick={() => setShowImageUpload(true)}
-                    className="absolute -bottom-2 -right-2 bg-blue-600 text-white p-2 rounded-full shadow-lg hover:bg-blue-700 transition-colors"
+                    className="absolute -bottom-2 -right-2 bg-orange-600 text-white p-2 rounded-full shadow-lg hover:bg-orange-700 transition-colors"
                     title="Change profile image"
                   >
                     <Camera className="w-4 h-4" />
@@ -273,13 +296,13 @@ const ContractorProfilePage = () => {
             </div>
 
             <div className="flex-1">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              <h1 className="text-3xl font-bold text-gray-900 tracking-tight mb-2">
                 {contractor.companyName}
               </h1>
               <p className="text-lg text-gray-600 mb-4">{contractor.name}</p>
 
               {/* Contractor Type Badge */}
-              <span className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded text-sm font-medium mb-4">
+              <span className="inline-block bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm font-medium mb-4">
                 {contractor.contractorType}
               </span>
 
@@ -292,7 +315,7 @@ const ContractorProfilePage = () => {
                       <div className="text-sm text-gray-600">Phone Number</div>
                       <button
                         onClick={handleContactClick}
-                        className="text-blue-600 hover:text-blue-800 font-medium text-lg"
+                        className="text-orange-600 hover:text-orange-700 font-medium text-lg"
                       >
                         {formatPhoneNumber(contractor.phone)}
                       </button>
@@ -307,7 +330,7 @@ const ContractorProfilePage = () => {
                       <div className="text-sm text-gray-600">Email</div>
                       <button
                         onClick={handleEmailClick}
-                        className="text-blue-600 hover:text-blue-800 font-medium"
+                        className="text-orange-600 hover:text-orange-700 font-medium"
                       >
                         {contractor.email}
                       </button>
@@ -340,8 +363,8 @@ const ContractorProfilePage = () => {
 
           {/* Stats Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <div className="text-center p-4 bg-gray-50 rounded">
-              <MapPin className="w-5 h-5 text-gray-600 mx-auto mb-2" />
+            <div className="text-center p-4 bg-orange-50 rounded-lg border border-orange-100">
+              <MapPin className="w-5 h-5 text-orange-600 mx-auto mb-2" />
               <div className="text-sm text-gray-600">Service Area</div>
               <div className="font-semibold text-gray-900">
                 {contractor.address?.city && contractor.address?.state
@@ -350,24 +373,24 @@ const ContractorProfilePage = () => {
               </div>
             </div>
 
-            <div className="text-center p-4 bg-gray-50 rounded">
-              <Calendar className="w-5 h-5 text-gray-600 mx-auto mb-2" />
+            <div className="text-center p-4 bg-orange-50 rounded-lg border border-orange-100">
+              <Calendar className="w-5 h-5 text-orange-600 mx-auto mb-2" />
               <div className="text-sm text-gray-600">Experience</div>
               <div className="font-semibold text-gray-900">
                 {contractor.experience || 1}+ Years
               </div>
             </div>
 
-            <div className="text-center p-4 bg-gray-50 rounded">
-              <Users className="w-5 h-5 text-gray-600 mx-auto mb-2" />
+            <div className="text-center p-4 bg-orange-50 rounded-lg border border-orange-100">
+              <Users className="w-5 h-5 text-orange-600 mx-auto mb-2" />
               <div className="text-sm text-gray-600">Team Size</div>
               <div className="font-semibold text-gray-900">
                 {contractor.teamSize || "1-5"}
               </div>
             </div>
 
-            <div className="text-center p-4 bg-gray-50 rounded">
-              <CheckCircle className="w-5 h-5 text-gray-600 mx-auto mb-2" />
+            <div className="text-center p-4 bg-orange-50 rounded-lg border border-orange-100">
+              <CheckCircle className="w-5 h-5 text-orange-600 mx-auto mb-2" />
               <div className="text-sm text-gray-600">Projects Done</div>
               <div className="font-semibold text-gray-900">
                 {contractor.projectsCompleted || 0}
@@ -381,12 +404,12 @@ const ContractorProfilePage = () => {
             {contractor.licenseNumber && (
               <div className="border-t border-gray-200 pt-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <FileText className="w-6 h-6 text-green-600" />
+                  <FileText className="w-6 h-6 text-orange-600" />
                   <h3 className="text-lg font-semibold text-gray-900">
                     License Information
                   </h3>
                 </div>
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
                   <div className="flex justify-between items-center">
                     <div>
                       <div className="text-sm text-gray-600">
@@ -411,7 +434,7 @@ const ContractorProfilePage = () => {
             {contractor.specialties && contractor.specialties.length > 0 && (
               <div className="border-t border-gray-200 pt-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <Award className="w-6 h-6 text-blue-600" />
+                  <Award className="w-6 h-6 text-orange-600" />
                   <h3 className="text-lg font-semibold text-gray-900">
                     Specialties
                   </h3>
@@ -420,7 +443,7 @@ const ContractorProfilePage = () => {
                   {contractor.specialties.map((spec, index) => (
                     <span
                       key={index}
-                      className="bg-blue-50 text-blue-700 border border-blue-200 px-3 py-2 rounded-lg text-sm font-medium"
+                      className="bg-orange-50 text-orange-700 border border-orange-200 px-3 py-2 rounded-lg text-sm font-medium"
                     >
                       {spec}
                     </span>
@@ -433,14 +456,14 @@ const ContractorProfilePage = () => {
             {contractor.portfolio && contractor.portfolio.length > 0 && (
               <div className="border-t border-gray-200 pt-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <Briefcase className="w-6 h-6 text-purple-600" />
+                  <Briefcase className="w-6 h-6 text-orange-600" />
                   <h3 className="text-lg font-semibold text-gray-900">
                     Portfolio ({contractor.portfolio.length} Projects)
                   </h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {contractor.portfolio.slice(0, 3).map((project, index) => (
-                    <div key={index} className="bg-gray-50 rounded-lg p-4">
+                    <div key={index} className="bg-orange-50 rounded-lg p-4 border border-orange-100">
                       <div className="font-medium text-gray-900 mb-2">
                         {project.title}
                       </div>
@@ -455,7 +478,7 @@ const ContractorProfilePage = () => {
                 </div>
                 {contractor.portfolio.length > 3 && (
                   <div className="text-center mt-4">
-                    <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                    <button className="text-orange-600 hover:text-orange-700 text-sm font-medium transition-colors">
                       View all {contractor.portfolio.length} projects →
                     </button>
                   </div>
@@ -470,7 +493,7 @@ const ContractorProfilePage = () => {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {contractor.website && (
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded">
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
                     <Globe className="w-5 h-5 text-gray-500" />
                     <div>
                       <div className="text-sm text-gray-600">Website</div>
@@ -482,7 +505,7 @@ const ContractorProfilePage = () => {
                         }
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800 font-medium"
+                        className="text-orange-600 hover:text-orange-700 font-medium"
                       >
                         {contractor.website.replace(/^https?:\/\//, "")}
                       </a>
@@ -491,7 +514,7 @@ const ContractorProfilePage = () => {
                 )}
 
                 {contractor.gstNumber && (
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded">
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
                     <FileText className="w-5 h-5 text-gray-500" />
                     <div>
                       <div className="text-sm text-gray-600">GST Number</div>
@@ -503,14 +526,14 @@ const ContractorProfilePage = () => {
                 )}
 
                 {contractor.bankDetails && (
-                  <div className="md:col-span-2 p-4 bg-blue-50 border border-blue-200 rounded">
-                    <h4 className="font-semibold text-blue-900 mb-2">
+                  <div className="md:col-span-2 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                    <h4 className="font-semibold text-orange-900 mb-2">
                       Banking Information
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {contractor.bankDetails.accountName && (
                         <div>
-                          <div className="text-xs text-blue-700">
+                          <div className="text-xs text-orange-700">
                             Account Name
                           </div>
                           <div className="font-medium">
@@ -520,7 +543,7 @@ const ContractorProfilePage = () => {
                       )}
                       {contractor.bankDetails.bankName && (
                         <div>
-                          <div className="text-xs text-blue-700">Bank Name</div>
+                          <div className="text-xs text-orange-700">Bank Name</div>
                           <div className="font-medium">
                             {contractor.bankDetails.bankName}
                           </div>
@@ -528,7 +551,7 @@ const ContractorProfilePage = () => {
                       )}
                       {contractor.bankDetails.ifscCode && (
                         <div>
-                          <div className="text-xs text-blue-700">IFSC Code</div>
+                          <div className="text-xs text-orange-700">IFSC Code</div>
                           <div className="font-mono">
                             {contractor.bankDetails.ifscCode}
                           </div>
@@ -536,7 +559,7 @@ const ContractorProfilePage = () => {
                       )}
                       {contractor.bankDetails.upiId && (
                         <div>
-                          <div className="text-xs text-blue-700">UPI ID</div>
+                          <div className="text-xs text-orange-700">UPI ID</div>
                           <div className="font-medium">
                             {contractor.bankDetails.upiId}
                           </div>
@@ -554,7 +577,7 @@ const ContractorProfilePage = () => {
       {/* Image Upload Modal */}
       {showImageUpload && isContractorOwner && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-lg max-w-md w-full">
+          <div className="bg-white rounded-xl shadow-lg max-w-md w-full">
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-lg font-bold text-gray-900">
@@ -569,14 +592,14 @@ const ContractorProfilePage = () => {
                   className="text-gray-400 hover:text-gray-600"
                   disabled={uploadingImage}
                 >
-                  ×
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
               <div className="space-y-4">
                 {/* Image Preview */}
                 <div className="text-center">
-                  <div className="w-48 h-48 mx-auto bg-gray-100 rounded-lg overflow-hidden mb-4">
+                  <div className="w-48 h-48 mx-auto bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl overflow-hidden mb-4 border-2 border-gray-200">
                     {previewImage ? (
                       <img
                         src={previewImage}
@@ -615,7 +638,7 @@ const ContractorProfilePage = () => {
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploadingImage}
-                    className="bg-gray-100 text-gray-700 px-4 py-2 rounded hover:bg-gray-200 transition-colors disabled:opacity-50 text-sm flex items-center gap-2 mx-auto"
+                    className="bg-orange-100 text-orange-700 px-4 py-2 rounded-lg hover:bg-orange-200 transition-colors disabled:opacity-50 text-sm flex items-center gap-2 mx-auto border border-orange-200"
                   >
                     <Upload className="w-4 h-4" />
                     {selectedImage ? "Change Image" : "Select Image"}
@@ -635,7 +658,7 @@ const ContractorProfilePage = () => {
                       setPreviewImage(null);
                     }}
                     disabled={uploadingImage}
-                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors disabled:opacity-50 text-sm"
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 text-sm"
                   >
                     Cancel
                   </button>
@@ -643,7 +666,7 @@ const ContractorProfilePage = () => {
                     type="button"
                     onClick={handleImageUpload}
                     disabled={!selectedImage || uploadingImage}
-                    className="flex-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center justify-center gap-2"
+                    className="flex-1 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center justify-center gap-2"
                   >
                     {uploadingImage ? (
                       <>
