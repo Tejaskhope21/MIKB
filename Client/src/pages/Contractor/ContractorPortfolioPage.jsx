@@ -52,10 +52,10 @@ const ContractorPortfolioPage = () => {
   // FIXED: Use import.meta.env for Vite instead of process.env
   // Get API URL from environment variables or use localhost as fallback
   const API_BASE_URL =
-    import.meta.env.VITE_API_URL || "https://bricks-backend-qyea.onrender.com";
+    import.meta.env.VITE_API_URL || "http://localhost:5000";
 
   // Alternative: You can also hardcode your backend URL directly
-  // const API_BASE_URL = ' https://bricks-backend-qyea.onrender.com';
+  // const API_BASE_URL = ' http://localhost:5000';
 
   const token = localStorage.getItem("token");
 

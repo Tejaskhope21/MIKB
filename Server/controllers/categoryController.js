@@ -9,53 +9,62 @@ import ItemType from '../models/ItemType.model.js';
 
 export const createCategoryTree = async (req, res) => {
   try {
-    const { category, subCategories } = req.body;
 
-    /* 1️⃣ Create Category */
-    const createdCategory = await Category.create({
-      name: category.name,
-      image: category.image,
-      position: category.position
-    });
+    const payload = Array.isArray(req.body) ? req.body : [req.body];
+    const createdData = [];
 
-    const createdSubCategories = [];
+    for (const entry of payload) {
 
-    /* 2️⃣ Create SubCategories */
-    for (const sub of subCategories) {
-      const createdSub = await SubCategory.create({
-        categoryId: createdCategory._id,
-        title: sub.title,
-        position: sub.position
+      const { category, subCategories } = entry;
+
+      const createdCategory = await Category.create({
+        name: category.name,
+        image: category.image,
+        position: category.position
       });
 
-      const createdItems = [];
+      const createdSubCategories = [];
 
-      /* 3️⃣ Create Item Types */
-      if (Array.isArray(sub.items)) {
-        for (const itemName of sub.items) {
-          const item = await ItemType.create({
-            subCategoryId: createdSub._id,
-            name: itemName
-          });
+      for (const sub of subCategories) {
 
-          createdItems.push(item);
+        const createdSub = await SubCategory.create({
+          categoryId: createdCategory._id,
+          title: sub.title,
+          position: sub.position
+        });
+
+        const createdItems = [];
+
+        if (Array.isArray(sub.items)) {
+          for (const itemName of sub.items) {
+
+            const item = await ItemType.create({
+              subCategoryId: createdSub._id,
+              name: itemName
+            });
+
+            createdItems.push(item);
+          }
         }
+
+        createdSubCategories.push({
+          ...createdSub.toObject(),
+          items: createdItems
+        });
       }
 
-      createdSubCategories.push({
-        ...createdSub.toObject(),
-        items: createdItems
+      createdData.push({
+        category: createdCategory,
+        subCategories: createdSubCategories
       });
     }
 
     res.status(201).json({
       success: true,
-      message: 'Category tree created successfully',
-      data: {
-        category: createdCategory,
-        subCategories: createdSubCategories
-      }
+      message: "Category trees created successfully",
+      data: createdData
     });
+
   } catch (error) {
     res.status(500).json({
       success: false,

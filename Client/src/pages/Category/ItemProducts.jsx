@@ -11,7 +11,7 @@ import axios from "axios";
    AXIOS INSTANCE
 ================================ */
 const API = axios.create({
-  baseURL: "https://bricks-backend-qyea.onrender.com/api/v1",
+  baseURL: "http://localhost:5000/api/v1",
 });
 
 /* ===============================

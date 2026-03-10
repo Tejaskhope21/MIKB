@@ -1,142 +1,202 @@
+// src/components/Hero/Hero.jsx
 import React, { useState, useEffect } from "react";
-// import hero1 from"../../../src/assets/images/hero 1.jpg";
-// import hero2 from "../../../src/assets/images/hero 2.jpg";
-import b1 from "/b1.jpg"
-import b2 from "/b2.jpg"
-import b3 from "/b3.jpg"
-import b4 from "/b4.jpg"
-import b5 from "/b5.jpg"
-import b6 from "/b6.png"
+import b2 from "../../assets/Hero/hero1.jpg";
+import b3 from "../../assets/Hero/hero2.jpg";
+import b4 from "../../assets/Hero/hero3.jpg";
+
+const heroSlides = [
+  {
+    imageUrl: b2,
+    title: "Advanced Medical Equipment",
+    subtitle: "Trusted by 500+ Hospitals Across India",
+    badge: "ISO 9001 Certified",
+    cta: "Explore Products",
+  },
+  {
+    imageUrl: b3,
+    title: "Surgical & Diagnostic Solutions",
+    subtitle: "Precision Instruments for Better Patient Outcomes",
+    badge: "24/7 After-Sales Support",
+    cta: "View Catalogue",
+  },
+  {
+    imageUrl: b4,
+    title: "ICU & Critical Care Equipment",
+    subtitle: "Life-Saving Technology Delivered to Your Doorstep",
+    badge: "Pan India Delivery",
+    cta: "Get a Quote",
+  },
+];
+
 function Hero() {
-  const heroSlides = [
-    // {
-    //   imageUrl: b1,
-
-    // },
-    {
-      imageUrl: b2,
-
-    },
-    {
-      imageUrl: b3,
-
-    },
-    {
-      imageUrl: b4,
-
-    },
-    {
-      imageUrl: b5,
-
-    },
-    // {
-    //   imageUrl: b6,
-
-    // },
-  ];
-
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [animating, setAnimating] = useState(false);
 
-  // Automatic slide transition
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
-    }, 5000); // Change slide every 5 seconds
+      triggerSlide((prev) => (prev + 1) % heroSlides.length);
+    }, 5000);
     return () => clearInterval(interval);
-  }, [heroSlides.length]);
+  }, []);
 
-  // Manual slide navigation
-  const goToSlide = (index) => {
-    setCurrentSlide(index);
+  const triggerSlide = (getNext) => {
+    setAnimating(true);
+    setTimeout(() => {
+      setCurrentSlide(getNext);
+      setAnimating(false);
+    }, 350);
   };
 
-  const goToNextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
-  };
+  const handleNext = () => triggerSlide((prev) => (prev + 1) % heroSlides.length);
+  const handlePrev = () => triggerSlide((prev) => (prev - 1 + heroSlides.length) % heroSlides.length);
+  const goToSlide = (index) => triggerSlide(() => index);
 
-  const goToPrevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + heroSlides.length) % heroSlides.length);
-  };
+  const slide = heroSlides[currentSlide];
 
   return (
-    <section className="w-full bg-[#fce4f6] text-black mt-0">
-      {/* Hero Slider Section */}
-      <div className="relative w-full flex items-center justify-end">
-        {/* Background image */}
-        <figure className="w-full relative">
+    <section className="w-full bg-[#f0f4ff]">
+
+      {/* ── Slider ── */}
+      <div className="relative w-full">
+
+        {/* Full image — object-contain so nothing is cropped */}
+        <div className="w-full bg-[#f0f4ff] flex items-center justify-center">
           <img
-            src={heroSlides[currentSlide].imageUrl}
-            alt={`${heroSlides[currentSlide].title} banner`}
-            className="w-full object-contain"
-            loading="lazy"
+            src={slide.imageUrl}
+            alt={slide.title}
+            loading="eager"
+            className={`
+              w-full
+              object-contain object-center
+              max-h-[180px] sm:max-h-[280px] md:max-h-[400px] lg:max-h-[500px] xl:max-h-[580px]
+              transition-opacity duration-400
+              ${animating ? "opacity-0" : "opacity-100"}
+            `}
           />
-          {/* Navigation Buttons */}
-          <button
-            onClick={goToPrevSlide}
-            className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/70 text-purple-700 p-2 rounded-full hover:bg-white transition"
-            aria-label="Previous slide"
-          >
-            &larr;
-          </button>
-          <button
-            onClick={goToNextSlide}
-            className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/70 text-purple-700 p-2 rounded-full hover:bg-white transition"
-            aria-label="Next slide"
-          >
-            &rarr;
-          </button>
-          {/* Navigation Dots */}
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
-            {heroSlides.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => goToSlide(index)}
-                className={`w-3 h-3 rounded-full ${currentSlide === index ? "bg-white" : "bg-white/50"
-                  } hover:bg-white/80 transition`}
-                aria-label={`Go to slide ${index + 1}`}
-              />
-            ))}
-          </div>
-        </figure>
+        </div>
 
-        {/* Text Content */}
-        <div className="absolute right-4 sm:right-8 md:right-12 lg:right-24 text-left text-white space-y-4 max-w-[90%] md:max-w-xl">
-          <h1
-            className="font-bold drop-shadow-md 
-              text-[14px] sm:text-[16px] md:text-[33px] lg:text-[45px] xl:text-[50px]"
-          >
-            {heroSlides[currentSlide].title}
+        {/* Bottom gradient for text */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/15 to-transparent pointer-events-none" />
+
+        {/* ── Text Overlay ── */}
+        <div
+          className={`
+            absolute z-20
+            bottom-5 sm:bottom-7 md:bottom-10 lg:bottom-14
+            left-3 sm:left-7 md:left-12 lg:left-16
+            right-10 sm:right-14
+            transition-all duration-400
+            ${animating ? "opacity-0 translate-y-2" : "opacity-100 translate-y-0"}
+          `}
+        >
+          {/* Badge */}
+          <span className="
+            inline-block mb-1 sm:mb-2
+            px-2 py-0.5 sm:px-3 sm:py-1
+            bg-[#f97316] text-white
+            text-[7px] sm:text-[10px] md:text-xs
+            font-bold uppercase tracking-wider rounded-full shadow
+          ">
+            ✦ {slide.badge}
+          </span>
+
+          {/* Title */}
+          <h1 className="
+            font-extrabold text-white leading-tight drop-shadow-lg
+            text-[12px] sm:text-xl md:text-3xl lg:text-[42px]
+            mb-0.5 sm:mb-1.5
+          ">
+            {slide.title}
           </h1>
-          <p className="font-medium drop-shadow-md text-[13px] sm:text-[14px] md:text-[26px] lg:text-[30px] xl:text-[32px]">
-            {heroSlides[currentSlide].subtitle}
+
+          {/* Subtitle */}
+          <p className="
+            text-white/85 font-medium
+            text-[9px] sm:text-sm md:text-base lg:text-lg
+            mb-2 sm:mb-3 md:mb-4
+            max-w-[220px] sm:max-w-sm md:max-w-lg
+          ">
+            {slide.subtitle}
           </p>
-          {/* <a
+
+          {/* CTA */}
+          <a
             href="/shop"
-            aria-label="Navigate to shop"
-            className="mt-2 bg-white text-purple-700 font-semibold px-6 py-3 text-base sm:text-lg md:text-xl rounded-xl shadow-md hover:bg-pink-100 transition hidden sm:inline-block"
+            className="
+              hidden sm:inline-flex items-center gap-1.5
+              bg-[#f97316] hover:bg-orange-600
+              text-white font-bold
+              px-4 py-2 md:px-6 md:py-2.5
+              text-xs md:text-sm
+              rounded-lg shadow-xl
+              transition-all duration-200 hover:scale-105
+            "
           >
-            {heroSlides[currentSlide].buttonText}
-          </a> */}
+            {slide.cta}
+            <svg className="w-3 h-3 md:w-4 md:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
+        </div>
+
+        {/* ── Prev Arrow ── */}
+        <button
+          onClick={handlePrev}
+          aria-label="Previous slide"
+          className="
+            absolute left-1.5 sm:left-3 top-1/2 -translate-y-1/2 z-30
+            bg-white/75 hover:bg-white text-gray-700
+            w-6 h-6 sm:w-9 sm:h-9 md:w-10 md:h-10
+            rounded-full flex items-center justify-center
+            shadow-md transition-all duration-200
+          "
+        >
+          <svg className="w-2.5 h-2.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+
+        {/* ── Next Arrow ── */}
+        <button
+          onClick={handleNext}
+          aria-label="Next slide"
+          className="
+            absolute right-1.5 sm:right-3 top-1/2 -translate-y-1/2 z-30
+            bg-white/75 hover:bg-white text-gray-700
+            w-6 h-6 sm:w-9 sm:h-9 md:w-10 md:h-10
+            rounded-full flex items-center justify-center
+            shadow-md transition-all duration-200
+          "
+        >
+          <svg className="w-2.5 h-2.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+
+        {/* ── Dots ── */}
+        <div className="absolute bottom-1.5 sm:bottom-2.5 left-1/2 -translate-x-1/2 z-30 flex gap-1.5">
+          {heroSlides.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => goToSlide(index)}
+              aria-label={`Slide ${index + 1}`}
+              className={`
+                rounded-full transition-all duration-300
+                ${currentSlide === index
+                  ? "bg-[#f97316] w-5 h-1.5 sm:w-6 sm:h-2"
+                  : "bg-white/60 hover:bg-white w-1.5 h-1.5 sm:w-2 sm:h-2"
+                }
+              `}
+            />
+          ))}
         </div>
       </div>
 
-      {/* Feature Strip */}
-      <div className="flex flex-wrap justify-center items-center gap-4 md:gap-8 bg-white py-4 px-2 md:px-8 text-gray-700 text-[9px] sm:text-[11px] md:text-[13px] lg:text-[17px] xl:text-[16px] border-y border-gray-200">
-        {/* <div className="flex items-center gap-2">
-          <span role="img" aria-label="Return truck">🚚</span>
-          7 Days Easy Return
-        </div>
-        <span className="hidden sm:inline">|</span>
-        <div className="flex items-center gap-2">
-          <span role="img" aria-label="Cash">💰</span>
-          Cash on Delivery
-        </div>
-        <span className="hidden sm:inline">|</span>
-        <div className="flex items-center gap-2">
-          <span role="img" aria-label="Fire deal">🔥</span>
-          Lowest Prices
-        </div> */}
-      </div>
+
+      <style>{`
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
     </section>
   );
 }

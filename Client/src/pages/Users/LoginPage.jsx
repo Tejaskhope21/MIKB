@@ -16,8 +16,8 @@ import axios from "axios";
 const API_URL =
   import.meta.env.VITE_API_URL ||
   (import.meta.env.MODE === "development"
-    ? "https://bricks-backend-qyea.onrender.com/api"
-    : "https://bricks-backend-qyea.onrender.com/api");
+    ? "http://localhost:5000/api"
+    : "http://localhost:5000/api");
 
 const LoginPage = () => {
   const navigate = useNavigate();

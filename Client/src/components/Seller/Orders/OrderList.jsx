@@ -15,7 +15,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-const API_URL = import.meta.env.VITE_API_URL || "https://bricks-backend-qyea.onrender.com/api/v1";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api/v1";
 
 const OrderList = () => {
   const navigate = useNavigate();

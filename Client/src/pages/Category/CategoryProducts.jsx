@@ -27,7 +27,7 @@ const CategoryProducts = () => {
   const [activeFilters, setActiveFilters] = useState({});
 
   const API = axios.create({
-    baseURL: "https://bricks-backend-qyea.onrender.com/api/v1",
+    baseURL: "http://localhost:5000/api/v1",
   });
 
   // Sync filters → URL

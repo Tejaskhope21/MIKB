@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "https://bricks-backend-qyea.onrender.com/api/v1",
+  baseURL: "http://localhost:5000/api/v1",
 });
 
 const AllProductsPage = () => {

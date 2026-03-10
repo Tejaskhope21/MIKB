@@ -19,7 +19,7 @@ import Icon from "react-native-vector-icons/Ionicons";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const API_URL = "https://bricks-backend-qyea.onrender.com/api";
+const API_URL = "http://localhost:5000/api";
 const { width } = Dimensions.get("window");
 
 export default function RegisterScreen() {

@@ -28,8 +28,8 @@ import axios from "axios";
 const API_URL =
   import.meta.env.VITE_API_URL ||
   (import.meta.env.DEV
-    ? "https://bricks-backend-qyea.onrender.com/api"
-    : "https://bricks-backend-qyea.onrender.com/api");
+    ? "http://localhost:5000/api"
+    : "http://localhost:5000/api");
 
 const RegisterPage = () => {
   const navigate = useNavigate();

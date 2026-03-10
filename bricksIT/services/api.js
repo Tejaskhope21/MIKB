@@ -8,16 +8,16 @@ import { Platform } from "react-native";
 ========================= */
 const getApiBaseUrl = () => {
   if (Platform.OS === "web") {
-    return "https://bricks-backend-qyea.onrender.com/api";
+    return "http://localhost:5000/api";
   }
 
   // For Android/iOS apps
   if (__DEV__) {
-    return "https://bricks-backend-qyea.onrender.com/api";
+    return "http://localhost:5000/api";
   }
 
   // For production builds
-  return "https://bricks-backend-qyea.onrender.com/api";
+  return "http://localhost:5000/api";
 };
 
 const API_BASE_URL = getApiBaseUrl();

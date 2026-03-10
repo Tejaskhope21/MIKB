@@ -17,7 +17,7 @@ const CategorySection = () => {
   const navigate = useNavigate();
 
   const API = axios.create({
-    baseURL: 'https://bricks-backend-qyea.onrender.com/api/v1',
+    baseURL: 'http://localhost:5000/api/v1',
   });
 
   const fetchPublicCategories = async () => {
@@ -147,7 +147,7 @@ const CategorySection = () => {
   const getImageSrc = (category) => {
     if (!category.image) return getPlaceholder(category.name);
     if (category.image.startsWith('http')) return category.image;
-    return `https://bricks-backend-qyea.onrender.com${category.image.startsWith('/') ? '' : '/'}${category.image}`;
+    return `http://localhost:5000${category.image.startsWith('/') ? '' : '/'}${category.image}`;
   };
 
   // ────────────────────────────────────────────────

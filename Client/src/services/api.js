@@ -5,8 +5,8 @@ const API_BASE_URL =
   import.meta.env.VITE_API_URL ||
   window.location.hostname.includes("localhost") ||
   window.location.hostname === "127.0.0.1"
-    ? "https://bricks-backend-qyea.onrender.com/api"
-    : "https://bricks-backend-qyea.onrender.com/api";
+    ? "http://localhost:5000/api"
+    : "http://localhost:5000/api";
 
 // Helper: Safe fetch with timeout, error handling, and clear messages
 const safeFetch = async (url, options = {}) => {

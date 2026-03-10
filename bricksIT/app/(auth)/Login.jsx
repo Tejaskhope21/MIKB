@@ -17,7 +17,7 @@ import axios from "axios";
 import { useRouter } from "expo-router";
 import Icon from "react-native-vector-icons/Ionicons";
 
-const API_URL = "https://bricks-backend-qyea.onrender.com/api";
+const API_URL = "http://localhost:5000/api";
 
 export default function Login() {
   const router = useRouter();

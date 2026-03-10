@@ -30,7 +30,7 @@ import ProductCard from "../../components/Products/ProductCard";
 import { useCart } from "../../context/CartContext";
 
 const { width, height } = Dimensions.get("window");
-const API_BASE_URL = "https://bricks-backend-qyea.onrender.com";
+const API_BASE_URL = "http://localhost:5000";
 
 export default function ProductDetailsScreen() {
   const router = useRouter();

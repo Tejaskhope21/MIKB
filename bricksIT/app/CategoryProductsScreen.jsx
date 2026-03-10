@@ -21,7 +21,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import ProductCard from "../components/Products/ProductCard";
 
 const { width } = Dimensions.get("window");
-const API_BASE_URL = "https://bricks-backend-qyea.onrender.com";
+const API_BASE_URL = "http://localhost:5000";
 
 const CategoryProductsScreen = () => {
   const navigation = useNavigation();

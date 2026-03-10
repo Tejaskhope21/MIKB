@@ -33,7 +33,7 @@ const Sellers = () => {
       setLoading(true);
       // Replace with your actual API endpoint
       const response = await fetch(
-        "https://bricks-backend-qyea.onrender.com/api/admin/sellers",
+        "http://localhost:5000/api/admin/sellers",
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
@@ -60,7 +60,7 @@ const Sellers = () => {
   const handleVerify = async (sellerId) => {
     try {
       await fetch(
-        `https://bricks-backend-qyea.onrender.com/api/admin/sellers/${sellerId}/verify`,
+        `http://localhost:5000/api/admin/sellers/${sellerId}/verify`,
         {
           method: "PUT",
           headers: {
@@ -85,7 +85,7 @@ const Sellers = () => {
   const handleSuspend = async (sellerId) => {
     try {
       await fetch(
-        `https://bricks-backend-qyea.onrender.com/api/admin/sellers/${sellerId}/suspend`,
+        `http://localhost:5000/api/admin/sellers/${sellerId}/suspend`,
         {
           method: "PUT",
           headers: {
@@ -110,7 +110,7 @@ const Sellers = () => {
   const handleActivate = async (sellerId) => {
     try {
       await fetch(
-        `https://bricks-backend-qyea.onrender.com/api/admin/sellers/${sellerId}/activate`,
+        `http://localhost:5000/api/admin/sellers/${sellerId}/activate`,
         {
           method: "PUT",
           headers: {

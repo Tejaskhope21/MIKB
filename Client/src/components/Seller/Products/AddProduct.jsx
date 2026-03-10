@@ -5,8 +5,8 @@ import axios from "axios";
 
 const API_URL =
   window.location.hostname === "localhost"
-    ? "https://bricks-backend-qyea.onrender.com/api/v1"
-    : "https://bricks-backend-qyea.onrender.com/api/v1";
+    ? "http://localhost:5000/api/v1"
+    : "http://localhost:5000/api/v1";
 
 const AddProduct = () => {
   const navigate = useNavigate();

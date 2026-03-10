@@ -12,7 +12,7 @@ import {
 /* ===============================
    API BASE
 ================================ */
-const API = "https://bricks-backend-qyea.onrender.com/api/v1";
+const API = "http://localhost:5000/api/v1";
 
 /* ===============================
    HELPERS

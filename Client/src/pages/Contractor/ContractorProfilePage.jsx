@@ -20,7 +20,7 @@ import {
   Loader2,
 } from "lucide-react";
 
-const API_BASE = "https://bricks-backend-qyea.onrender.com/api/contractor";
+const API_BASE = "http://localhost:5000/api/contractor";
 
 const ContractorProfilePage = () => {
   const { id } = useParams();

@@ -34,7 +34,7 @@ const STORAGE_KEYS = {
 
 const CACHE_DURATION = 30 * 60 * 1000;
 
-const API_BASE = "https://bricks-backend-qyea.onrender.com/api";
+const API_BASE = "http://localhost:5000/api";
 
 const createApiInstance = () => {
   const instance = axios.create({

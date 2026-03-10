@@ -17,8 +17,8 @@ import axios from "axios";
 // Define API URL - use environment variable or fallback
 const API_URL =
   window.location.hostname === "localhost"
-    ? "https://bricks-backend-qyea.onrender.com/api/v1"
-    : "https://bricks-backend-qyea.onrender.com/api/v1";
+    ? "http://localhost:5000/api/v1"
+    : "http://localhost:5000/api/v1";
 
 const ProductList = () => {
   const [products, setProducts] = useState([]);

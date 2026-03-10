@@ -66,7 +66,7 @@
     },
 
     "extra": {
-      "API_URL": "https://bricks-backend-qyea.onrender.com/api",
+      "API_URL": "http://localhost:5000/api",
       "router": {},
       "eas": {
         "projectId": "c46d69de-89df-4864-af05-bfd0266a3570"

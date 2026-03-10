@@ -15,7 +15,7 @@ const CategoryHeader = () => {
     const fetchCategories = async () => {
       try {
         const res = await fetch(
-          "https://bricks-backend-qyea.onrender.com/api/categories/public/categories",
+          "http://localhost:5000/api/categories/public/categories",
           {
             headers: {
               Accept: "application/json",

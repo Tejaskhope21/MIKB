@@ -4,7 +4,7 @@ import { Platform } from "react-native";
 
 const API_URL =
   Platform.OS === "web"
-    ? "https://bricks-backend-qyea.onrender.com/api"
+    ? "http://localhost:5000/api"
     : "http://10.0.2.2:5000/api";
 
 const api = axios.create({

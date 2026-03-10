@@ -114,7 +114,7 @@ const AdminCategories = () => {
       };
 
       const res = await axios.post(
-        "https://bricks-backend-qyea.onrender.com/api/v1/categories/admin/category-tree",
+        "http://localhost:5000/api/v1/categories/admin/category-tree",
         payload,
         {
           headers: {

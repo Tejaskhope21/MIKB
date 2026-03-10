@@ -16,7 +16,7 @@ import {
   Zap,
 } from "lucide-react";
 
-const API_BASE_URL = "https://bricks-backend-qyea.onrender.com";
+const API_BASE_URL = "http://localhost:5000";
 
 const SubcategoryProductsPage = () => {
   const { categoryId, subcategoryId } = useParams();

@@ -22,7 +22,7 @@ import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 
 const { width } = Dimensions.get("window");
-const API_BASE_URL = "https://bricks-backend-qyea.onrender.com";
+const API_BASE_URL = "http://localhost:5000";
 
 export default function AllProductsScreen() {
   const router = useRouter();

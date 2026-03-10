@@ -17,7 +17,7 @@ import { useRoute, useNavigation } from "@react-navigation/native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 
-const API_BASE = "https://bricks-backend-qyea.onrender.com/api/contractor";
+const API_BASE = "http://localhost:5000/api/contractor";
 const { width } = Dimensions.get("window");
 
 // Your company's static contact details
@@ -43,7 +43,7 @@ const getImageUrl = (imagePath) => {
   // If it's a relative path, construct full URL
   // You may need to adjust this based on your backend setup
   if (imagePath.startsWith("/")) {
-    return `https://bricks-backend-qyea.onrender.com${imagePath}`;
+    return `http://localhost:5000${imagePath}`;
   }
 
   // Default fallback

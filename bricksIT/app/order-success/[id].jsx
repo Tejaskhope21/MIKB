@@ -17,7 +17,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const API_BASE_URL = "https://bricks-backend-qyea.onrender.com/api";
+const API_BASE_URL = "http://localhost:5000/api";
 
 export default function OrderSuccessScreen() {
   const router = useRouter();
