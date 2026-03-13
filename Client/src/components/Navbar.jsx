@@ -57,7 +57,7 @@ export default function Navbar({ user, onLogout }) {
   const navigate          = useNavigate();
   const searchRef         = useRef(null);
   const searchInputRef    = useRef(null);
-  const profileWrapRef    = useRef(null); // wraps BOTH button + dropdown
+  const profileWrapRef    = useRef(null);
   const closeTimer        = useRef(null);
 
   /* ── cart count ─────────────────────────────────────────────── */
@@ -109,7 +109,7 @@ export default function Navbar({ user, onLogout }) {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  /* ── profile dropdown: open/close with safe gap ──────────────── */
+  /* ── profile dropdown ────────────────────────────────────────── */
   const openDropdown  = () => { clearTimeout(closeTimer.current); setDropdownOpen(true); };
   const scheduleClose = () => { closeTimer.current = setTimeout(() => setDropdownOpen(false), 120); };
 
@@ -228,7 +228,7 @@ export default function Navbar({ user, onLogout }) {
     /* nav links */
     .hc-links{display:flex;align-items:center;gap:24px;flex-shrink:0;}
     .hc-links a,.hc-links button{
-      color:var(--g600);text-decoration:none;background:none;border:none;
+      color:var(--navy);text-decoration:none;background:none;border:none;
       font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;
       cursor:pointer;padding:2px 0;position:relative;transition:color .18s;
     }
@@ -296,7 +296,7 @@ export default function Navbar({ user, onLogout }) {
     .hc-ac-icon.cat{background:#dbeafe;color:#1d4ed8;}
     .hc-ac-icon.sub{background:#dcfce7;color:#15803d;}
     .hc-ac-icon.typ{background:#ede9fe;color:#7c3aed;}
-    .hc-ac-name{font-size:13.5px;font-weight:500;color:var(--g800);transition:color .12s;}
+    .hc-ac-name{font-size:13.5px;font-weight:500;color:var(--navy);transition:color .12s;}
     .hc-ac-meta{font-size:11px;color:var(--g400);margin-top:2px;}
     .hc-ac-price{margin-left:auto;font-size:13px;font-weight:600;color:var(--teal);white-space:nowrap;}
     .hc-ac-badge{display:inline-block;font-size:10px;background:var(--sky);color:var(--teal);border-radius:4px;padding:2px 5px;}
@@ -321,7 +321,7 @@ export default function Navbar({ user, onLogout }) {
     /* cart */
     .hc-cart{
       position:relative;background:none;border:none;cursor:pointer;
-      color:var(--g600);display:flex;align-items:center;
+      color:var(--navy);display:flex;align-items:center;
       text-decoration:none;transition:color .18s;
     }
     .hc-cart:hover{color:var(--teal);}
@@ -332,12 +332,12 @@ export default function Navbar({ user, onLogout }) {
       border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 3px;
     }
 
-    /* profile wrapper — THE KEY FIX: single hover zone covers button+dropdown */
+    /* profile wrapper */
     .hc-profile-wrap{position:relative;}
     .hc-profile-btn{
       display:flex;align-items:center;gap:8px;
       background:none;border:none;cursor:pointer;
-      color:var(--g700);font-family:'DM Sans',sans-serif;
+      color:var(--navy);font-family:'DM Sans',sans-serif;
       font-size:14px;font-weight:500;transition:color .18s;
       padding:4px 0;
     }
@@ -350,14 +350,13 @@ export default function Navbar({ user, onLogout }) {
       font-weight:700;font-size:13px;flex-shrink:0;
     }
 
-    /* dropdown — sits directly under profile-wrap, no gap */
+    /* dropdown */
     .hc-dd{
       position:absolute;right:0;top:100%;
       background:#fff;border:1.5px solid var(--g200);
       border-radius:12px;
       box-shadow:0 20px 50px rgba(10,37,64,.15);
       width:230px;z-index:300;overflow:hidden;
-      /* NO margin-top — zero gap so mouse can travel straight down */
     }
     .hc-dd-head{
       padding:14px 16px;
@@ -368,7 +367,7 @@ export default function Navbar({ user, onLogout }) {
     .hc-dd-head p:last-child{font-size:11.5px;color:#94a3b8;margin-top:2px;}
     .hc-dd a,.hc-dd button{
       display:flex;align-items:center;padding:10px 16px;
-      font-size:13.5px;color:var(--g700);text-decoration:none;
+      font-size:13.5px;color:var(--navy);text-decoration:none;
       background:none;border:none;width:100%;text-align:left;
       cursor:pointer;font-family:'DM Sans',sans-serif;
       transition:background .12s,color .12s;
@@ -387,7 +386,7 @@ export default function Navbar({ user, onLogout }) {
     .hc-cta:hover{box-shadow:0 6px 20px rgba(8,145,178,.45);transform:translateY(-1px);}
 
     /* hamburger */
-    .hc-ham{background:none;border:none;cursor:pointer;color:var(--g700);display:none;}
+    .hc-ham{background:none;border:none;cursor:pointer;color:var(--navy);display:none;}
 
     /* mobile menu */
     .hc-mob{background:#fff;border-top:2px solid var(--sky);padding:18px 20px 24px;}
@@ -397,7 +396,7 @@ export default function Navbar({ user, onLogout }) {
     }
     .hc-mob-link{
       display:flex;align-items:center;justify-content:space-between;
-      padding:10px 0;color:var(--g700);text-decoration:none;
+      padding:10px 0;color:var(--navy);text-decoration:none;
       font-size:15px;font-weight:500;
       border-bottom:1px solid var(--g100);
       background:none;border-left:none;border-right:none;border-top:none;
@@ -419,7 +418,6 @@ export default function Navbar({ user, onLogout }) {
     @media(max-width:900px){  .hc-search{display:none;} }
     @media(max-width:768px){
       .hc-alert{display:none;}
-      .hc-links.quick{display:none;}
       .hc-cta{display:none!important;}
       .hc-ham{display:flex!important;}
     }
@@ -467,11 +465,10 @@ export default function Navbar({ user, onLogout }) {
               <span className="hc-logo-pill"><CrossIcon /> Medical</span>
             </Link>
 
-            {/* Desktop nav links */}
+            {/* Desktop nav links — Home & Products only */}
             <div className="hc-links desktop">
               <Link to="/">Home</Link>
               <Link to="/products">Products</Link>
-              <Link to="/brands">Brands</Link>
             </div>
 
             {/* Search */}
@@ -609,13 +606,6 @@ export default function Navbar({ user, onLogout }) {
             {/* Right actions */}
             <div className="hc-actions">
 
-              {/* Quick links */}
-              <div className="hc-links quick">
-                <button onClick={() => navigate("/contractors")}>Contractors</button>
-                <button onClick={() => navigate("/seller")}>Seller</button>
-                <Link to="/investors">Investors</Link>
-              </div>
-
               {/* Cart */}
               <Link to="/cart" className="hc-cart">
                 <FiShoppingCart size={22}/>
@@ -625,12 +615,6 @@ export default function Navbar({ user, onLogout }) {
               </Link>
 
               {/* ── Profile dropdown ────────────────────────────── */}
-              {/* 
-                FIX: onMouseEnter/Leave on the WRAPPER div, not split
-                between button and dropdown. The wrapper covers both,
-                so moving from button → dropdown never leaves the zone.
-                A 120ms close timer prevents flicker on fast mouse exits.
-              */}
               <div
                 className="hc-profile-wrap"
                 ref={profileWrapRef}
@@ -668,7 +652,6 @@ export default function Navbar({ user, onLogout }) {
                   </div>
                 )}
               </div>
-              {/* ── end profile dropdown ─────────────────────────── */}
 
               {/* CTA */}
               <button className="hc-cta" onClick={() => navigate("/post-requirement")}>
@@ -741,12 +724,6 @@ export default function Navbar({ user, onLogout }) {
             <div className="hc-mob-label">Navigation</div>
             <Link to="/" className="hc-mob-link" onClick={() => setMenuOpen(false)}>Home</Link>
             <Link to="/products" className="hc-mob-link" onClick={() => setMenuOpen(false)}>Products</Link>
-            <Link to="/brands" className="hc-mob-link" onClick={() => setMenuOpen(false)}>Brands</Link>
-
-            <div className="hc-mob-label">Services</div>
-            <button className="hc-mob-link" onClick={() => { navigate("/contractors"); setMenuOpen(false); }}>Contractors</button>
-            <button className="hc-mob-link" onClick={() => { navigate("/seller"); setMenuOpen(false); }}>Seller</button>
-            <Link to="/investors" className="hc-mob-link" onClick={() => setMenuOpen(false)}>Investors</Link>
 
             <div className="hc-mob-label">Account</div>
             <Link to="/cart" className="hc-mob-link" onClick={() => setMenuOpen(false)}>

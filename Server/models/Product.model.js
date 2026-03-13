@@ -1,5 +1,3 @@
-// models/Product.model.js
-
 import mongoose from 'mongoose';
 
 /* ===============================

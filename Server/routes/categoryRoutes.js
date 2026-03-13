@@ -8,6 +8,7 @@ import {
   getItemTypesForSeller,
   getPublicCategories
 } from '../controllers/categoryController.js';
+import { deleteAllCategories } from '../controllers/categoryController.js';
 
 import { protect, authorize } from '../middleware/auth.middleware.js';
 const router = express.Router();
@@ -19,6 +20,12 @@ router.post('/admin/category-tree',protect,authorize('admin'),createCategoryTree
 
 router.put('/admin/category/:id', protect, authorize('admin'), updateCategory);
 router.delete('/admin/category/:id', protect, authorize('admin'), deleteCategory);
+router.delete(
+  '/admin/delete-all-categories',
+  protect,
+  authorize('admin'),
+  deleteAllCategories
+);
 
 /* ===============================
    SELLER ROUTES

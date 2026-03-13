@@ -25,6 +25,42 @@ export const createProduct = async (req, res) => {
 };
 
 /* =====================================
+   BULK ADD PRODUCTS (SELLER)
+===================================== */
+export const bulkCreateProducts = async (req, res) => {
+  try {
+
+    const products = req.body.products;
+
+    if (!products || products.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Products array required"
+      });
+    }
+
+    const formattedProducts = products.map((product) => ({
+      ...product,
+      sellerId: req.user._id
+    }));
+
+    const createdProducts = await Product.insertMany(formattedProducts);
+
+    res.status(201).json({
+      success: true,
+      message: `${createdProducts.length} products created successfully`,
+      products: createdProducts
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+/* =====================================
    UPDATE PRODUCT (SELLER)
 ===================================== */
 export const updateProduct = async (req, res) => {

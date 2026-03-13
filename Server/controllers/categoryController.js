@@ -220,3 +220,24 @@ export const getPublicCategories = async (req, res) => {
     data: finalData
   });
 };
+
+/* ❌ DELETE ALL CATEGORY DATA */
+export const deleteAllCategories = async (req, res) => {
+  try {
+
+    await Category.deleteMany({});
+    await SubCategory.deleteMany({});
+    await ItemType.deleteMany({});
+
+    res.json({
+      success: true,
+      message: "All categories, subcategories and item types deleted successfully"
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
