@@ -9,6 +9,8 @@ const CategoryHeader = () => {
   const [error, setError] = useState(null);
 
   const menuRef = useRef(null);
+  // Track which category is active for mega dropdown
+  const activeCategory = categories.find((c) => c._id === activeCatId) || null;
 
   // Fetch categories
   useEffect(() => {
@@ -60,13 +62,17 @@ const CategoryHeader = () => {
     };
   }, []);
 
+  /* ── helpers ─────────────────────────────────────────────────── */
+  const toSlug = (str = "") =>
+    str.toLowerCase().trim().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+
+  /* ── states ───────────────────────────────────────────────────── */
   if (error) {
     return (
-      <nav className="bg-white border-b py-5 text-center text-red-600 font-medium">
-        {error}
-        <br />
-        <small className="text-gray-500 text-sm mt-1 block">
-          (check backend is running & network tab)
+      <nav className="bg-white border-b-2 border-cyan-100 py-4 text-center">
+        <p className="text-red-500 font-medium text-sm">{error}</p>
+        <small className="text-slate-400 text-xs mt-1 block">
+          (check backend is running &amp; network tab)
         </small>
       </nav>
     );
@@ -74,11 +80,15 @@ const CategoryHeader = () => {
 
   if (loading) {
     return (
-      <nav className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="h-16 flex items-center justify-center gap-8 md:gap-12 animate-pulse">
-            {[...Array(7)].map((_, i) => (
-              <div key={i} className="h-5 w-20 md:w-28 bg-gray-200 rounded" />
+      <nav className="bg-white border-b-2 border-cyan-100">
+        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="h-12 flex items-center justify-start sm:justify-center gap-6 overflow-hidden animate-pulse">
+            {[90, 130, 110, 150, 120, 100, 140].map((w, i) => (
+              <div
+                key={i}
+                className="h-3 flex-shrink-0 bg-cyan-100 rounded-full"
+                style={{ width: w }}
+              />
             ))}
           </div>
         </div>
@@ -88,126 +98,157 @@ const CategoryHeader = () => {
 
   if (categories.length === 0) {
     return (
-      <nav className="bg-white border-b py-5 text-center text-gray-600">
+      <nav className="bg-white border-b-2 border-cyan-100 py-4 text-center text-slate-400 text-sm">
         No categories available
       </nav>
     );
   }
 
+  /* ── render ───────────────────────────────────────────────────── */
   return (
+    /* KEY FIX: `relative` lives on the <nav>, NOT on each <li>.
+       The mega panel is absolutely positioned inside the nav so it
+       always spans the full nav width regardless of which tab is active. */
     <nav
-      className="bg-white border-b border-gray-200 relative z-50"
+      className="bg-white border-b-2 border-cyan-100 relative z-50 shadow-sm"
       ref={menuRef}
+      onMouseLeave={() => setActiveCatId(null)}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <ul className="flex items-center justify-center gap-6 md:gap-9 lg:gap-11 text-sm md:text-base font-medium text-gray-800">
+      {/* ── Scrollable tab bar ──────────────────────────────────── */}
+      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+        <ul
+          className="flex items-center gap-0 overflow-x-auto scrollbar-hide"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        >
           {categories.map((cat) => {
             if (!cat?._id || !cat?.name) return null;
-
-            const catSlug = cat.name
-              .toLowerCase()
-              .trim()
-              .replace(/\s+/g, "-")
-              .replace(/[^a-z0-9-]/g, "");
+            const isActive = activeCatId === cat._id;
 
             return (
               <li
                 key={cat._id}
-                className="relative group"
+                className="flex-shrink-0"
                 onMouseEnter={() => setActiveCatId(cat._id)}
-                onMouseLeave={() => setActiveCatId(null)}
               >
                 <Link
-                  to={`/category/${catSlug}`}
-                  className="py-4 md:py-5 block px-2 hover:text-[#f97316] transition-colors uppercase tracking-wide whitespace-nowrap"
+                  to={`/category/${toSlug(cat.name)}`}
+                  className={`
+                    flex items-center h-12 px-4 lg:px-5
+                    text-xs font-semibold tracking-widest uppercase
+                    whitespace-nowrap transition-all duration-150
+                    border-b-2 -mb-[2px]
+                    ${isActive
+                      ? "text-cyan-600 border-cyan-500"
+                      : "text-slate-500 border-transparent hover:text-cyan-600 hover:border-cyan-300"
+                    }
+                  `}
                 >
                   {cat.name}
                 </Link>
-
-                {activeCatId === cat._id &&
-                  Array.isArray(cat.subCategories) &&
-                  cat.subCategories.length > 0 && (
-                    <div className="absolute left-1/2 -translate-x-1/2 top-full w-screen max-w-7xl bg-white shadow-2xl border-t border-gray-200">
-                      <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 gap-6 md:gap-8 px-6 md:px-10 py-8">
-                        {cat.subCategories.map((sub) => {
-                          const subName = sub.name || sub.title || "Unnamed";
-                          if (!sub?._id) return null;
-
-                          const subSlug = subName
-                            .toLowerCase()
-                            .trim()
-                            .replace(/\s+/g, "-")
-                            .replace(/[^a-z0-9-]/g, "");
-
-                          return (
-                            <div
-                              key={sub._id}
-                              className="min-w-[140px] space-y-3"
-                            >
-                              <h3 className="font-bold text-gray-900 uppercase text-xs sm:text-sm tracking-wide">
-                                <Link
-                                  to={`/category/${catSlug}/${subSlug}`}
-                                  className="hover:text-[#f97316] transition-colors"
-                                >
-                                  {subName}
-                                </Link>
-                              </h3>
-
-                              {Array.isArray(sub.items) &&
-                              sub.items.length > 0 ? (
-                                <ul className="space-y-1.5 text-sm text-gray-700">
-                                  {sub.items.map((item) => {
-                                    if (!item?._id || !item?.name) return null;
-
-                                    const itemSlug = item.name
-                                      .toLowerCase()
-                                      .trim()
-                                      .replace(/\s+/g, "-")
-                                      .replace(/[^a-z0-9-]/g, "");
-
-                                    return (
-                                      <li key={item._id}>
-                                        <Link
-                                          to={`/category/${catSlug}/${subSlug}/${itemSlug}`}
-                                          className="hover:text-[#f97316] hover:underline transition-colors block py-0.5 text-gray-600"
-                                        >
-                                          {item.name}
-                                        </Link>
-                                      </li>
-                                    );
-                                  })}
-                                </ul>
-                              ) : (
-                                <p className="text-xs text-gray-500 italic">
-                                  No items available
-                                </p>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      <div className="border-t border-gray-100 px-6 md:px-10 py-4 bg-gray-50">
-                        <div className="flex justify-between items-center">
-                          <p className="text-sm text-gray-500">
-                            Showing {cat.subCategories.length} subcategories
-                          </p>
-                          <Link
-                            to={`/category/${catSlug}`}
-                            className="text-sm text-[#f97316] hover:text-orange-700 font-medium flex items-center gap-1 transition-colors"
-                          >
-                            View all in {cat.name}
-                            <span className="ml-1">→</span>
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                  )}
               </li>
             );
           })}
         </ul>
       </div>
+
+      {/* ── Mega dropdown — anchored to nav, NOT to li ──────────── */}
+      {activeCatId &&
+        activeCategory &&
+        Array.isArray(activeCategory.subCategories) &&
+        activeCategory.subCategories.length > 0 && (
+          <div
+            /* Positioned absolutely inside the nav → always starts at
+               the nav's left edge and spans its full width */
+            className="absolute left-0 right-0 top-full z-50
+                       bg-white border-t-2 border-cyan-500
+                       shadow-2xl rounded-b-xl overflow-hidden"
+          >
+            {/* Inner content — max-width centred */}
+            <div className="max-w-screen-xl mx-auto px-6 sm:px-8 lg:px-10">
+              <div
+                className="
+                  grid gap-x-8 gap-y-6 py-8
+                  grid-cols-2 sm:grid-cols-3 md:grid-cols-4
+                  lg:grid-cols-5 xl:grid-cols-6
+                "
+              >
+                {activeCategory.subCategories.map((sub) => {
+                  const subName = sub.name || sub.title || "Unnamed";
+                  if (!sub?._id) return null;
+                  const subSlug = toSlug(subName);
+                  const catSlug = toSlug(activeCategory.name);
+
+                  return (
+                    <div key={sub._id} className="min-w-0">
+                      {/* Subcategory heading */}
+                      <h3 className="font-bold text-cyan-700 uppercase text-xs tracking-wide border-b border-cyan-100 pb-2 mb-3">
+                        <Link
+                          to={`/category/${catSlug}/${subSlug}`}
+                          className="hover:text-cyan-500 transition-colors"
+                        >
+                          {subName}
+                        </Link>
+                      </h3>
+
+                      {/* Items */}
+                      {Array.isArray(sub.items) && sub.items.length > 0 ? (
+                        <ul className="space-y-1.5">
+                          {sub.items.map((item) => {
+                            if (!item?._id || !item?.name) return null;
+                            const itemSlug = toSlug(item.name);
+
+                            return (
+                              <li key={item._id}>
+                                <Link
+                                  to={`/category/${catSlug}/${subSlug}/${itemSlug}`}
+                                  className="
+                                    text-xs text-slate-500 leading-relaxed
+                                    hover:text-cyan-600 hover:underline
+                                    transition-colors block py-0.5
+                                  "
+                                >
+                                  {item.name}
+                                </Link>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      ) : (
+                        <p className="text-xs text-slate-300 italic">
+                          No items available
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-cyan-100 bg-cyan-50 px-6 sm:px-8 lg:px-10 py-3">
+              <div className="max-w-screen-xl mx-auto flex items-center justify-between">
+                <p className="text-xs text-slate-400">
+                  Showing{" "}
+                  <span className="text-cyan-600 font-semibold">
+                    {activeCategory.subCategories.length}
+                  </span>{" "}
+                  subcategories
+                </p>
+                <Link
+                  to={`/category/${toSlug(activeCategory.name)}`}
+                  className="
+                    text-xs font-semibold text-cyan-600
+                    hover:text-cyan-800 flex items-center gap-1
+                    transition-colors
+                  "
+                >
+                  View all in {activeCategory.name}
+                  <span className="ml-0.5">→</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
     </nav>
   );
 };
