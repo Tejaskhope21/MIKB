@@ -155,11 +155,9 @@ const HomePage = () => {
             {/* Static Sections - Show Immediately */}
             <Hero />
             <CategorySection />
-            <BrandsSection />
-
             <div className="space-y-12 py-8">
              <div className="max-w-7xl mx-auto px-4">
-      <HotDeals />
+      {/* <HotDeals /> */}
     </div>
 
              
@@ -169,7 +167,8 @@ const HomePage = () => {
 
               <div className="max-w-7xl mx-auto px-4">
       
-      <TrendingProducts/>    </div>
+      {/* <TrendingProducts/>     */}
+      </div>
             </div>
 
 

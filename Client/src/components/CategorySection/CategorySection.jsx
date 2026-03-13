@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Search, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, RefreshCw, Stethoscope, Activity, HeartPulse, Syringe, Pill, Bone, Microscope, Thermometer } from 'lucide-react';
 
 const CategorySection = () => {
   const [categories, setCategories] = useState([]);
@@ -11,8 +11,10 @@ const CategorySection = () => {
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
   const [activePage, setActivePage] = useState(0);
+  const [shouldCenter, setShouldCenter] = useState(false);
 
   const carouselRef = useRef(null);
+  const categoriesContainerRef = useRef(null);
   const autoSlideRef = useRef(null);
   const navigate = useNavigate();
 
@@ -37,6 +39,77 @@ const CategorySection = () => {
   useEffect(() => {
     fetchPublicCategories();
   }, []);
+
+  // Check if categories should be centered
+  useEffect(() => {
+    const checkIfShouldCenter = () => {
+      if (carouselRef.current && !loading && categories.length > 0) {
+        const container = carouselRef.current;
+        const containerWidth = container.offsetWidth;
+        
+        // Calculate total width of all category items
+        let totalItemsWidth = 0;
+        const items = container.children;
+        
+        // Get the width of each category card including gap
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          const itemWidth = item.offsetWidth;
+          // Add gap (20px between items)
+          const gap = i < items.length - 1 ? 20 : 0;
+          totalItemsWidth += itemWidth + gap;
+        }
+        
+        console.log('Container width:', containerWidth, 'Total items width:', totalItemsWidth);
+        
+        // If total items width is less than container width, center them
+        // Add a small buffer (20px) to avoid edge cases
+        setShouldCenter(totalItemsWidth < containerWidth - 20);
+      }
+    };
+
+    // Run after categories are loaded and rendered
+    if (categories.length > 0) {
+      // Multiple timeouts to ensure DOM is fully rendered
+      setTimeout(checkIfShouldCenter, 100);
+      setTimeout(checkIfShouldCenter, 300);
+      setTimeout(checkIfShouldCenter, 500);
+    }
+
+    // Add resize listener
+    window.addEventListener('resize', checkIfShouldCenter);
+    
+    return () => {
+      window.removeEventListener('resize', checkIfShouldCenter);
+    };
+  }, [categories, loading]);
+
+  // Force center for small number of categories
+  useEffect(() => {
+    // If there are 5 or fewer categories, always center them
+    if (categories.length > 0 && categories.length <= 5) {
+      setShouldCenter(true);
+    }
+  }, [categories]);
+
+  // Category icons mapping for hospital equipment
+  const getCategoryIcon = (categoryName) => {
+    const icons = {
+      'surgical': <Syringe className="w-8 h-8" style={{ color: '#0a2540' }} />,
+      'diagnostic': <Microscope className="w-8 h-8" style={{ color: '#0a2540' }} />,
+      'patient care': <HeartPulse className="w-8 h-8" style={{ color: '#0a2540' }} />,
+      'monitoring': <Activity className="w-8 h-8" style={{ color: '#0a2540' }} />,
+      'sterilization': <Thermometer className="w-8 h-8" style={{ color: '#0a2540' }} />,
+      'orthopedic': <Bone className="w-8 h-8" style={{ color: '#0a2540' }} />,
+      'pharmacy': <Pill className="w-8 h-8" style={{ color: '#0a2540' }} />,
+      'examination': <Stethoscope className="w-8 h-8" style={{ color: '#0a2540' }} />,
+    };
+    
+    const key = Object.keys(icons).find(k => 
+      categoryName?.toLowerCase().includes(k)
+    );
+    return key ? icons[key] : <Stethoscope className="w-8 h-8" style={{ color: '#0a2540' }} />;
+  };
 
   // ────────────────────────────────────────────────
   //   Scroll & Pagination Logic
@@ -114,7 +187,7 @@ const CategorySection = () => {
   // ────────────────────────────────────────────────
   const getPlaceholder = (name = 'Category') => {
     const text = encodeURIComponent(name.substring(0, 18));
-    return `https://placehold.co/400x400/f3f4f6/6b7280?text=${text}`;
+    return `https://placehold.co/400x400/0a2540/FFFFFF?text=${text}`;
   };
 
   const generateSVGFallback = (name) => {
@@ -123,10 +196,10 @@ const CategorySection = () => {
 
     return `data:image/svg+xml;utf8,${encodeURIComponent(`
       <svg width="400" height="400" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
-        <rect width="400" height="400" fill="#f3f4f6"/>
-        <circle cx="200" cy="180" r="90" fill="#d1d5db" opacity="0.4"/>
-        <text x="200" y="210" font-family="system-ui,sans-serif" font-size="140" font-weight="bold" fill="#6b7280" text-anchor="middle" dominant-baseline="middle">${letter}</text>
-        <text x="200" y="290" font-family="system-ui,sans-serif" font-size="28" fill="#9ca3af" text-anchor="middle">${shortName}</text>
+        <rect width="400" height="400" fill="#f0f4f8"/>
+        <circle cx="200" cy="180" r="90" fill="#0a2540" opacity="0.1"/>
+        <text x="200" y="210" font-family="system-ui,sans-serif" font-size="140" font-weight="bold" fill="#0a2540" text-anchor="middle" dominant-baseline="middle">${letter}</text>
+        <text x="200" y="290" font-family="system-ui,sans-serif" font-size="28" fill="#0a2540" text-anchor="middle">${shortName}</text>
       </svg>
     `)}`;
   };
@@ -155,15 +228,22 @@ const CategorySection = () => {
   // ────────────────────────────────────────────────
   if (loading) {
     return (
-      <section className="py-12 md:py-16 bg-gray-50/40">
+      <section className="py-16 md:py-20" style={{ backgroundColor: '#f8fafd' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="h-12 w-80 bg-gray-200 rounded-xl animate-pulse mb-12 mx-auto" />
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3" style={{ color: '#0a2540' }}>
+              Medical Equipment Categories
+            </h2>
+            <p className="max-w-2xl mx-auto" style={{ color: '#0a2540', opacity: 0.7 }}>
+              Discover our comprehensive range of hospital and medical equipment
+            </p>
+          </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5 sm:gap-6">
             {[...Array(12)].map((_, i) => (
-              <div key={i} className="bg-white rounded-2xl shadow-sm overflow-hidden animate-pulse">
-                <div className="aspect-square bg-gray-200" />
+              <div key={i} className="bg-white rounded-2xl shadow-sm overflow-hidden animate-pulse" style={{ borderColor: '#0a2540', borderWidth: '1px', borderStyle: 'solid', opacity: 0.1 }}>
+                <div className="aspect-square" style={{ backgroundColor: '#0a2540', opacity: 0.05 }} />
                 <div className="p-4">
-                  <div className="h-6 bg-gray-200 rounded w-5/6 mx-auto mb-2" />
+                  <div className="h-6 rounded w-5/6 mx-auto mb-2" style={{ backgroundColor: '#0a2540', opacity: 0.1 }} />
                 </div>
               </div>
             ))}
@@ -175,15 +255,16 @@ const CategorySection = () => {
 
   if (error) {
     return (
-      <section className="py-20 bg-gray-50/40">
+      <section className="py-20" style={{ backgroundColor: '#f8fafd' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-12 text-center max-w-lg mx-auto">
-            <div className="text-amber-500 text-6xl mb-6">!</div>
-            <h3 className="text-2xl font-semibold text-gray-800 mb-4">Something went wrong</h3>
-            <p className="text-gray-600 mb-8">{error}</p>
+          <div className="bg-white rounded-3xl shadow-sm p-12 text-center max-w-lg mx-auto" style={{ borderColor: '#0a2540', borderWidth: '1px', borderStyle: 'solid', opacity: 0.2 }}>
+            <div className="text-6xl mb-6" style={{ color: '#0a2540' }}>🏥</div>
+            <h3 className="text-2xl font-semibold mb-4" style={{ color: '#0a2540' }}>Unable to Load Categories</h3>
+            <p className="mb-8" style={{ color: '#0a2540', opacity: 0.7 }}>{error}</p>
             <button
               onClick={fetchPublicCategories}
-              className="inline-flex items-center gap-2 px-8 py-3 bg-orange-600 text-white font-medium rounded-xl hover:bg-orange-700 active:bg-orange-800 transition shadow-sm"
+              className="inline-flex items-center gap-2 px-8 py-3 text-white font-medium rounded-xl hover:opacity-90 transition shadow-sm"
+              style={{ backgroundColor: '#0a2540' }}
             >
               <RefreshCw size={18} />
               Try Again
@@ -195,12 +276,41 @@ const CategorySection = () => {
   }
 
   return (
-    <section className="py-12 md:py-16 bg-gradient-to-b from-gray-50 to-white">
+    <section className="py-16 md:py-20" style={{ backgroundColor: '#f8fafd' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row justify-between items-center mb-10 md:mb-12 gap-5">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 tracking-tight">
-            Explore Categories
+        {/* Header Section */}
+        <div className="text-center mb-12">
+          <span 
+            className="inline-block px-4 py-1.5 rounded-full text-sm font-semibold mb-4"
+            style={{ backgroundColor: '#0a2540', color: 'white', opacity: 0.9 }}
+          >
+            Hospital Equipment
+          </span>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3" style={{ color: '#0a2540' }}>
+            Medical Equipment Categories
           </h2>
+          <p className="max-w-2xl mx-auto" style={{ color: '#0a2540', opacity: 0.7 }}>
+            Browse through our extensive collection of high-quality medical equipment and supplies
+          </p>
+        </div>
+
+        {/* Search Bar */}
+        <div className="max-w-md mx-auto mb-10">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5" style={{ color: '#0a2540' }} />
+            <input
+              type="text"
+              placeholder="Search medical categories..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-opacity-50 focus:border-transparent bg-white/80"
+              style={{ 
+                borderColor: '#0a2540', 
+                color: '#0a2540',
+                '--tw-ring-color': '#0a2540'
+              }}
+            />
+          </div>
         </div>
 
         {filteredCategories.length > 6 && (
@@ -211,9 +321,13 @@ const CategorySection = () => {
                 onClick={() => goToPage(i)}
                 className={`transition-all duration-300 rounded-full ${
                   activePage === i
-                    ? 'bg-orange-600 w-9 h-2.5'
-                    : 'bg-gray-300 hover:bg-gray-400 w-2.5 h-2.5'
+                    ? 'w-9 h-2.5'
+                    : 'w-2.5 h-2.5 hover:opacity-100'
                 }`}
+                style={{ 
+                  backgroundColor: '#0a2540',
+                  opacity: activePage === i ? 1 : 0.3
+                }}
                 aria-label={`Go to page ${i + 1}`}
               />
             ))}
@@ -225,19 +339,22 @@ const CategorySection = () => {
           onMouseEnter={() => autoSlideRef.current && clearInterval(autoSlideRef.current)}
           onMouseLeave={startAutoSlide}
         >
-          {canScrollLeft && (
+          {canScrollLeft && !shouldCenter && (
             <button
               onClick={scrollLeft}
-              className="absolute left-0 top-1/2 -translate-y-1/2 z-20 bg-white/95 hover:bg-white shadow-lg rounded-full p-3.5 opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-x-1/2 hover:scale-110 active:scale-95"
+              className="absolute left-0 top-1/2 -translate-y-1/2 z-20 bg-white/95 hover:bg-white shadow-lg rounded-full p-3.5 opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-x-1/2 hover:scale-110 active:scale-95 border"
+              style={{ borderColor: '#0a2540', borderWidth: '1px' }}
               aria-label="Scroll left"
             >
-              <ChevronLeft className="w-7 h-7 text-gray-700" />
+              <ChevronLeft className="w-7 h-7" style={{ color: '#0a2540' }} />
             </button>
           )}
 
           <div
             ref={carouselRef}
-            className="flex gap-5 md:gap-6 overflow-x-auto scroll-smooth pb-6 snap-x snap-mandatory scrollbar-hide"
+            className={`flex gap-5 md:gap-6 overflow-x-auto scroll-smooth pb-6 snap-x snap-mandatory scrollbar-hide ${
+              shouldCenter ? 'justify-center' : ''
+            }`}
           >
             {filteredCategories.map((category) => (
               <div
@@ -245,18 +362,38 @@ const CategorySection = () => {
                 onClick={() => navigate(`/category/${category._id}`)}
                 className="flex-shrink-0 w-44 sm:w-48 md:w-56 lg:w-60 snap-start cursor-pointer transition-transform duration-300 hover:-translate-y-1.5 active:scale-[0.98]"
               >
-                <div className="bg-white rounded-2xl shadow-md hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-orange-200/60 h-full flex flex-col">
-                  <div className="aspect-square overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 relative">
-                    <img
-                      src={getImageSrc(category)}
-                      alt={category.name}
-                      loading="lazy"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-                      onError={(e) => handleImageError(e, category.name)}
-                    />
+                <div 
+                  className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden h-full flex flex-col group"
+                  style={{ 
+                    borderColor: '#0a2540', 
+                    borderWidth: '1px',
+                    borderStyle: 'solid',
+                    opacity: 0.9
+                  }}
+                >
+                  <div className="aspect-square overflow-hidden relative" style={{ backgroundColor: '#f8fafd' }}>
+                    {category.image ? (
+                      <img
+                        src={getImageSrc(category)}
+                        alt={category.name}
+                        loading="lazy"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                        onError={(e) => handleImageError(e, category.name)}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center">
+                        {getCategoryIcon(category.name)}
+                        <span className="text-4xl font-bold mt-2" style={{ color: '#0a2540' }}>
+                          {category.name.charAt(0)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <div className="p-4 text-center flex-1 flex items-center justify-center">
-                    <h3 className="font-semibold text-gray-800 group-hover:text-orange-600 transition-colors text-base lg:text-lg line-clamp-2">
+                    <h3 
+                      className="font-semibold group-hover:opacity-80 transition-colors text-base lg:text-lg line-clamp-2"
+                      style={{ color: '#0a2540' }}
+                    >
                       {category.name}
                     </h3>
                   </div>
@@ -265,24 +402,44 @@ const CategorySection = () => {
             ))}
           </div>
 
-          {canScrollRight && (
+          {canScrollRight && !shouldCenter && (
             <button
               onClick={scrollRight}
-              className="absolute right-0 top-1/2 -translate-y-1/2 z-20 bg-white/95 hover:bg-white shadow-lg rounded-full p-3.5 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-1/2 hover:scale-110 active:scale-95"
+              className="absolute right-0 top-1/2 -translate-y-1/2 z-20 bg-white/95 hover:bg-white shadow-lg rounded-full p-3.5 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-1/2 hover:scale-110 active:scale-95 border"
+              style={{ borderColor: '#0a2540', borderWidth: '1px' }}
               aria-label="Scroll right"
             >
-              <ChevronRight className="w-7 h-7 text-gray-700" />
+              <ChevronRight className="w-7 h-7" style={{ color: '#0a2540' }} />
             </button>
           )}
         </div>
 
         {filteredCategories.length === 0 && (
-          <div className="text-center py-20">
-            <Search className="w-20 h-20 text-gray-300 mx-auto mb-6" strokeWidth={1.5} />
-            <h3 className="text-2xl font-medium text-gray-700 mb-3">No categories found</h3>
-            <p className="text-gray-500 max-w-md mx-auto">
-              We couldn't find any categories matching your search or the data might still be loading.
+          <div className="text-center py-16">
+            <div 
+              className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6"
+              style={{ backgroundColor: '#0a2540', opacity: 0.1 }}
+            >
+              <Search className="w-12 h-12" style={{ color: '#0a2540' }} strokeWidth={1.5} />
+            </div>
+            <h3 className="text-2xl font-semibold mb-3" style={{ color: '#0a2540' }}>No Categories Found</h3>
+            <p className="max-w-md mx-auto" style={{ color: '#0a2540', opacity: 0.7 }}>
+              We couldn't find any medical categories matching your search. Please try different keywords.
             </p>
+          </div>
+        )}
+
+        {/* View All Button */}
+        {filteredCategories.length > 0 && (
+          <div className="text-center mt-12">
+            <button
+              onClick={() => navigate('/categories')}
+              className="inline-flex items-center gap-2 px-8 py-3 text-white font-medium rounded-xl hover:opacity-90 transition shadow-sm"
+              style={{ backgroundColor: '#0a2540' }}
+            >
+              View All Categories
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
         )}
       </div>

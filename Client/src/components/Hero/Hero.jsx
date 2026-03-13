@@ -1,6 +1,6 @@
 // src/components/Hero/Hero.jsx
 import React, { useState, useEffect } from "react";
-import b2 from "../../assets/Hero/hero1.jpg";
+import b2 from "../../assets/Hero/hero1.png";
 import b3 from "../../assets/Hero/hero2.jpg";
 import b4 from "../../assets/Hero/hero3.jpg";
 
@@ -28,6 +28,14 @@ const heroSlides = [
   },
 ];
 
+const trustItems = [
+  { icon: "🏥", label: "500+ Hospitals Served" },
+  { icon: "🚚", label: "Pan India Delivery" },
+  { icon: "🔬", label: "ISO 13485 Certified" },
+  { icon: "📞", label: "24/7 Support" },
+  { icon: "✅", label: "Genuine Products" },
+];
+
 function Hero() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [animating, setAnimating] = useState(false);
@@ -49,7 +57,7 @@ function Hero() {
 
   const handleNext = () => triggerSlide((prev) => (prev + 1) % heroSlides.length);
   const handlePrev = () => triggerSlide((prev) => (prev - 1 + heroSlides.length) % heroSlides.length);
-  const goToSlide  = (index) => triggerSlide(() => index);
+  const goToSlide = (index) => triggerSlide(() => index);
 
   const slide = heroSlides[currentSlide];
 
@@ -78,12 +86,12 @@ function Hero() {
           />
         </div>
 
-        {/* Gradient overlay — deep navy instead of black */}
+        {/* Gradient overlay - lighter for better text contrast */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              "linear-gradient(to top, rgba(10,37,64,0.78) 0%, rgba(10,37,64,0.18) 50%, transparent 100%)",
+              "linear-gradient(to top, rgba(10,37,64,0.35) 0%, rgba(10,37,64,0.08) 50%, transparent 100%)",
           }}
         />
 
@@ -98,7 +106,7 @@ function Hero() {
             ${animating ? "opacity-0 translate-y-2" : "opacity-100 translate-y-0"}
           `}
         >
-          {/* Badge — teal medical style */}
+          {/* Badge */}
           <span
             className="
               inline-flex items-center gap-1 mb-1 sm:mb-2
@@ -113,26 +121,28 @@ function Hero() {
               backdropFilter: "blur(4px)",
             }}
           >
-            {/* Medical cross */}
             <svg width="8" height="8" viewBox="0 0 10 10" fill="currentColor" style={{ flexShrink: 0 }}>
               <path d="M4 0h2v4h4v2H6v4H4V6H0V4h4z"/>
             </svg>
             {slide.badge}
           </span>
 
-          {/* Title */}
+          {/* Title - Now using #0a2540 */}
           <h1
             className="
-              font-extrabold text-white leading-tight drop-shadow-lg
+              font-extrabold leading-tight drop-shadow-lg
               text-[12px] sm:text-xl md:text-3xl lg:text-[42px]
               mb-0.5 sm:mb-1.5
             "
-            style={{ fontFamily: "'DM Sans', sans-serif" }}
+            style={{ 
+              fontFamily: "'DM Sans', sans-serif",
+              color: "#0a2540"
+            }}
           >
             {slide.title}
           </h1>
 
-          {/* Subtitle */}
+          {/* Subtitle - Now using #0a2540 with opacity */}
           <p
             className="
               font-medium
@@ -140,12 +150,14 @@ function Hero() {
               mb-2 sm:mb-3 md:mb-4
               max-w-[220px] sm:max-w-sm md:max-w-lg
             "
-            style={{ color: "rgba(224, 247, 250, 0.9)" }}
+            style={{ 
+              color: "rgba(10, 37, 64, 0.85)"
+            }}
           >
             {slide.subtitle}
           </p>
 
-          {/* CTA — teal gradient */}
+          {/* CTA - Updated button styling */}
           <a
             href="/shop"
             className="
@@ -157,11 +169,17 @@ function Hero() {
               transition-all duration-200 hover:scale-105
             "
             style={{
-              background: "linear-gradient(135deg, #0891b2, #0369a1)",
-              boxShadow: "0 4px 18px rgba(8,145,178,0.45)",
+              background: "linear-gradient(135deg, #0891b2, #0a2540)",
+              boxShadow: "0 4px 18px rgba(10,37,64,0.3)",
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 6px 24px rgba(8,145,178,0.6)")}
-            onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "0 4px 18px rgba(8,145,178,0.45)")}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "linear-gradient(135deg, #0ea5c7, #1e3a5f)";
+              e.currentTarget.style.boxShadow = "0 6px 24px rgba(10,37,64,0.4)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "linear-gradient(135deg, #0891b2, #0a2540)";
+              e.currentTarget.style.boxShadow = "0 4px 18px rgba(10,37,64,0.3)";
+            }}
           >
             {slide.cta}
             <svg className="w-3 h-3 md:w-4 md:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -182,16 +200,16 @@ function Hero() {
           "
           style={{
             background: "rgba(255,255,255,0.85)",
-            color: "#0891b2",
-            border: "1.5px solid rgba(8,145,178,0.2)",
+            color: "#0a2540",
+            border: "1.5px solid rgba(10,37,64,0.2)",
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = "#fff";
-            e.currentTarget.style.borderColor = "#0891b2";
+            e.currentTarget.style.borderColor = "#0a2540";
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = "rgba(255,255,255,0.85)";
-            e.currentTarget.style.borderColor = "rgba(8,145,178,0.2)";
+            e.currentTarget.style.borderColor = "rgba(10,37,64,0.2)";
           }}
         >
           <svg className="w-2.5 h-2.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -211,16 +229,16 @@ function Hero() {
           "
           style={{
             background: "rgba(255,255,255,0.85)",
-            color: "#0891b2",
-            border: "1.5px solid rgba(8,145,178,0.2)",
+            color: "#0a2540",
+            border: "1.5px solid rgba(10,37,64,0.2)",
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = "#fff";
-            e.currentTarget.style.borderColor = "#0891b2";
+            e.currentTarget.style.borderColor = "#0a2540";
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = "rgba(255,255,255,0.85)";
-            e.currentTarget.style.borderColor = "rgba(8,145,178,0.2)";
+            e.currentTarget.style.borderColor = "rgba(10,37,64,0.2)";
           }}
         >
           <svg className="w-2.5 h-2.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -239,69 +257,72 @@ function Hero() {
               style={{
                 background:
                   currentSlide === index
-                    ? "#0891b2"
+                    ? "#0a2540"
                     : "rgba(255,255,255,0.55)",
                 width:
                   currentSlide === index
                     ? window.innerWidth < 640 ? 20 : 24
                     : window.innerWidth < 640 ? 6 : 8,
                 height: window.innerWidth < 640 ? 6 : 8,
-                border: currentSlide === index ? "none" : "1px solid rgba(255,255,255,0.3)",
+                border: currentSlide === index ? "none" : "1px solid rgba(10,37,64,0.3)",
               }}
             />
           ))}
         </div>
       </div>
 
-      {/* ── Trust bar below slider ── */}
+      {/* ── Trust bar ── */}
       <div
         style={{
           background: "#fff",
           borderTop: "2px solid #e0f7fa",
           borderBottom: "2px solid #e0f7fa",
           padding: "10px 24px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: "clamp(16px, 4vw, 48px)",
-          flexWrap: "wrap",
         }}
       >
-        {[
-          { icon: "🏥", label: "500+ Hospitals Served" },
-          { icon: "🚚", label: "Pan India Delivery" },
-          { icon: "🔬", label: "ISO 13485 Certified" },
-          { icon: "📞", label: "24/7 Support" },
-          { icon: "✅", label: "Genuine Products" },
-        ].map((item, i) => (
-          <div
-            key={i}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 7,
-              fontSize: "clamp(10px, 1.5vw, 13px)",
-              fontFamily: "'DM Sans', sans-serif",
-              fontWeight: 600,
-              color: "#475569",
-              whiteSpace: "nowrap",
-            }}
-          >
-            <span style={{ fontSize: "clamp(13px, 2vw, 17px)" }}>{item.icon}</span>
-            {item.label}
-            {i < 4 && (
-              <span
-                style={{
-                  width: 1,
-                  height: 14,
-                  background: "#e0f7fa",
-                  marginLeft: "clamp(8px, 2vw, 24px)",
-                  display: "inline-block",
-                }}
-              />
-            )}
-          </div>
-        ))}
+        {/* Inner wrapper */}
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "clamp(12px, 3vw, 40px)",
+            maxWidth: "100%",
+            margin: "0 auto",
+          }}
+        >
+          {trustItems.map((item, i) => (
+            <div
+              key={i}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 7,
+                fontSize: "clamp(10px, 1.5vw, 13px)",
+                fontFamily: "'DM Sans', sans-serif",
+                fontWeight: 600,
+                color: "#0a2540",
+                whiteSpace: "nowrap",
+              }}
+            >
+              <span style={{ fontSize: "clamp(13px, 2vw, 17px)" }}>{item.icon}</span>
+              {item.label}
+              {i < trustItems.length - 1 && (
+                <span
+                  style={{
+                    width: 1,
+                    height: 14,
+                    background: "#c7eef4",
+                    marginLeft: "clamp(6px, 1.5vw, 20px)",
+                    display: "inline-block",
+                    flexShrink: 0,
+                  }}
+                />
+              )}
+            </div>
+          ))}
+        </div>
       </div>
 
       <style>{`
