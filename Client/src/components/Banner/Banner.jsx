@@ -164,19 +164,19 @@ function Banner() {
         />
       </div>
 
-      {/* Slide content */}
+      {/* Slide content - Reduced height to match hero section */}
       <div
         className="relative z-10 w-full flex items-center"
-        style={{ minHeight: "clamp(260px, 44vw, 520px)" }}
+        style={{ minHeight: "clamp(280px, 42vh, 480px)" }}
       >
-        <div className="w-full max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 py-10 sm:py-14 flex flex-col lg:flex-row items-center gap-6 lg:gap-0">
+        <div className="w-full max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 py-8 sm:py-12 flex flex-col lg:flex-row items-center gap-5 lg:gap-0">
 
           {/* Left: Text content */}
           <div className="flex-1 text-left">
 
             {/* Tagline */}
             <div
-              className="inline-flex items-center gap-2 mb-3 sm:mb-4 px-3 py-1 rounded-full border text-xs font-medium"
+              className="inline-flex items-center gap-2 mb-2 sm:mb-3 px-3 py-1 rounded-full border text-xs font-medium"
               style={{
                 borderColor: `${banner.accent}40`,
                 color: banner.accent,
@@ -194,7 +194,7 @@ function Banner() {
 
             {/* Category */}
             <p
-              className="text-white/60 text-xs sm:text-sm font-medium uppercase tracking-wider mb-1"
+              className="text-white/60 text-xs font-medium uppercase tracking-wider mb-1"
               style={{ ...fadeIn, animationDelay: "0.15s" }}
             >
               {banner.category}
@@ -202,10 +202,10 @@ function Banner() {
 
             {/* Title */}
             <h2
-              className="text-white font-bold leading-tight mb-3 sm:mb-4"
+              className="text-white font-bold leading-tight mb-2 sm:mb-3"
               style={{
-                fontSize: "clamp(1.8rem, 5vw, 3.5rem)",
-                maxWidth: "800px",
+                fontSize: "clamp(1.5rem, 4vw, 2.5rem)",
+                maxWidth: "700px",
                 ...fadeIn,
                 animationDelay: "0.2s"
               }}
@@ -215,31 +215,31 @@ function Banner() {
 
             {/* Subtitle */}
             <p
-              className="text-white/70 mb-5 sm:mb-7 max-w-lg text-sm sm:text-base"
+              className="text-white/70 mb-4 sm:mb-5 max-w-lg text-sm sm:text-base"
               style={{ ...fadeIn, animationDelay: "0.25s" }}
             >
               {banner.subtitle}
             </p>
 
             {/* Stats */}
-            <div className="flex flex-wrap items-center gap-4 sm:gap-6 mb-6 sm:mb-8" style={{ ...fadeIn, animationDelay: "0.3s" }}>
+            <div className="flex flex-wrap items-center gap-4 sm:gap-5 mb-5 sm:mb-6" style={{ ...fadeIn, animationDelay: "0.3s" }}>
               {[banner.stat1, banner.stat2].map((s, i) => (
                 <div key={i}>
                   <div
-                    className="font-bold text-xl sm:text-2xl"
+                    className="font-bold text-lg sm:text-xl"
                     style={{ color: banner.accent }}
                   >
                     {s.value}
                   </div>
-                  <div className="text-white/40 text-xs uppercase tracking-wider">
+                  <div className="text-white/40 text-[10px] uppercase tracking-wider">
                     {s.label}
                   </div>
                 </div>
               ))}
-              <div className="w-px h-8 bg-white/20" />
+              <div className="w-px h-6 bg-white/20" />
               <div>
-                <div className="text-white/40 text-xs">Trusted by</div>
-                <div className="text-white/80 text-xs font-semibold">
+                <div className="text-white/40 text-[10px]">Trusted by</div>
+                <div className="text-white/80 text-[11px] font-semibold">
                   {banner.category.includes("Hospital") ? "500+ Hospitals" : 
                    banner.category.includes("Office") ? "1000+ Companies" : 
                    "300+ Schools"}
@@ -251,11 +251,11 @@ function Banner() {
             <div style={{ ...fadeIn, animationDelay: "0.35s" }}>
               <Link to={banner.link}>
                 <button
-                  className="inline-flex items-center gap-2 px-6 sm:px-8 py-2.5 sm:py-3 rounded-lg text-white font-medium transition-all hover:opacity-90 active:scale-95"
+                  className="inline-flex items-center gap-2 px-5 sm:px-6 py-2 sm:py-2.5 rounded-lg text-white font-medium transition-all hover:opacity-90 active:scale-95 text-sm"
                   style={{ backgroundColor: banner.accent }}
                 >
                   {banner.buttonText}
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <path d="M5 12h14M12 5l7 7-7 7"/>
                   </svg>
                 </button>
@@ -265,7 +265,7 @@ function Banner() {
 
           {/* Right: Furniture Icon */}
           <div
-            className="flex-shrink-0 w-40 h-40 sm:w-48 sm:h-48 md:w-56 md:h-56 text-white/80"
+            className="flex-shrink-0 w-32 h-32 sm:w-40 sm:h-40 md:w-44 md:h-44 text-white/80"
             style={{ 
               color: banner.accent,
               ...fadeIn,
@@ -277,8 +277,8 @@ function Banner() {
         </div>
       </div>
 
-      {/* Bottom controls */}
-      <div className="relative z-20 flex items-center justify-between px-6 sm:px-10 lg:px-16 pb-5 gap-4">
+      {/* Bottom controls - Reduced spacing */}
+      <div className="relative z-20 flex items-center justify-between px-6 sm:px-10 lg:px-16 pb-4 gap-4">
 
         {/* Progress indicators */}
         <div className="flex items-center gap-2">
@@ -289,8 +289,8 @@ function Banner() {
               aria-label={`Slide ${i + 1}`}
               className="rounded-full overflow-hidden relative transition-all duration-300"
               style={{
-                width: i === current ? "2rem" : "0.4rem",
-                height: "0.4rem",
+                width: i === current ? "1.8rem" : "0.35rem",
+                height: "0.35rem",
                 backgroundColor: i === current ? `${banner.accent}30` : "rgba(255,255,255,0.2)",
               }}
             >
@@ -316,20 +316,20 @@ function Banner() {
           <button
             onClick={goPrev}
             aria-label="Previous"
-            className="w-8 h-8 rounded-lg flex items-center justify-center border text-white/60 hover:text-white transition-colors"
+            className="w-7 h-7 rounded-lg flex items-center justify-center border text-white/60 hover:text-white transition-colors"
             style={{ borderColor: `${banner.accent}40` }}
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M15 18l-6-6 6-6"/>
             </svg>
           </button>
           <button
             onClick={goNext}
             aria-label="Next"
-            className="w-8 h-8 rounded-lg flex items-center justify-center border text-white/60 hover:text-white transition-colors"
+            className="w-7 h-7 rounded-lg flex items-center justify-center border text-white/60 hover:text-white transition-colors"
             style={{ borderColor: `${banner.accent}40` }}
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M9 18l6-6-6-6"/>
             </svg>
           </button>

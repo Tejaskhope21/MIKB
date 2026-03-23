@@ -4,66 +4,43 @@ import { Link } from "react-router-dom";
 const SLIDES = [
   {
     id: 1,
-    eyebrow: "Premium Construction Materials",
-    title: "Build Stronger,",
-    titleAccent: "Build Smarter",
+    eyebrow: "Hospital & Medical Furniture",
+    title: "Comfort & Care,",
+    titleAccent: "Engineered for Healing",
     description:
-      "Source cement, steel, plumbing & electrical from 200+ verified brands — delivered right to your site.",
-    cta: { label: "Shop Now", to: "/products" },
-    ghost: { label: "Browse Categories", to: "/products" },
-    stats: [
-      { value: "50K+", label: "Products" },
-      { value: "200+", label: "Brands" },
-      { value: "Pan India", label: "Delivery" },
-    ],
+      "Premium hospital beds, examination tables, medical cabinets, and patient chairs designed for healthcare environments.",
+    cta: { label: "Explore Hospital", to: "/products" },
+    ghost: { label: "View Catalog", to: "/products" },
     accent: "#f97316",
     geoLine: "#0f3060",
     geoFill: "#0d2d55",
   },
   {
     id: 2,
-    eyebrow: "Steel & Reinforcement",
-    title: "The Foundation",
-    titleAccent: "Of Every Project",
+    eyebrow: "Office Furniture",
+    title: "Work Smarter,",
+    titleAccent: "Work in Comfort",
     description:
-      "TMT bars, structural steel, wire mesh & more. Competitive pricing, BIS certified quality, 48-hour dispatch.",
-    cta: { label: "View Steel Products", to: "/products" },
-    ghost: { label: "Get a Quote", to: "/post-requirement" },
-    stats: [
-      { value: "800+", label: "Steel SKUs" },
-      { value: "BIS", label: "Certified" },
-      { value: "48hr", label: "Dispatch" },
-    ],
+      "Ergonomic chairs, height-adjustable desks, modular workstations, and executive furniture for modern offices.",
+    cta: { label: "Shop Office", to: "/products" },
+    ghost: { label: "Get Quote", to: "/post-requirement" },
     accent: "#fb923c",
     geoLine: "#0e2e58",
     geoFill: "#0c2b50",
   },
   {
     id: 3,
-    eyebrow: "Electrical & Plumbing",
-    title: "Every Wire.",
-    titleAccent: "Every Pipe.",
+    eyebrow: "School Furniture",
+    title: "Create Better",
+    titleAccent: "Learning Spaces",
     description:
-      "Complete electrical & plumbing solutions from trusted brands. Single-source procurement for contractors.",
-    cta: { label: "Explore Range", to: "/products" },
-    ghost: { label: "For Contractors", to: "/contractors" },
-    stats: [
-      { value: "1,200+", label: "Items" },
-      { value: "₹49", label: "Starting" },
-      { value: "GST", label: "Invoice" },
-    ],
+      "Durable desks, ergonomic chairs, smart classrooms, library furniture, and cafeteria solutions for schools.",
+    cta: { label: "Browse School", to: "/products" },
+    ghost: { label: "For Institutions", to: "/contractors" },
     accent: "#fdba74",
     geoLine: "#0f3262",
     geoFill: "#0e2f5a",
   },
-];
-
-const TRUST = [
-  "50,000+ Products",
-  "200+ Verified Brands",
-  "Pan India Delivery",
-  "GST Invoice",
-  "24/7 Support",
 ];
 
 const BG = "#0a2540";
@@ -166,7 +143,7 @@ function SlideBg({ slide }) {
   );
 }
 
-// ── Main Hero ──────────────────────────────────────────────────────────────────
+// ── Main Hero ──
 export default function Hero() {
   const [current, setCurrent] = useState(0);
   const [exiting, setExiting] = useState(false);
@@ -217,7 +194,7 @@ export default function Hero() {
         {/* ── Slider ── */}
         <div
           className="relative overflow-hidden"
-          style={{ height: "clamp(300px, 50vw, 580px)", background: BG }}
+          style={{ background: BG }}
         >
           {/* Geometric background */}
           <div key={`bg-${current}`} className="absolute inset-0 hero-bg-in">
@@ -226,13 +203,13 @@ export default function Hero() {
 
           {/* Bottom fade */}
           <div
-            className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none z-10"
+            className="absolute bottom-0 left-0 right-0 h-16 pointer-events-none z-10"
             style={{ background: `linear-gradient(to top, ${BG}, transparent)` }}
           />
 
           {/* ── Content ── */}
           <div
-            className="absolute inset-0 z-20 flex items-center"
+            className="relative z-20 py-12 md:py-16 lg:py-20"
             style={{
               transition: "opacity 0.36s ease, transform 0.36s ease",
               opacity:   exiting ? 0 : 1,
@@ -243,8 +220,8 @@ export default function Hero() {
               <div style={{ maxWidth: 560 }}>
 
                 {/* Eyebrow */}
-                <div className="flex items-center gap-3 mb-3 sm:mb-5">
-                  <span className="block h-px w-8 flex-shrink-0" style={{ background: slide.accent }}/>
+                <div className="flex items-center gap-3 mb-2 sm:mb-3">
+                  <span className="block h-px w-6 flex-shrink-0" style={{ background: slide.accent }}/>
                   <span
                     className="text-xs sm:text-sm font-semibold uppercase tracking-widest"
                     style={{ color: slide.accent }}
@@ -255,12 +232,12 @@ export default function Hero() {
 
                 {/* Heading */}
                 <h1
-                  className="font-extrabold leading-tight mb-3 sm:mb-5"
+                  className="font-extrabold leading-tight mb-2 sm:mb-3"
                   style={{
                     color: "#ffffff",
-                    fontSize: "clamp(1.8rem, 4.6vw, 4rem)",
+                    fontSize: "clamp(1.5rem, 4vw, 3rem)",
                     letterSpacing: "-0.015em",
-                    lineHeight: 1.07,
+                    lineHeight: 1.1,
                   }}
                 >
                   {slide.title}
@@ -270,17 +247,17 @@ export default function Hero() {
 
                 {/* Description */}
                 <p
-                  className="text-sm sm:text-base leading-relaxed mb-6 sm:mb-8"
+                  className="text-sm sm:text-base leading-relaxed mb-4 sm:mb-5"
                   style={{ color: "rgba(255,255,255,0.55)", maxWidth: 430 }}
                 >
                   {slide.description}
                 </p>
 
                 {/* CTA buttons */}
-                <div className="flex flex-wrap gap-3 mb-8 sm:mb-10">
+                <div className="flex flex-wrap gap-3">
                   <Link
                     to={slide.cta.to}
-                    className="inline-flex items-center gap-2 font-semibold text-sm px-6 py-3 rounded-lg transition-all duration-200 hover:opacity-90 hover:scale-105 active:scale-95"
+                    className="inline-flex items-center gap-2 font-semibold text-sm px-5 py-2.5 rounded-lg transition-all duration-200 hover:opacity-90 hover:scale-105 active:scale-95"
                     style={{ background: slide.accent, color: "#0a2540" }}
                   >
                     {slide.cta.label}
@@ -291,7 +268,7 @@ export default function Hero() {
 
                   <Link
                     to={slide.ghost.to}
-                    className="inline-flex items-center gap-2 font-medium text-sm px-6 py-3 rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
+                    className="inline-flex items-center gap-2 font-medium text-sm px-5 py-2.5 rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
                     style={{
                       color: "rgba(255,255,255,0.75)",
                       background: "rgba(255,255,255,0.06)",
@@ -301,23 +278,6 @@ export default function Hero() {
                     {slide.ghost.label}
                   </Link>
                 </div>
-
-                {/* Stats */}
-                <div className="flex gap-6 sm:gap-10">
-                  {slide.stats.map((s, i) => (
-                    <div key={i}>
-                      <div className="font-bold text-xl sm:text-2xl" style={{ color: slide.accent }}>
-                        {s.value}
-                      </div>
-                      <div
-                        className="text-xs font-medium mt-0.5 uppercase tracking-wider"
-                        style={{ color: "rgba(255,255,255,0.35)" }}
-                      >
-                        {s.label}
-                      </div>
-                    </div>
-                  ))}
-                </div>
               </div>
             </div>
           </div>
@@ -325,12 +285,12 @@ export default function Hero() {
           {/* ── Slide counter (desktop top-right) ── */}
           <div className="hidden sm:flex absolute top-5 right-6 z-30 items-center gap-3">
             <span
-              className="font-bold text-3xl tabular-nums"
+              className="font-bold text-2xl tabular-nums"
               style={{ color: slide.accent, lineHeight: 1 }}
             >
               0{current + 1}
             </span>
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-1">
               {SLIDES.map((_, i) => (
                 <button
                   key={i}
@@ -338,8 +298,8 @@ export default function Hero() {
                   aria-label={`Go to slide ${i + 1}`}
                   className="rounded-sm transition-all duration-300"
                   style={{
-                    width:  i === current ? 28 : 16,
-                    height: 2.5,
+                    width:  i === current ? 24 : 14,
+                    height: 2,
                     background: i === current ? slide.accent : "rgba(255,255,255,0.18)",
                   }}
                 />
@@ -359,7 +319,7 @@ export default function Hero() {
               key={d}
               onClick={fn}
               className={`absolute ${pos} top-1/2 -translate-y-1/2 z-30
-                w-10 h-10 rounded-full flex items-center justify-center
+                w-8 h-8 rounded-full flex items-center justify-center
                 transition-all duration-200 hover:scale-110 active:scale-95`}
               style={{
                 background: "rgba(255,255,255,0.07)",
@@ -374,7 +334,7 @@ export default function Hero() {
           ))}
 
           {/* ── Mobile dots ── */}
-          <div className="sm:hidden absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex gap-2">
+          <div className="sm:hidden absolute bottom-3 left-1/2 -translate-x-1/2 z-30 flex gap-2">
             {SLIDES.map((_, i) => (
               <button
                 key={i}
@@ -382,8 +342,8 @@ export default function Hero() {
                 aria-label={`Slide ${i + 1}`}
                 className="rounded-full transition-all duration-300"
                 style={{
-                  width:  i === current ? 22 : 7,
-                  height: 7,
+                  width:  i === current ? 18 : 6,
+                  height: 6,
                   background: i === current ? slide.accent : "rgba(255,255,255,0.22)",
                 }}
               />
@@ -393,7 +353,7 @@ export default function Hero() {
           {/* ── Progress bar ── */}
           {!paused && (
             <div
-              className="absolute bottom-0 left-0 right-0 h-[3px] z-30"
+              className="absolute bottom-0 left-0 right-0 h-[2px] z-30"
               style={{ background: "rgba(255,255,255,0.06)" }}
             >
               <div
@@ -408,42 +368,6 @@ export default function Hero() {
           )}
         </div>
 
-        {/* ── Trust Bar ── */}
-        <div
-          className="w-full"
-          style={{
-            background: "#071d33",
-            borderTop:    "1px solid rgba(255,255,255,0.07)",
-            borderBottom: "1px solid rgba(255,255,255,0.07)",
-          }}
-        >
-          <div className="max-w-7xl mx-auto px-4">
-            <div className="flex items-center justify-center flex-wrap">
-              {TRUST.map((item, i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-2.5 px-5 sm:px-8 py-3.5 group"
-                  style={{
-                    borderRight: i < TRUST.length - 1
-                      ? "1px solid rgba(255,255,255,0.07)"
-                      : "none",
-                  }}
-                >
-                  <span
-                    className="w-1.5 h-1.5 rounded-full flex-shrink-0 transition-transform duration-300 group-hover:scale-150"
-                    style={{ background: slide.accent }}
-                  />
-                  <span
-                    className="text-xs sm:text-sm font-medium whitespace-nowrap transition-colors duration-200 group-hover:text-white"
-                    style={{ color: "rgba(255,255,255,0.45)" }}
-                  >
-                    {item}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
       </section>
     </>
   );

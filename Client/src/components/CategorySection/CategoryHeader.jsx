@@ -67,26 +67,78 @@ const CategoryHeader = () => {
   const toSlug = (str = "") =>
     str.toLowerCase().trim().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
 
-  // ── States ────────────────────────────────────────────────────────────
+  // ── Error State ──────────────────────────────────────────────────────────
   if (error) return (
-    <nav style={{ background:"#fff", borderBottom:"2px solid #e2e8f0", padding:"12px 20px", textAlign:"center", color:"#dc2626", fontSize:13 }}>
+    <nav style={{ 
+      background: "#fff", 
+      borderBottom: "2px solid #e2e8f0", 
+      padding: "12px 20px", 
+      textAlign: "center", 
+      color: "#dc2626", 
+      fontSize: 13 
+    }}>
       {error}
     </nav>
   );
 
+  // ── Loading State ─────────────────────────────────────────────────────────
   if (loading) return (
-    <nav style={{ background:"#fff", borderBottom:"2px solid #e2e8f0" }}>
-      <div style={{ maxWidth:1400, margin:"0 auto", padding:"0 20px", height:48, display:"flex", alignItems:"center", gap:24, overflow:"hidden" }}>
-        {[90,130,110,150,120,100,140].map((w,i) => (
-          <div key={i} style={{ width:w, height:10, background:"#e2e8f0", borderRadius:5, flexShrink:0, animation:"pulse 1.5s ease-in-out infinite", animationDelay:`${i*0.1}s` }}/>
+    <nav style={{ background: "#fff", borderBottom: "2px solid #e2e8f0" }}>
+      <div style={{ 
+        maxWidth: 1400, 
+        margin: "0 auto", 
+        padding: "0 20px", 
+        height: 48, 
+        display: "flex", 
+        alignItems: "center", 
+        justifyContent: "center",
+        gap: 24
+      }}>
+        {[90, 130, 110, 150, 120, 100, 140].map((w, i) => (
+          <div 
+            key={i} 
+            style={{ 
+              width: w, 
+              height: 10, 
+              background: "#e2e8f0", 
+              borderRadius: 5, 
+              flexShrink: 0, 
+              animation: "pulse 1.5s ease-in-out infinite", 
+              animationDelay: `${i * 0.1}s` 
+            }}
+          />
         ))}
       </div>
     </nav>
   );
 
+  // ── Empty State (No Categories) ─────────────────────────────────────────
   if (!categories.length) return (
-    <nav style={{ background:"#fff", borderBottom:"2px solid #e2e8f0", padding:"12px 20px", textAlign:"center", color:"#94a3b8", fontSize:13 }}>
-      No categories available
+    <nav style={{ 
+      background: "#fff", 
+      borderBottom: "2px solid #e2e8f0"
+    }}>
+      <div style={{
+        maxWidth: 1400,
+        margin: "0 auto",
+        padding: "0 20px",
+        height: 48,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center"
+      }}>
+        <p style={{
+          color: "#94a3b8",
+          fontSize: 13,
+          margin: 0,
+          display: "flex",
+          alignItems: "center",
+          gap: 8
+        }}>
+          <span style={{ fontSize: 16 }}>📦</span>
+          No categories available
+        </p>
+      </div>
     </nav>
   );
 
@@ -95,7 +147,10 @@ const CategoryHeader = () => {
   return (
     <>
       <style>{`
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+        @keyframes pulse { 
+          0%, 100% { opacity: 1; } 
+          50% { opacity: 0.4; } 
+        }
 
         /* nav strip */
         .ch-nav {
@@ -120,6 +175,11 @@ const CategoryHeader = () => {
           -ms-overflow-style: none;
         }
         .ch-strip::-webkit-scrollbar { display: none; }
+
+        /* Center content when few items */
+        .ch-strip-center {
+          justify-content: center;
+        }
 
         /* category tab */
         .ch-tab {
@@ -220,6 +280,21 @@ const CategoryHeader = () => {
           transition: opacity .15s;
         }
         .ch-view-all:hover { opacity: 0.7; }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+          .ch-tab {
+            padding: 0 12px;
+            font-size: 11px;
+          }
+          .ch-mega-inner {
+            padding: 20px 16px;
+          }
+          .ch-mega-grid {
+            gap: 20px 24px;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+          }
+        }
       `}</style>
 
       <nav
@@ -227,7 +302,7 @@ const CategoryHeader = () => {
         className={`ch-nav${activeCatId ? " has-dropdown" : ""}`}
       >
         {/* ── Category strip ── */}
-        <div className="ch-strip">
+        <div className={`ch-strip ${categories.length <= 5 ? 'ch-strip-center' : ''}`}>
           {categories.map((cat) => {
             if (!cat?._id || !cat?.name) return null;
             const isActive = activeCatId === cat._id;
@@ -273,7 +348,7 @@ const CategoryHeader = () => {
                         {subName}
                       </Link>
                       {Array.isArray(sub.items) && sub.items.length > 0 ? (
-                        <ul style={{ listStyle:"none", margin:0, padding:0 }}>
+                        <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
                           {sub.items.map((item) => {
                             if (!item?._id || !item?.name) return null;
                             return (
@@ -290,7 +365,15 @@ const CategoryHeader = () => {
                           })}
                         </ul>
                       ) : (
-                        <p style={{ fontSize:11, color:"#94a3b8", fontStyle:"italic", margin:0 }}>No items</p>
+                        <p style={{ 
+                          fontSize: 11, 
+                          color: "#94a3b8", 
+                          fontStyle: "italic", 
+                          margin: 0,
+                          padding: "4px 0"
+                        }}>
+                          No items available
+                        </p>
                       )}
                     </div>
                   );
@@ -300,7 +383,7 @@ const CategoryHeader = () => {
 
             <div className="ch-mega-footer">
               <div className="ch-mega-footer-inner">
-                <span style={{ fontSize:12, color:"#94a3b8" }}>
+                <span style={{ fontSize: 12, color: "#94a3b8" }}>
                   {activeCategory.subCategories.length} subcategories in{" "}
                   <strong style={{ color: NAVY }}>{activeCategory.name}</strong>
                 </span>
