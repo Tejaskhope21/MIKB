@@ -27,7 +27,7 @@ function Footer() {
       <div className="bg-white py-12 border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h3 className="text-3xl md:text-4xl font-bold text-center mb-10 text-gray-900">
-            Why Choose InfraKarts?
+            Why Choose MIKB?
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
@@ -127,7 +127,7 @@ function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
           {/* Logo & Description */}
           <div className="lg:col-span-1">
-            <img src={logo} alt="InfraKarts" className="h-16 md:h-20 mb-5 lg:h-24" />
+            <img src={logo} alt="MIKB" className="h-16 md:h-20 mb-5 lg:h-24" />
             <p className="text-gray-400 text-sm leading-relaxed mb-6">
               Your trusted marketplace for premium construction materials and building solutions.
             </p>
@@ -149,7 +149,7 @@ function Footer() {
             <h3 className="font-semibold text-orange-500 mb-5 text-lg">Contact Us</h3>
             <div className="space-y-3 text-sm text-gray-400">
               <p>Nagpur, Maharashtra, India</p>
-              <p>support@infrakarts.com</p>
+              <p>support@MIKB.com</p>
               <p>+91 12345 67890</p>
             </div>
           </div>
@@ -168,7 +168,7 @@ function Footer() {
 
         {/* Bottom Bar */}
         <div className="mt-12 pt-8 border-t border-gray-800 text-center text-sm text-gray-500">
-          <p>© {new Date().getFullYear()} InfraKarts. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} MIKB. All rights reserved.</p>
           <p className="mt-2 text-gray-600">
             Making construction easier, faster and more reliable.
           </p>

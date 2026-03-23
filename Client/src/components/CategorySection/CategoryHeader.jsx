@@ -1,245 +1,287 @@
-// src/components/CategoryHeader.jsx
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 
+const NAVY = "#0a2540";
+
 const CategoryHeader = () => {
-  const [categories, setCategories] = useState([]);
-  const [activeCatId, setActiveCatId] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [shouldCenter, setShouldCenter] = useState(false);
+  const [categories,   setCategories]   = useState([]);
+  const [activeCatId,  setActiveCatId]  = useState(null);
+  const [loading,      setLoading]      = useState(true);
+  const [error,        setError]        = useState(null);
 
-  const menuRef = useRef(null);
-  const categoriesContainerRef = useRef(null);
-  // Track which category is active for mega dropdown
-  const activeCategory = categories.find((c) => c._id === activeCatId) || null;
+  const navRef     = useRef(null);
+  const closeTimer = useRef(null);
 
-  // Fetch categories
+  // ── Fetch ────────────────────────────────────────────────────────────────
   useEffect(() => {
-    const fetchCategories = async () => {
+    const load = async () => {
       try {
-        const res = await fetch(
+        const res  = await fetch(
           "http://localhost:5000/api/categories/public/categories",
-          {
-            headers: {
-              Accept: "application/json",
-            },
-          },
+          { headers: { Accept: "application/json" } }
         );
-
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status} - ${res.statusText}`);
-        }
-
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
-
-        if (!json.success) {
-          throw new Error(json.message || "API response was not successful");
-        }
-
-        const data = Array.isArray(json.data) ? json.data : [];
-        setCategories(data);
+        if (!json.success) throw new Error(json.message || "API error");
+        setCategories(Array.isArray(json.data) ? json.data : []);
       } catch (err) {
-        console.error("Failed to load categories:", err);
-        setError("Failed to load navigation menu. Please try again later.");
+        console.error("Categories:", err);
+        setError("Failed to load navigation. Please refresh.");
       } finally {
         setLoading(false);
       }
     };
-
-    fetchCategories();
+    load();
   }, []);
 
-  // Check if categories should be centered
+  // ── Close on outside click ────────────────────────────────────────────
   useEffect(() => {
-    const checkIfShouldCenter = () => {
-      if (categoriesContainerRef.current) {
-        const container = categoriesContainerRef.current;
-        const containerWidth = container.offsetWidth;
-        
-        // Calculate total width of all category items
-        let totalItemsWidth = 0;
-        const items = container.children;
-        
-        for (let i = 0; i < items.length; i++) {
-          totalItemsWidth += items[i].offsetWidth;
-        }
-        
-        // If total items width is less than container width, center them
-        setShouldCenter(totalItemsWidth < containerWidth);
-      }
-    };
-
-    // Run after categories are loaded and rendered
-    if (categories.length > 0) {
-      // Small timeout to ensure DOM is fully rendered
-      setTimeout(checkIfShouldCenter, 100);
-    }
-
-    // Add resize listener
-    window.addEventListener('resize', checkIfShouldCenter);
-    
-    return () => {
-      window.removeEventListener('resize', checkIfShouldCenter);
-    };
-  }, [categories]);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
+    const h = (e) => {
+      if (navRef.current && !navRef.current.contains(e.target)) {
         setActiveCatId(null);
       }
     };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
   }, []);
 
-  /* ── helpers ─────────────────────────────────────────────────── */
+  // ── Hover helpers (delayed close prevents gap flicker) ────────────────
+  const openCat = useCallback((id) => {
+    clearTimeout(closeTimer.current);
+    setActiveCatId(id);
+  }, []);
+
+  const scheduleCatClose = useCallback(() => {
+    closeTimer.current = setTimeout(() => setActiveCatId(null), 120);
+  }, []);
+
+  const cancelCatClose = useCallback(() => {
+    clearTimeout(closeTimer.current);
+  }, []);
+
+  const closeNow = () => {
+    clearTimeout(closeTimer.current);
+    setActiveCatId(null);
+  };
+
   const toSlug = (str = "") =>
     str.toLowerCase().trim().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
 
-  /* ── states ───────────────────────────────────────────────────── */
-  if (error) {
-    return (
-      <nav className="bg-white border-b-2 border-cyan-100 py-4 text-center">
-        <p className="text-black font-medium text-sm">{error}</p>
-        <small className="text-black text-xs mt-1 block">
-          (check backend is running &amp; network tab)
-        </small>
-      </nav>
-    );
-  }
+  // ── States ────────────────────────────────────────────────────────────
+  if (error) return (
+    <nav style={{ background:"#fff", borderBottom:"2px solid #e2e8f0", padding:"12px 20px", textAlign:"center", color:"#dc2626", fontSize:13 }}>
+      {error}
+    </nav>
+  );
 
-  if (loading) {
-    return (
-      <nav className="bg-white border-b-2 border-cyan-100">
-        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="h-12 flex items-center justify-center gap-6 overflow-hidden animate-pulse">
-            {[90, 130, 110, 150, 120, 100, 140].map((w, i) => (
-              <div
-                key={i}
-                className="h-3 flex-shrink-0 bg-cyan-100 rounded-full"
-                style={{ width: w }}
-              />
-            ))}
-          </div>
-        </div>
-      </nav>
-    );
-  }
+  if (loading) return (
+    <nav style={{ background:"#fff", borderBottom:"2px solid #e2e8f0" }}>
+      <div style={{ maxWidth:1400, margin:"0 auto", padding:"0 20px", height:48, display:"flex", alignItems:"center", gap:24, overflow:"hidden" }}>
+        {[90,130,110,150,120,100,140].map((w,i) => (
+          <div key={i} style={{ width:w, height:10, background:"#e2e8f0", borderRadius:5, flexShrink:0, animation:"pulse 1.5s ease-in-out infinite", animationDelay:`${i*0.1}s` }}/>
+        ))}
+      </div>
+    </nav>
+  );
 
-  if (categories.length === 0) {
-    return (
-      <nav className="bg-white border-b-2 border-cyan-100 py-4 text-center text-black text-sm">
-        No categories available
-      </nav>
-    );
-  }
+  if (!categories.length) return (
+    <nav style={{ background:"#fff", borderBottom:"2px solid #e2e8f0", padding:"12px 20px", textAlign:"center", color:"#94a3b8", fontSize:13 }}>
+      No categories available
+    </nav>
+  );
 
-  /* ── render ───────────────────────────────────────────────────── */
+  const activeCategory = categories.find((c) => c._id === activeCatId) || null;
+
   return (
-    <nav
-      className="bg-white border-b-2 border-cyan-100 relative z-50 shadow-sm"
-      ref={menuRef}
-      onMouseLeave={() => setActiveCatId(null)}
-    >
-      {/* ── Scrollable tab bar ──────────────────────────────────── */}
-      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
-        <ul
-          ref={categoriesContainerRef}
-          className={`flex items-center gap-0 overflow-x-auto scrollbar-hide ${
-            shouldCenter ? 'justify-center' : 'justify-start'
-          }`}
-          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-        >
+    <>
+      <style>{`
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+        /* nav strip */
+        .ch-nav {
+          background: #fff;
+          border-bottom: 2px solid #e2e8f0;
+          position: relative;
+          z-index: 200;
+        }
+        .ch-nav.has-dropdown {
+          border-bottom-color: ${NAVY};
+        }
+
+        /* scrollable strip */
+        .ch-strip {
+          max-width: 1400px;
+          margin: 0 auto;
+          padding: 0 20px;
+          display: flex;
+          align-items: center;
+          overflow-x: auto;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .ch-strip::-webkit-scrollbar { display: none; }
+
+        /* category tab */
+        .ch-tab {
+          display: flex;
+          align-items: center;
+          height: 48px;
+          padding: 0 16px;
+          font-size: 12px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.07em;
+          white-space: nowrap;
+          text-decoration: none;
+          color: #475569;
+          border-bottom: 2px solid transparent;
+          margin-bottom: -2px;
+          transition: color .15s, border-color .15s;
+          flex-shrink: 0;
+        }
+        .ch-tab:hover {
+          color: ${NAVY};
+          border-bottom-color: #cbd5e1;
+        }
+        .ch-tab.active {
+          color: ${NAVY};
+          font-weight: 700;
+          border-bottom-color: ${NAVY};
+        }
+
+        /* mega dropdown */
+        .ch-mega {
+          position: absolute;
+          left: 0; right: 0;
+          top: 100%;
+          background: #fff;
+          border-top: 2px solid ${NAVY};
+          border-bottom: 1px solid #e2e8f0;
+          box-shadow: 0 16px 48px rgba(10,37,64,.14);
+          z-index: 199;
+        }
+        .ch-mega-inner {
+          max-width: 1400px;
+          margin: 0 auto;
+          padding: 28px 24px;
+        }
+        .ch-mega-grid {
+          display: grid;
+          gap: 24px 32px;
+          grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        }
+        .ch-sub-title {
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          color: ${NAVY};
+          padding-bottom: 8px;
+          margin-bottom: 8px;
+          border-bottom: 1px solid #e2e8f0;
+          text-decoration: none;
+          display: block;
+          transition: opacity .15s;
+        }
+        .ch-sub-title:hover { opacity: 0.7; }
+        .ch-item-link {
+          display: block;
+          font-size: 12.5px;
+          color: #475569;
+          text-decoration: none;
+          padding: 3px 0;
+          line-height: 1.5;
+          transition: color .12s, padding-left .12s;
+        }
+        .ch-item-link:hover {
+          color: ${NAVY};
+          padding-left: 4px;
+        }
+        .ch-mega-footer {
+          border-top: 1px solid #f1f5f9;
+          background: #f8fafc;
+          padding: 10px 24px;
+        }
+        .ch-mega-footer-inner {
+          max-width: 1400px;
+          margin: 0 auto;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .ch-view-all {
+          font-size: 13px;
+          font-weight: 600;
+          color: ${NAVY};
+          text-decoration: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          transition: opacity .15s;
+        }
+        .ch-view-all:hover { opacity: 0.7; }
+      `}</style>
+
+      <nav
+        ref={navRef}
+        className={`ch-nav${activeCatId ? " has-dropdown" : ""}`}
+      >
+        {/* ── Category strip ── */}
+        <div className="ch-strip">
           {categories.map((cat) => {
             if (!cat?._id || !cat?.name) return null;
             const isActive = activeCatId === cat._id;
-
             return (
-              <li
+              <Link
                 key={cat._id}
-                className="flex-shrink-0"
-                onMouseEnter={() => setActiveCatId(cat._id)}
+                to={`/category/${toSlug(cat.name)}`}
+                className={`ch-tab${isActive ? " active" : ""}`}
+                onMouseEnter={() => openCat(cat._id)}
+                onMouseLeave={scheduleCatClose}
+                onClick={closeNow}
               >
-                <Link
-                  to={`/category/${toSlug(cat.name)}`}
-                  className={`
-                    flex items-center h-12 px-4 lg:px-5
-                    text-xs font-semibold tracking-widest uppercase
-                    whitespace-nowrap transition-all duration-150
-                    border-b-2 -mb-[2px]
-                    ${isActive
-                      ? "text-black border-cyan-500 font-bold"
-                      : "text-black border-transparent hover:text-black hover:border-cyan-300"
-                    }
-                  `}
-                >
-                  {cat.name}
-                </Link>
-              </li>
+                {cat.name}
+              </Link>
             );
           })}
-        </ul>
-      </div>
+        </div>
 
-      {/* ── Mega dropdown — anchored to nav, NOT to li ──────────── */}
-      {activeCatId &&
-        activeCategory &&
-        Array.isArray(activeCategory.subCategories) &&
-        activeCategory.subCategories.length > 0 && (
+        {/* ── Mega dropdown ── */}
+        {activeCatId && activeCategory &&
+         Array.isArray(activeCategory.subCategories) &&
+         activeCategory.subCategories.length > 0 && (
           <div
-            className="absolute left-0 right-0 top-full z-50
-                       bg-white border-t-2 border-cyan-500
-                       shadow-2xl rounded-b-xl overflow-hidden"
+            className="ch-mega"
+            onMouseEnter={cancelCatClose}
+            onMouseLeave={scheduleCatClose}
           >
-            {/* Inner content — max-width centred */}
-            <div className="max-w-screen-xl mx-auto px-6 sm:px-8 lg:px-10">
-              <div
-                className="
-                  grid gap-x-8 gap-y-6 py-8
-                  grid-cols-2 sm:grid-cols-3 md:grid-cols-4
-                  lg:grid-cols-5 xl:grid-cols-6
-                "
-              >
+            <div className="ch-mega-inner">
+              <div className="ch-mega-grid">
                 {activeCategory.subCategories.map((sub) => {
-                  const subName = sub.name || sub.title || "Unnamed";
                   if (!sub?._id) return null;
-                  const subSlug = toSlug(subName);
+                  const subName = sub.name || sub.title || "Unnamed";
                   const catSlug = toSlug(activeCategory.name);
+                  const subSlug = toSlug(subName);
 
                   return (
-                    <div key={sub._id} className="min-w-0">
-                      {/* Subcategory heading - BLACK text */}
-                      <h3 className="font-bold text-black uppercase text-xs tracking-wide border-b border-cyan-100 pb-2 mb-3">
-                        <Link
-                          to={`/category/${catSlug}/${subSlug}`}
-                          className="hover:text-cyan-600 transition-colors"
-                        >
-                          {subName}
-                        </Link>
-                      </h3>
-
-                      {/* Items - BLACK text */}
+                    <div key={sub._id}>
+                      <Link
+                        to={`/category/${catSlug}/${subSlug}`}
+                        className="ch-sub-title"
+                        onClick={closeNow}
+                      >
+                        {subName}
+                      </Link>
                       {Array.isArray(sub.items) && sub.items.length > 0 ? (
-                        <ul className="space-y-1.5">
+                        <ul style={{ listStyle:"none", margin:0, padding:0 }}>
                           {sub.items.map((item) => {
                             if (!item?._id || !item?.name) return null;
-                            const itemSlug = toSlug(item.name);
-
                             return (
                               <li key={item._id}>
                                 <Link
-                                  to={`/category/${catSlug}/${subSlug}/${itemSlug}`}
-                                  className="
-                                    text-xs text-black leading-relaxed
-                                    hover:text-cyan-600 hover:underline
-                                    transition-colors block py-0.5
-                                  "
+                                  to={`/category/${catSlug}/${subSlug}/${toSlug(item.name)}`}
+                                  className="ch-item-link"
+                                  onClick={closeNow}
                                 >
                                   {item.name}
                                 </Link>
@@ -248,9 +290,7 @@ const CategoryHeader = () => {
                           })}
                         </ul>
                       ) : (
-                        <p className="text-xs text-black italic">
-                          No items available
-                        </p>
+                        <p style={{ fontSize:11, color:"#94a3b8", fontStyle:"italic", margin:0 }}>No items</p>
                       )}
                     </div>
                   );
@@ -258,32 +298,25 @@ const CategoryHeader = () => {
               </div>
             </div>
 
-            {/* Footer - BLACK text */}
-            <div className="border-t border-cyan-100 bg-cyan-50 px-6 sm:px-8 lg:px-10 py-3">
-              <div className="max-w-screen-xl mx-auto flex items-center justify-between">
-                <p className="text-xs text-black">
-                  Showing{" "}
-                  <span className="text-cyan-600 font-semibold">
-                    {activeCategory.subCategories.length}
-                  </span>{" "}
-                  subcategories
-                </p>
+            <div className="ch-mega-footer">
+              <div className="ch-mega-footer-inner">
+                <span style={{ fontSize:12, color:"#94a3b8" }}>
+                  {activeCategory.subCategories.length} subcategories in{" "}
+                  <strong style={{ color: NAVY }}>{activeCategory.name}</strong>
+                </span>
                 <Link
                   to={`/category/${toSlug(activeCategory.name)}`}
-                  className="
-                    text-xs font-semibold text-black
-                    hover:text-cyan-600 flex items-center gap-1
-                    transition-colors
-                  "
+                  className="ch-view-all"
+                  onClick={closeNow}
                 >
-                  View all in {activeCategory.name}
-                  <span className="ml-0.5">→</span>
+                  View all in {activeCategory.name} →
                 </Link>
               </div>
             </div>
           </div>
         )}
-    </nav>
+      </nav>
+    </>
   );
 };
 

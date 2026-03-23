@@ -847,7 +847,7 @@ const RegisterPage = () => {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-orange-600 to-orange-500 rounded-full mb-4 shadow-lg">
             <ShoppingBag className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 tracking-tight">Join InfraKarts</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 tracking-tight">Join MIKB</h1>
           <p className="text-gray-600 mt-2">
             Choose your account type to get started
           </p>
@@ -1057,7 +1057,7 @@ const RegisterPage = () => {
         </div>
 
         <div className="text-center mt-8 text-sm text-gray-500">
-          <p>© {new Date().getFullYear()} InfraKarts. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} MIKB. All rights reserved.</p>
         </div>
       </div>
     </div>

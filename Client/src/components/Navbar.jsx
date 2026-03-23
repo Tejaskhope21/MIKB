@@ -1,66 +1,50 @@
-// components/Navbar.jsx
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  FiUser,
-  FiShoppingCart,
-  FiSearch,
-  FiMenu,
-  FiX,
-  FiLogOut,
-  FiPackage,
-  FiGrid,
-  FiTag,
+  FiUser, FiShoppingCart, FiSearch, FiMenu, FiX,
+  FiLogOut, FiPackage, FiGrid, FiTag, FiChevronRight,
 } from "react-icons/fi";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import logo from "/logo.png";
 import { useCart } from "../context/CartContext";
 import { searchAutocomplete, hasSearchResults } from "../services/api";
-import "../index.css";
 
-/* ─── Pulse Line ─────────────────────────────────────────────────── */
-const PulseLine = () => (
-  <svg
-    viewBox="0 0 200 30"
-    style={{ position:"absolute", bottom:0, left:0, width:"100%", opacity:0.07, pointerEvents:"none" }}
-    preserveAspectRatio="none"
-  >
-    <polyline
-      points="0,15 30,15 40,5 50,25 60,8 70,22 80,15 110,15 120,3 130,27 140,10 150,20 160,15 200,15"
-      fill="none" stroke="#0891b2" strokeWidth="2"
-    />
-  </svg>
-);
-
-/* ─── Debounce ───────────────────────────────────────────────────── */
-function debounce(func, wait) {
-  let timeout;
-  return function (...args) {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), wait);
-  };
+function debounce(fn, ms) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
 }
 
+const NAVY   = "#0a2540";
+const ACCENT = "#f97316";
+
 export default function Navbar({ user, onLogout }) {
-  const [searchQuery, setSearchQuery]     = useState("");
-  const [menuOpen, setMenuOpen]           = useState(false);
-  const [dropdownOpen, setDropdownOpen]   = useState(false);
+  const [searchQuery,      setSearchQuery]      = useState("");
+  const [menuOpen,         setMenuOpen]         = useState(false);
+  const [dropdownOpen,     setDropdownOpen]     = useState(false);
+  const [ddPos,            setDdPos]            = useState({ top: 0, right: 0 });
   const [showAutocomplete, setShowAutocomplete] = useState(false);
-  const [isSearching, setIsSearching]     = useState(false);
-  const [cartCount, setCartCount]         = useState(0);
-  const [searchResults, setSearchResults] = useState({
+  const [isSearching,      setIsSearching]      = useState(false);
+  const [cartCount,        setCartCount]        = useState(0);
+  const [scrolled,         setScrolled]         = useState(false);
+  const [searchResults,    setSearchResults]    = useState({
     success: true, products: [], categories: [],
     subcategories: [], itemTypes: [], query: "", totalResults: 0,
   });
 
   const { getCartCount } = useCart();
-  const navigate          = useNavigate();
-  const searchRef         = useRef(null);
-  const searchInputRef    = useRef(null);
-  const profileWrapRef    = useRef(null);
-  const closeTimer        = useRef(null);
+  const navigate         = useNavigate();
+  const searchRef        = useRef(null);
+  const profileBtnRef    = useRef(null);
+  const dropdownRef      = useRef(null);
 
-  /* ── cart count ─────────────────────────────────────────────── */
+  // ── scroll shadow ──────────────────────────────────────────────────────
+  useEffect(() => {
+    const h = () => setScrolled(window.scrollY > 4);
+    window.addEventListener("scroll", h, { passive: true });
+    return () => window.removeEventListener("scroll", h);
+  }, []);
+
+  // ── cart count ─────────────────────────────────────────────────────────
   useEffect(() => {
     const upd = () => setCartCount(getCartCount());
     upd();
@@ -68,694 +52,502 @@ export default function Navbar({ user, onLogout }) {
     return () => clearInterval(id);
   }, [getCartCount]);
 
-  /* ── search debounce ─────────────────────────────────────────── */
+  // ── recalculate dropdown position on scroll/resize ─────────────────────
+  useEffect(() => {
+    if (!dropdownOpen) return;
+    const recalc = () => {
+      if (!profileBtnRef.current) return;
+      const r = profileBtnRef.current.getBoundingClientRect();
+      setDdPos({
+        top:   r.bottom + 8,
+        right: window.innerWidth - r.right,
+      });
+    };
+    recalc();
+    window.addEventListener("scroll",  recalc, { passive: true });
+    window.addEventListener("resize",  recalc);
+    return () => {
+      window.removeEventListener("scroll", recalc);
+      window.removeEventListener("resize", recalc);
+    };
+  }, [dropdownOpen]);
+
+  // ── close dropdown on outside click ───────────────────────────────────
+  useEffect(() => {
+    if (!dropdownOpen) return;
+    const h = (e) => {
+      const clickedBtn = profileBtnRef.current?.contains(e.target);
+      const clickedDd  = dropdownRef.current?.contains(e.target);
+      if (!clickedBtn && !clickedDd) setDropdownOpen(false);
+    };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [dropdownOpen]);
+
+  // ── close search on outside click ─────────────────────────────────────
+  useEffect(() => {
+    const h = (e) => {
+      if (searchRef.current && !searchRef.current.contains(e.target))
+        setShowAutocomplete(false);
+    };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
+
+  // ── search ─────────────────────────────────────────────────────────────
   const debouncedSearch = useCallback(
-    debounce(async (query) => {
-      if (!query.length) {
+    debounce(async (q) => {
+      if (!q.length) {
         setSearchResults({ success:true, products:[], categories:[], subcategories:[], itemTypes:[], query:"", totalResults:0 });
-        setIsSearching(false);
-        return;
+        setIsSearching(false); return;
       }
       setIsSearching(true);
       try {
-        const results = await searchAutocomplete(query, 8);
-        setSearchResults(results);
+        const res = await searchAutocomplete(q, 8);
+        setSearchResults(res);
       } catch (err) {
-        setSearchResults({ success:false, products:[], categories:[], subcategories:[], itemTypes:[], query, totalResults:0, error: err.message });
-      } finally {
-        setIsSearching(false);
-      }
-    }, 300),
-    []
+        setSearchResults({ success:false, products:[], categories:[], subcategories:[], itemTypes:[], query:q, totalResults:0, error: err.message });
+      } finally { setIsSearching(false); }
+    }, 300), []
   );
 
   useEffect(() => {
     if (searchQuery.trim().length > 0) {
-      debouncedSearch(searchQuery);
-      setShowAutocomplete(true);
+      debouncedSearch(searchQuery); setShowAutocomplete(true);
     } else {
       setSearchResults({ success:true, products:[], categories:[], subcategories:[], itemTypes:[], query:"", totalResults:0 });
       setShowAutocomplete(false);
     }
   }, [searchQuery, debouncedSearch]);
 
-  /* ── click outside search ────────────────────────────────────── */
-  useEffect(() => {
-    const handler = (e) => {
-      if (searchRef.current && !searchRef.current.contains(e.target))
-        setShowAutocomplete(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
-  /* ── profile dropdown ────────────────────────────────────────── */
-  const openDropdown  = () => { clearTimeout(closeTimer.current); setDropdownOpen(true); };
-  const scheduleClose = () => { closeTimer.current = setTimeout(() => setDropdownOpen(false), 120); };
-
-  /* ── handlers ────────────────────────────────────────────────── */
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      setShowAutocomplete(false);
-      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
-    }
+  // ── handlers ───────────────────────────────────────────────────────────
+  const openProfile = () => {
+    if (!profileBtnRef.current) return;
+    const r = profileBtnRef.current.getBoundingClientRect();
+    setDdPos({ top: r.bottom + 8, right: window.innerWidth - r.right });
+    setDropdownOpen((v) => !v);
   };
 
-  const handleAutocompleteSelect = (type, item) => {
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) { setShowAutocomplete(false); navigate(`/search?q=${encodeURIComponent(searchQuery)}`); }
+  };
+
+  const handleSelect = (type, item) => {
     setSearchQuery(""); setShowAutocomplete(false); setMenuOpen(false);
     switch (type) {
-      case "product": {
-        const id = item.numericId || item._id || item.id;
-        id ? navigate(`/product/${id}`) : navigate(`/search?q=${encodeURIComponent(item.name || item.productName)}`);
-        break;
-      }
-      case "category": {
-        const id = item.numericId || item._id || item.id;
-        id ? navigate(`/category/${id}`, { state:{ categoryName: item.name } }) : navigate(`/search?q=${encodeURIComponent(item.name)}`);
-        break;
-      }
-      case "subcategory": {
-        const pid = item.categoryId || item.category?._id || item.category?.id;
-        const sid = item._id || item.id || item.numericId;
-        pid && sid
-          ? navigate(`/category/${pid}`, { state:{ categoryName: item.category?.name, subcategoryName: item.title || item.name, subcategoryId: sid } })
-          : navigate(`/search?q=${encodeURIComponent(item.title || item.name)}`);
-        break;
-      }
-      case "itemtype": {
-        const cs = item.category?.slug   || item.category?.name?.toLowerCase().replace(/\s+/g,"-");
-        const ss = item.subcategory?.slug || item.subcategory?.title?.toLowerCase().replace(/\s+/g,"-");
-        const is = item.slug              || item.name?.toLowerCase().replace(/\s+/g,"-");
-        cs && ss && is ? navigate(`/category/${cs}/${ss}/${is}`) : navigate(`/search?q=${encodeURIComponent(item.name)}`);
-        break;
-      }
+      case "product": { const id = item.numericId||item._id||item.id; id ? navigate(`/product/${id}`) : navigate(`/search?q=${encodeURIComponent(item.name||item.productName)}`); break; }
+      case "category": { const id = item.numericId||item._id||item.id; id ? navigate(`/category/${id}`,{state:{categoryName:item.name}}) : navigate(`/search?q=${encodeURIComponent(item.name)}`); break; }
+      case "subcategory": { const pid=item.categoryId||item.category?._id, sid=item._id||item.id; pid&&sid ? navigate(`/category/${pid}`,{state:{subcategoryId:sid}}) : navigate(`/search?q=${encodeURIComponent(item.title||item.name)}`); break; }
+      case "itemtype": { const cs=item.category?.slug||item.category?.name?.toLowerCase().replace(/\s+/g,"-"), ss=item.subcategory?.slug||item.subcategory?.title?.toLowerCase().replace(/\s+/g,"-"), is=item.slug||item.name?.toLowerCase().replace(/\s+/g,"-"); cs&&ss&&is ? navigate(`/category/${cs}/${ss}/${is}`) : navigate(`/search?q=${encodeURIComponent(item.name)}`); break; }
       default: navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
     }
   };
 
   const handleLogout = () => { onLogout(); setDropdownOpen(false); setMenuOpen(false); };
+  const ddGo = (path) => { setDropdownOpen(false); navigate(path); };
 
   const profileItems = user
-    ? [
-        { label:"My Profile",   path:"/profile" },
-        { label:"My Orders",    path:"/orders/my-orders" },
-        { label:"My Addresses", path:"/profile" },
-        { label:"Logout", action: handleLogout, icon:<FiLogOut size={14} style={{marginRight:8}}/> },
-      ]
-    : [
-        { label:"Sign In",  path:"/login" },
-        { label:"Sign Up",  path:"/register" },
-      ];
+    ? [ {label:"My Profile",icon:"👤",path:"/profile"}, {label:"My Orders",icon:"📦",path:"/orders/my-orders"}, {label:"My Addresses",icon:"📍",path:"/profile"}, {label:"Logout",icon:"🚪",action:handleLogout} ]
+    : [ {label:"Sign In",icon:"🔑",path:"/login"}, {label:"Sign Up",icon:"✨",path:"/register"} ];
 
-  const getValidImageUrl = (url) => {
+  const getImg = (url) => {
     if (!url) return null;
-    if (url.startsWith("http") || url.startsWith("data:image")) return url;
-    if (url.startsWith("/")) return `http://localhost:5000${url}`;
-    return `http://localhost:5000/uploads/${url}`;
+    if (url.startsWith("http")||url.startsWith("data:")) return url;
+    return url.startsWith("/") ? `http://localhost:5000${url}` : `http://localhost:5000/uploads/${url}`;
   };
 
-  const hasSuccessfulResults = hasSearchResults(searchResults);
-
-  /* ─── CSS ──────────────────────────────────────────────────────── */
-  const css = `
-    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&display=swap');
-
-    :root{
-      --navy:#0a2540; --navy2:#0d3060;
-      --teal:#0891b2; --teal-d:#0369a1; --teal-l:#22d3ee;
-      --sky:#e0f7fa;  --sky2:#f0fdfe;
-      --red:#dc2626;
-      --g50:#f8fafc; --g100:#f1f5f9; --g200:#e2e8f0;
-      --g400:#94a3b8; --g600:#475569; --g700:#334155; --g800:#1e293b;
-    }
-    *{box-sizing:border-box;}
-    .hc{font-family:'DM Sans',sans-serif;}
-
-    /* ── alert bar ── */
-    .hc-alert{
-      background:var(--navy); color:#94a3b8;
-      font-size:11.5px; letter-spacing:.04em;
-      padding:5px 24px;
-      display:flex; align-items:center; justify-content:space-between;
-      flex-wrap:wrap; gap:4px;
-    }
-    .hc-alert a{color:var(--teal-l);text-decoration:none;}
-    .hc-alert a:hover{text-decoration:underline;}
-
-    /* ── main nav ── */
-    .hc-nav{
-      background:#fff;
-      border-bottom:2px solid var(--sky);
-      position:relative; overflow:visible;
-    }
-    .hc-nav-row{
-      max-width:1440px; margin:0 auto; padding:0 20px;
-      height:68px; display:flex; align-items:center; gap:16px;
-    }
-
-    /* logo */
-    .hc-logo{display:flex;align-items:center;flex-shrink:0;text-decoration:none;}
-    .hc-logo img{height:48px;width:auto;object-fit:contain;}
-    .hc-logo-pill{
-      display:inline-flex;align-items:center;gap:4px;
-      background:var(--sky);color:var(--teal);
-      font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
-      padding:3px 8px;border-radius:20px;margin-left:8px;border:1px solid #a5f3fc;
-      white-space:nowrap;
-    }
-
-    /* nav links */
-    .hc-links{display:flex;align-items:center;gap:24px;flex-shrink:0;}
-    .hc-links a,.hc-links button{
-      color:var(--navy);text-decoration:none;background:none;border:none;
-      font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;
-      cursor:pointer;padding:2px 0;position:relative;transition:color .18s;
-    }
-    .hc-links a::after,.hc-links button::after{
-      content:'';position:absolute;bottom:-2px;left:0;right:0;
-      height:2px;background:var(--teal);border-radius:2px;
-      transform:scaleX(0);transition:transform .18s;
-    }
-    .hc-links a:hover,.hc-links button:hover{color:var(--teal);}
-    .hc-links a:hover::after,.hc-links button:hover::after{transform:scaleX(1);}
-
-    /* search */
-    .hc-search{position:relative;flex:1;max-width:500px;}
-    .hc-search input{
-      width:100%;height:42px;padding:0 46px 0 16px;
-      border:1.5px solid var(--g200);border-radius:8px;
-      font-family:'DM Sans',sans-serif;font-size:14px;color:var(--g800);
-      background:var(--g50);outline:none;
-      transition:border-color .2s,box-shadow .2s;
-    }
-    .hc-search input::placeholder{color:var(--g400);}
-    .hc-search input:focus{
-      border-color:var(--teal);background:#fff;
-      box-shadow:0 0 0 3px rgba(8,145,178,.12);
-    }
-    .hc-search-btn{
-      position:absolute;right:12px;top:50%;transform:translateY(-50%);
-      background:none;border:none;cursor:pointer;color:var(--g400);
-      display:flex;align-items:center;transition:color .2s;
-    }
-    .hc-search-btn:hover{color:var(--teal);}
-
-    /* autocomplete */
-    .hc-ac{
-      position:absolute;top:calc(100% + 8px);left:0;right:0;
-      background:#fff;border:1.5px solid var(--g200);border-radius:12px;
-      box-shadow:0 20px 50px rgba(10,37,64,.14);z-index:200;
-      max-height:480px;overflow-y:auto;
-    }
-    .hc-ac-label{
-      padding:9px 16px 7px;font-size:10.5px;font-weight:700;
-      letter-spacing:.08em;text-transform:uppercase;
-      color:var(--teal);background:var(--sky2);
-      border-bottom:1px solid var(--sky);
-    }
-    .hc-ac-row{
-      width:100%;text-align:left;background:none;border:none;
-      padding:10px 16px;display:flex;align-items:center;gap:12px;
-      cursor:pointer;border-bottom:1px solid var(--g100);
-      transition:background .12s;font-family:'DM Sans',sans-serif;
-    }
-    .hc-ac-row:last-child{border-bottom:none;}
-    .hc-ac-row:hover{background:var(--sky2);}
-    .hc-ac-row:hover .hc-ac-name{color:var(--teal);}
-    .hc-ac-thumb{
-      width:42px;height:42px;background:var(--sky);border-radius:8px;
-      display:flex;align-items:center;justify-content:center;
-      flex-shrink:0;border:1px solid #a5f3fc;
-    }
-    .hc-ac-thumb img{width:34px;height:34px;object-fit:contain;}
-    .hc-ac-icon{
-      width:34px;height:34px;border-radius:50%;
-      display:flex;align-items:center;justify-content:center;flex-shrink:0;
-    }
-    .hc-ac-icon.cat{background:#dbeafe;color:#1d4ed8;}
-    .hc-ac-icon.sub{background:#dcfce7;color:#15803d;}
-    .hc-ac-icon.typ{background:#ede9fe;color:#7c3aed;}
-    .hc-ac-name{font-size:13.5px;font-weight:500;color:var(--navy);transition:color .12s;}
-    .hc-ac-meta{font-size:11px;color:var(--g400);margin-top:2px;}
-    .hc-ac-price{margin-left:auto;font-size:13px;font-weight:600;color:var(--teal);white-space:nowrap;}
-    .hc-ac-badge{display:inline-block;font-size:10px;background:var(--sky);color:var(--teal);border-radius:4px;padding:2px 5px;}
-    .hc-ac-verified{display:inline-flex;align-items:center;color:#15803d;font-size:10px;font-weight:600;}
-    .hc-ac-foot{
-      padding:11px 16px;background:var(--g50);
-      border-top:1px solid var(--g200);text-align:center;
-    }
-    .hc-ac-foot button{
-      background:none;border:none;cursor:pointer;
-      color:var(--teal);font-family:'DM Sans',sans-serif;
-      font-size:13px;font-weight:600;
-      display:inline-flex;align-items:center;gap:6px;
-    }
-    .hc-ac-foot button:hover{opacity:.75;}
-    .hc-ac-empty{padding:36px 16px;text-align:center;color:var(--g400);font-size:14px;}
-    .hc-ac-loading{padding:28px 16px;text-align:center;color:var(--g400);font-size:14px;}
-
-    /* actions row */
-    .hc-actions{display:flex;align-items:center;gap:16px;margin-left:auto;}
-
-    /* cart */
-    .hc-cart{
-      position:relative;background:none;border:none;cursor:pointer;
-      color:var(--navy);display:flex;align-items:center;
-      text-decoration:none;transition:color .18s;
-    }
-    .hc-cart:hover{color:var(--teal);}
-    .hc-cart-badge{
-      position:absolute;top:-6px;right:-6px;
-      background:var(--red);color:#fff;
-      font-size:9.5px;font-weight:700;min-width:17px;height:17px;
-      border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 3px;
-    }
-
-    /* profile wrapper */
-    .hc-profile-wrap{position:relative;}
-    .hc-profile-btn{
-      display:flex;align-items:center;gap:8px;
-      background:none;border:none;cursor:pointer;
-      color:var(--navy);font-family:'DM Sans',sans-serif;
-      font-size:14px;font-weight:500;transition:color .18s;
-      padding:4px 0;
-    }
-    .hc-profile-btn:hover{color:var(--teal);}
-    .hc-avatar{
-      width:34px;height:34px;border-radius:50%;
-      background:var(--sky);color:var(--teal);
-      border:2px solid #a5f3fc;
-      display:flex;align-items:center;justify-content:center;
-      font-weight:700;font-size:13px;flex-shrink:0;
-    }
-
-    /* dropdown */
-    .hc-dd{
-      position:absolute;right:0;top:100%;
-      background:#fff;border:1.5px solid var(--g200);
-      border-radius:12px;
-      box-shadow:0 20px 50px rgba(10,37,64,.15);
-      width:230px;z-index:300;overflow:hidden;
-    }
-    .hc-dd-head{
-      padding:14px 16px;
-      background:linear-gradient(135deg,#0a2540,#0d3060);
-      color:#fff;
-    }
-    .hc-dd-head p:first-child{font-weight:600;font-size:14px;}
-    .hc-dd-head p:last-child{font-size:11.5px;color:#94a3b8;margin-top:2px;}
-    .hc-dd a,.hc-dd button{
-      display:flex;align-items:center;padding:10px 16px;
-      font-size:13.5px;color:var(--navy);text-decoration:none;
-      background:none;border:none;width:100%;text-align:left;
-      cursor:pointer;font-family:'DM Sans',sans-serif;
-      transition:background .12s,color .12s;
-    }
-    .hc-dd a:hover,.hc-dd button:hover{background:var(--sky2);color:var(--teal);}
-
-    /* cta */
-    .hc-cta{
-      background:linear-gradient(135deg,var(--teal),var(--teal-d));
-      color:#fff;border:none;border-radius:8px;padding:9px 16px;
-      font-family:'DM Sans',sans-serif;font-size:13.5px;font-weight:600;
-      cursor:pointer;display:flex;align-items:center;gap:7px;
-      box-shadow:0 4px 14px rgba(8,145,178,.3);
-      transition:box-shadow .2s,transform .15s;white-space:nowrap;
-    }
-    .hc-cta:hover{box-shadow:0 6px 20px rgba(8,145,178,.45);transform:translateY(-1px);}
-
-    /* hamburger */
-    .hc-ham{background:none;border:none;cursor:pointer;color:var(--navy);display:none;}
-
-    /* mobile menu */
-    .hc-mob{background:#fff;border-top:2px solid var(--sky);padding:18px 20px 24px;}
-    .hc-mob-label{
-      font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
-      color:var(--teal);margin:14px 0 7px;
-    }
-    .hc-mob-link{
-      display:flex;align-items:center;justify-content:space-between;
-      padding:10px 0;color:var(--navy);text-decoration:none;
-      font-size:15px;font-weight:500;
-      border-bottom:1px solid var(--g100);
-      background:none;border-left:none;border-right:none;border-top:none;
-      width:100%;text-align:left;cursor:pointer;
-      font-family:'DM Sans',sans-serif;transition:color .18s;
-    }
-    .hc-mob-link:hover{color:var(--teal);}
-    .hc-mob-cta{
-      margin-top:16px;
-      background:linear-gradient(135deg,var(--teal),var(--teal-d));
-      color:#fff;border:none;border-radius:10px;width:100%;padding:13px;
-      font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;
-      cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
-      box-shadow:0 4px 14px rgba(8,145,178,.28);
-    }
-
-    /* responsive */
-    @media(max-width:1100px){ .hc-links.desktop{display:none;} }
-    @media(max-width:900px){  .hc-search{display:none;} }
-    @media(max-width:768px){
-      .hc-alert{display:none;}
-      .hc-cta{display:none!important;}
-      .hc-ham{display:flex!important;}
-    }
-  `;
-
-  const CrossIcon = () => (
-    <svg width="12" height="12" viewBox="0 0 10 10" fill="currentColor">
-      <path d="M4 0h2v4h4v2H6v4H4V6H0V4h4z"/>
-    </svg>
-  );
-  const ChevronIcon = () => (
-    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
-    </svg>
-  );
-  const ArrowIcon = () => (
-    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3"/>
-    </svg>
-  );
+  const hasResults = hasSearchResults(searchResults);
+  const navLinks = [
+    {label:"Home",to:"/"},{label:"Products",to:"/products"},
+    {label:"Brands",to:"/brands"},{label:"Contractors",to:"/contractors"},{label:"Investors",to:"/investors"},
+  ];
 
   return (
     <>
-      <style>{css}</style>
-      <header className="hc" style={{ position:"sticky", top:0, zIndex:50 }}>
+      <style>{`
+        *,*::before,*::after{box-sizing:border-box;}
 
-        {/* ── Alert bar ─────────────────────────────────────────── */}
-        <div className="hc-alert">
-          <span>🏥 Trusted Medical Equipment Supplier — ISO 13485 Certified</span>
-          <span>
-            24/7 Support: <a href="tel:18001234567">1800-123-4567</a>
-            &nbsp;|&nbsp;<a href="/track-order">Track Order</a>
-            &nbsp;|&nbsp;<a href="/service-centers">Service Centers</a>
-          </span>
+        .nb-top{background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:5px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px;font-size:11.5px;color:#64748b;}
+        .nb-top a{color:${NAVY};text-decoration:none;font-weight:500;transition:opacity .18s;}
+        .nb-top a:hover{opacity:.7;}
+        .nb-top-r{display:flex;align-items:center;gap:14px;}
+        .nb-top-r span{color:#cbd5e1;}
+
+        /* The <header> itself gets position+z-index so its stacking context
+           is always above CategoryHeader regardless of DOM order             */
+        .nb-header{
+          position: relative;
+          z-index: 9999;
+        }
+
+        .nb-nav{
+          background:#fff;
+          border-bottom:2px solid #e2e8f0;
+          position:sticky;
+          top:0;
+          transition:box-shadow .25s,border-color .25s;
+        }
+        .nb-nav.scrolled{box-shadow:0 2px 18px rgba(10,37,64,.1);border-bottom-color:${NAVY};}
+
+        .nb-row{max-width:1400px;margin:0 auto;padding:0 20px;height:64px;display:flex;align-items:center;gap:16px;}
+
+        .nb-logo{display:flex;align-items:center;text-decoration:none;flex-shrink:0;}
+        .nb-logo img{height:42px;width:auto;object-fit:contain;}
+
+        .nb-links{display:flex;align-items:center;gap:2px;flex-shrink:0;}
+        .nb-link{color:${NAVY};text-decoration:none;font-size:13.5px;font-weight:500;padding:6px 11px;border-radius:7px;position:relative;white-space:nowrap;transition:color .15s,background .15s;}
+        .nb-link::after{content:'';position:absolute;bottom:3px;left:11px;right:11px;height:2px;background:${NAVY};border-radius:2px;transform:scaleX(0);transition:transform .2s;}
+        .nb-link:hover{color:${NAVY};background:#eef2f8;}
+        .nb-link:hover::after{transform:scaleX(1);}
+
+        .nb-search{flex:1;max-width:460px;position:relative;}
+        .nb-sinput{display:flex;align-items:center;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:9px;overflow:hidden;transition:border-color .2s,box-shadow .2s,background .2s;}
+        .nb-sinput:focus-within{background:#fff;border-color:${NAVY};box-shadow:0 0 0 3px rgba(10,37,64,.09);}
+        .nb-sinput input{flex:1;height:40px;padding:0 12px;background:transparent;border:none;outline:none;color:${NAVY};font-size:13.5px;}
+        .nb-sinput input::placeholder{color:#94a3b8;}
+        .nb-sbtn{width:40px;height:40px;background:none;border:none;cursor:pointer;color:#94a3b8;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:color .18s;}
+        .nb-sbtn:hover{color:${NAVY};}
+
+        /* Autocomplete — position:absolute within search div */
+        .nb-ac{position:absolute;top:calc(100% + 7px);left:0;right:0;background:#fff;border:1.5px solid #e2e8f0;border-radius:13px;box-shadow:0 20px 56px rgba(10,37,64,.14);z-index:99999;max-height:480px;overflow-y:auto;}
+        .nb-ac-lbl{padding:8px 14px 6px;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${NAVY};background:#f0f4f9;border-bottom:1px solid #e2e8f0;}
+        .nb-ac-row{width:100%;text-align:left;background:none;border:none;border-bottom:1px solid #f1f5f9;padding:10px 14px;display:flex;align-items:center;gap:11px;cursor:pointer;transition:background .1s;}
+        .nb-ac-row:last-child{border-bottom:none;}
+        .nb-ac-row:hover{background:#f5f8fc;}
+        .nb-ac-row:hover .nb-ac-name{color:${NAVY};}
+        .nb-ac-thumb{width:38px;height:38px;border-radius:8px;background:#f1f5f9;border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;}
+        .nb-ac-thumb img{width:32px;height:32px;object-fit:contain;}
+        .nb-ac-ico{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+        .nb-ac-ico.cat{background:#dbeafe;color:${NAVY};}
+        .nb-ac-ico.sub{background:#dcfce7;color:#15803d;}
+        .nb-ac-ico.typ{background:#ede9fe;color:#7c3aed;}
+        .nb-ac-name{font-size:13px;font-weight:500;color:#1e293b;transition:color .1s;}
+        .nb-ac-meta{font-size:11px;color:#94a3b8;margin-top:1px;}
+        .nb-ac-price{margin-left:auto;font-size:12.5px;font-weight:700;color:${ACCENT};white-space:nowrap;}
+        .nb-ac-badge{display:inline-block;font-size:10px;background:#e0ecf8;color:${NAVY};border-radius:4px;padding:1px 5px;font-weight:600;}
+        .nb-ac-foot{padding:10px 14px;background:#f8fafc;border-top:1px solid #e2e8f0;border-radius:0 0 13px 13px;text-align:center;}
+        .nb-ac-foot button{background:none;border:none;cursor:pointer;color:${NAVY};font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:5px;transition:opacity .15s;}
+        .nb-ac-foot button:hover{opacity:.7;}
+        .nb-ac-empty{padding:28px 14px;text-align:center;color:#94a3b8;font-size:13.5px;}
+        .nb-ac-spin{padding:22px 14px;text-align:center;color:#94a3b8;font-size:13px;display:flex;align-items:center;justify-content:center;gap:8px;}
+
+        .nb-actions{display:flex;align-items:center;gap:6px;margin-left:auto;flex-shrink:0;}
+
+        .nb-ibtn{width:38px;height:38px;border-radius:9px;background:#f1f5f9;border:1.5px solid #e2e8f0;display:flex;align-items:center;justify-content:center;cursor:pointer;color:${NAVY};text-decoration:none;transition:background .15s,border-color .15s;position:relative;flex-shrink:0;}
+        .nb-ibtn:hover{background:#e4eaf4;border-color:${NAVY};}
+
+        .nb-badge{position:absolute;top:-5px;right:-5px;background:${ACCENT};color:#fff;font-size:9px;font-weight:800;min-width:17px;height:17px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 3px;border:2px solid #fff;}
+
+        .nb-pbtn{display:flex;align-items:center;gap:8px;padding:4px 12px 4px 5px;border-radius:9px;background:#f1f5f9;border:1.5px solid #e2e8f0;cursor:pointer;color:${NAVY};font-size:13px;font-weight:500;transition:background .15s,border-color .15s;flex-shrink:0;user-select:none;}
+        .nb-pbtn:hover,.nb-pbtn.open{background:#e4eaf4;border-color:${NAVY};}
+        .nb-avatar{width:28px;height:28px;border-radius:7px;background:${NAVY};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;pointer-events:none;}
+
+        /* Profile dropdown rendered as position:fixed — escapes ALL stacking contexts */
+        .nb-dd{
+          position:fixed;
+          background:#fff;
+          border:1.5px solid #e2e8f0;
+          border-radius:13px;
+          box-shadow:0 20px 56px rgba(10,37,64,.22);
+          width:215px;
+          z-index:999999;
+          overflow:hidden;
+          animation:ddIn .18s ease both;
+        }
+        @keyframes ddIn{from{opacity:0;transform:translateY(-6px) scale(.97);}to{opacity:1;transform:translateY(0) scale(1);}}
+        .nb-dd-head{padding:13px 15px;background:${NAVY};}
+        .nb-dd-name{font-size:13.5px;font-weight:600;color:#fff;}
+        .nb-dd-email{font-size:11px;color:rgba(255,255,255,.4);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+        .nb-ddi{display:flex;align-items:center;gap:9px;padding:11px 15px;font-size:13px;color:${NAVY};text-decoration:none;background:none;border:none;width:100%;text-align:left;cursor:pointer;transition:background .1s;border-bottom:1px solid #f1f5f9;}
+        .nb-ddi:last-child{border-bottom:none;}
+        .nb-ddi:hover{background:#eef2f8;}
+        .nb-ddi-icon{font-size:14px;flex-shrink:0;pointer-events:none;}
+
+        .nb-cta{display:flex;align-items:center;gap:6px;padding:0 16px;height:38px;border-radius:9px;background:${NAVY};color:#fff;font-size:13px;font-weight:600;border:none;cursor:pointer;white-space:nowrap;flex-shrink:0;text-decoration:none;transition:background .18s,transform .15s,box-shadow .18s;box-shadow:0 3px 10px rgba(10,37,64,.22);}
+        .nb-cta:hover{background:#0d3060;transform:translateY(-1px);box-shadow:0 5px 16px rgba(10,37,64,.32);}
+        .nb-cta:active{transform:translateY(0);}
+
+        .nb-sep{width:1px;height:20px;background:#e2e8f0;flex-shrink:0;}
+
+        .nb-rl{display:flex;align-items:center;gap:2px;flex-shrink:0;}
+        .nb-rl a{padding:5px 10px;border-radius:7px;font-size:12.5px;font-weight:500;color:#64748b;text-decoration:none;border:1px solid transparent;transition:color .15s,border-color .15s,background .15s;}
+        .nb-rl a:hover{color:${NAVY};border-color:#c8d5e8;background:#eef2f8;}
+
+        .nb-mob{background:#fff;border-top:2px solid #e2e8f0;padding:14px 18px 22px;}
+        .nb-msearch{display:flex;align-items:center;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:9px;overflow:hidden;margin-bottom:14px;}
+        .nb-msearch:focus-within{border-color:${NAVY};}
+        .nb-msearch input{flex:1;height:42px;padding:0 12px;background:transparent;border:none;outline:none;color:${NAVY};font-size:14px;}
+        .nb-msearch input::placeholder{color:#94a3b8;}
+        .nb-msearch button{width:42px;height:42px;background:none;border:none;cursor:pointer;color:#94a3b8;display:flex;align-items:center;justify-content:center;}
+        .nb-ml{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#94a3b8;margin:14px 0 6px 2px;}
+        .nb-mlink{display:flex;align-items:center;justify-content:space-between;padding:11px 2px;color:${NAVY};font-size:14.5px;font-weight:500;text-decoration:none;border-bottom:1px solid #f1f5f9;background:none;border-left:none;border-right:none;border-top:none;width:100%;text-align:left;cursor:pointer;transition:opacity .15s;}
+        .nb-mlink:hover{opacity:.7;}
+        .nb-mlink:last-child{border-bottom:none;}
+        .nb-mcta{margin-top:18px;display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:13px;border-radius:11px;background:${NAVY};color:#fff;font-size:14.5px;font-weight:700;border:none;cursor:pointer;box-shadow:0 3px 12px rgba(10,37,64,.22);transition:background .18s;}
+        .nb-mcta:hover{background:#0d3060;}
+
+        @media(max-width:1100px){.nb-links{display:none;}}
+        @media(max-width:860px){.nb-search{display:none;}.nb-rl{display:none;}}
+        @media(max-width:640px){.nb-cta{display:none!important;}.nb-top{display:none;}}
+        @media(min-width:641px){.nb-ham{display:none!important;}.nb-mob{display:none!important;}}
+      `}</style>
+
+      {/* KEY FIX: <header> gets position:relative + z-index so its stacking
+          context is above CategoryHeader regardless of DOM order            */}
+      <header className="nb-header">
+
+        {/* ── Top bar ── */}
+        <div className="nb-top">
+          <span>🏗️ InfraKarts — India's Construction Materials Marketplace</span>
+          <div className="nb-top-r">
+            <a href="tel:18001234567">📞 1800-123-4567</a>
+            <span>|</span>
+            <a href="/track-order">Track Order</a>
+            <span>|</span>
+            <a href="/post-requirement">Sell on InfraKarts</a>
+          </div>
         </div>
 
-        {/* ── Main nav ──────────────────────────────────────────── */}
-        <nav className="hc-nav">
-          <PulseLine />
-          <div className="hc-nav-row">
+        {/* ── Main nav ── */}
+        <nav className={`nb-nav${scrolled ? " scrolled" : ""}`}>
+          <div className="nb-row">
 
-            {/* Logo */}
-            <Link to="/" className="hc-logo">
-              <img src={logo} alt="MediKart" />
-              <span className="hc-logo-pill"><CrossIcon /> Medical</span>
+            <Link to="/" className="nb-logo">
+              <img src={logo} alt="InfraKarts"/>
             </Link>
 
-            {/* Desktop nav links — Home & Products only */}
-            <div className="hc-links desktop">
-              <Link to="/">Home</Link>
-              <Link to="/products">Products</Link>
+            <div className="nb-links">
+              {navLinks.map((l) => (
+                <Link key={l.to} to={l.to} className="nb-link">{l.label}</Link>
+              ))}
             </div>
 
             {/* Search */}
-            <div className="hc-search" ref={searchRef}>
+            <div className="nb-search" ref={searchRef}>
               <form onSubmit={handleSearch}>
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  placeholder="Search medical equipment, brands, categories..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onFocus={() => searchQuery.trim() && setShowAutocomplete(true)}
-                />
-                <button type="submit" className="hc-search-btn">
-                  {isSearching
-                    ? <AiOutlineLoading3Quarters className="animate-spin" size={17} style={{color:"var(--teal)"}}/>
-                    : <FiSearch size={17}/>
-                  }
-                </button>
+                <div className="nb-sinput">
+                  <input
+                    type="text"
+                    placeholder="Search products, brands, categories…"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onFocus={() => searchQuery.trim() && setShowAutocomplete(true)}
+                  />
+                  <button type="submit" className="nb-sbtn">
+                    {isSearching
+                      ? <AiOutlineLoading3Quarters size={16} style={{color:NAVY,animation:"spin 1s linear infinite"}}/>
+                      : <FiSearch size={16}/>}
+                  </button>
+                </div>
 
-                {/* Autocomplete dropdown */}
                 {showAutocomplete && (
-                  <div className="hc-ac">
+                  <div className="nb-ac">
                     {isSearching ? (
-                      <div className="hc-ac-loading">
-                        <AiOutlineLoading3Quarters style={{display:"inline",marginRight:8,color:"var(--teal)"}}/>
-                        Searching medical catalogue...
-                      </div>
+                      <div className="nb-ac-spin"><AiOutlineLoading3Quarters size={14} style={{color:NAVY}}/>Searching catalogue…</div>
                     ) : !searchResults.success ? (
-                      <div className="hc-ac-empty" style={{color:"#dc2626"}}>
-                        {searchResults.error || "Search failed. Please try again."}
-                      </div>
-                    ) : hasSuccessfulResults ? (
+                      <div className="nb-ac-empty" style={{color:"#dc2626"}}>{searchResults.error||"Search failed."}</div>
+                    ) : hasResults ? (
                       <>
                         {searchResults.products.length > 0 && (
                           <div>
-                            <div className="hc-ac-label">🩺 Equipment ({searchResults.products.length})</div>
+                            <div className="nb-ac-lbl">Products ({searchResults.products.length})</div>
                             {searchResults.products.map((p) => (
-                              <button key={p._id||p.id||p.numericId} onClick={() => handleAutocompleteSelect("product",p)} className="hc-ac-row">
-                                <div className="hc-ac-thumb">
-                                  {p.images?.[0]
-                                    ? <img src={getValidImageUrl(p.images[0])} alt={p.name} onError={(e)=>(e.target.src="https://images.unsplash.com/photo-1584515933487-779824d29309?w=80&h=80&fit=crop")}/>
-                                    : <FiPackage size={18} style={{color:"var(--teal)"}}/>
-                                  }
-                                </div>
+                              <button key={p._id||p.id} onClick={()=>handleSelect("product",p)} className="nb-ac-row">
+                                <div className="nb-ac-thumb">{p.images?.[0] ? <img src={getImg(p.images[0])} alt={p.name} onError={(e)=>(e.target.src="https://via.placeholder.com/32")}/> : <FiPackage size={15} style={{color:"#94a3b8"}}/>}</div>
                                 <div style={{flex:1,minWidth:0}}>
-                                  <div className="hc-ac-name">{p.name||p.productName}</div>
-                                  <div style={{display:"flex",gap:5,marginTop:3,flexWrap:"wrap"}}>
-                                    {p.brand && <span className="hc-ac-badge">{p.brand}</span>}
-                                    {p.category && <span className="hc-ac-meta">in {p.category}</span>}
-                                    <span className="hc-ac-verified">✓ Certified</span>
+                                  <div className="nb-ac-name">{p.name||p.productName}</div>
+                                  <div style={{display:"flex",gap:5,marginTop:2,alignItems:"center"}}>
+                                    {p.brand && <span className="nb-ac-badge">{p.brand}</span>}
+                                    {p.category && <span className="nb-ac-meta">in {p.category}</span>}
                                   </div>
                                 </div>
-                                {p.price && <div className="hc-ac-price">₹{p.price.toLocaleString()}</div>}
+                                {p.price && <div className="nb-ac-price">₹{p.price.toLocaleString()}</div>}
                               </button>
                             ))}
                           </div>
                         )}
-
                         {searchResults.categories.length > 0 && (
                           <div>
-                            <div className="hc-ac-label">📂 Categories ({searchResults.categories.length})</div>
+                            <div className="nb-ac-lbl">Categories ({searchResults.categories.length})</div>
                             {searchResults.categories.map((c) => (
-                              <button key={c._id||c.id||c.numericId} onClick={() => handleAutocompleteSelect("category",c)} className="hc-ac-row">
-                                <div className="hc-ac-icon cat"><FiGrid size={15}/></div>
-                                <div style={{flex:1}}>
-                                  <div className="hc-ac-name">{c.name}</div>
-                                  <div className="hc-ac-meta">Browse all in {c.name}</div>
-                                </div>
-                                <ChevronIcon/>
+                              <button key={c._id||c.id} onClick={()=>handleSelect("category",c)} className="nb-ac-row">
+                                <div className="nb-ac-ico cat"><FiGrid size={13}/></div>
+                                <div style={{flex:1}}><div className="nb-ac-name">{c.name}</div><div className="nb-ac-meta">Browse all in {c.name}</div></div>
+                                <FiChevronRight size={13} style={{color:"#94a3b8"}}/>
                               </button>
                             ))}
                           </div>
                         )}
-
                         {searchResults.subcategories.length > 0 && (
                           <div>
-                            <div className="hc-ac-label">🗂 Subcategories ({searchResults.subcategories.length})</div>
+                            <div className="nb-ac-lbl">Subcategories ({searchResults.subcategories.length})</div>
                             {searchResults.subcategories.map((s) => (
-                              <button key={s._id||s.id||s.numericId} onClick={() => handleAutocompleteSelect("subcategory",s)} className="hc-ac-row">
-                                <div className="hc-ac-icon sub"><FiTag size={13}/></div>
-                                <div style={{flex:1}}>
-                                  <div className="hc-ac-name">{s.title||s.name}</div>
-                                  <div className="hc-ac-meta">in {s.category?.name||"Category"}</div>
-                                </div>
-                                <ChevronIcon/>
+                              <button key={s._id||s.id} onClick={()=>handleSelect("subcategory",s)} className="nb-ac-row">
+                                <div className="nb-ac-ico sub"><FiTag size={12}/></div>
+                                <div style={{flex:1}}><div className="nb-ac-name">{s.title||s.name}</div><div className="nb-ac-meta">in {s.category?.name||"Category"}</div></div>
+                                <FiChevronRight size={13} style={{color:"#94a3b8"}}/>
                               </button>
                             ))}
                           </div>
                         )}
-
                         {searchResults.itemTypes?.length > 0 && (
                           <div>
-                            <div className="hc-ac-label">🔬 Item Types ({searchResults.itemTypes.length})</div>
+                            <div className="nb-ac-lbl">Item Types ({searchResults.itemTypes.length})</div>
                             {searchResults.itemTypes.map((t) => (
-                              <button key={t._id||t.id||t.numericId} onClick={() => handleAutocompleteSelect("itemtype",t)} className="hc-ac-row">
-                                <div className="hc-ac-icon typ"><FiGrid size={13}/></div>
-                                <div style={{flex:1}}>
-                                  <div className="hc-ac-name">{t.name}</div>
-                                  <div className="hc-ac-meta">
-                                    {t.subcategory?.title && `in ${t.subcategory.title}`}
-                                    {t.category?.name && ` • ${t.category.name}`}
-                                  </div>
-                                </div>
-                                <ChevronIcon/>
+                              <button key={t._id||t.id} onClick={()=>handleSelect("itemtype",t)} className="nb-ac-row">
+                                <div className="nb-ac-ico typ"><FiGrid size={12}/></div>
+                                <div style={{flex:1}}><div className="nb-ac-name">{t.name}</div><div className="nb-ac-meta">{t.subcategory?.title&&`in ${t.subcategory.title}`}{t.category?.name&&` · ${t.category.name}`}</div></div>
+                                <FiChevronRight size={13} style={{color:"#94a3b8"}}/>
                               </button>
                             ))}
                           </div>
                         )}
-
-                        <div className="hc-ac-foot">
-                          <button onClick={() => { setShowAutocomplete(false); navigate(`/search?q=${encodeURIComponent(searchQuery)}`); }}>
-                            View all results for "{searchQuery}" <ArrowIcon/>
+                        <div className="nb-ac-foot">
+                          <button onClick={()=>{setShowAutocomplete(false);navigate(`/search?q=${encodeURIComponent(searchQuery)}`)}}>
+                            View all results for "{searchQuery}" <FiChevronRight size={13}/>
                           </button>
                         </div>
                       </>
                     ) : searchQuery.length > 0 ? (
-                      <div className="hc-ac-empty">
-                        <div style={{fontSize:28,marginBottom:8}}>🔬</div>
-                        <p style={{fontWeight:600,color:"var(--g800)"}}>No results for "{searchQuery}"</p>
-                        <p style={{fontSize:12,marginTop:5}}>Try different keywords or check spelling</p>
-                        <button onClick={() => { setShowAutocomplete(false); navigate(`/search?q=${encodeURIComponent(searchQuery)}`); }}
-                          style={{marginTop:10,background:"none",border:"none",color:"var(--teal)",cursor:"pointer",fontWeight:600,fontFamily:"DM Sans,sans-serif"}}>
-                          Search anyway →
-                        </button>
+                      <div className="nb-ac-empty">
+                        <div style={{fontSize:24,marginBottom:6}}>🔍</div>
+                        <p style={{fontWeight:600,color:NAVY,margin:"0 0 4px"}}>No results for "{searchQuery}"</p>
+                        <p style={{fontSize:11.5,color:"#94a3b8",margin:0}}>Try different keywords</p>
+                        <button onClick={()=>{setShowAutocomplete(false);navigate(`/search?q=${encodeURIComponent(searchQuery)}`)}} style={{marginTop:10,background:"none",border:"none",color:NAVY,cursor:"pointer",fontWeight:600,fontSize:12.5}}>Search anyway →</button>
                       </div>
-                    ) : (
-                      <div className="hc-ac-empty">Start typing to search medical equipment...</div>
-                    )}
+                    ) : null}
                   </div>
                 )}
               </form>
             </div>
 
             {/* Right actions */}
-            <div className="hc-actions">
+            <div className="nb-actions">
+              <div className="nb-rl">
+                <Link to="/seller">Seller</Link>
+                <Link to="/investors">Investors</Link>
+              </div>
+              <div className="nb-sep"/>
 
-              {/* Cart */}
-              <Link to="/cart" className="hc-cart">
-                <FiShoppingCart size={22}/>
-                {cartCount > 0 && (
-                  <span className="hc-cart-badge">{cartCount > 99 ? "99+" : cartCount}</span>
-                )}
+              <Link to="/cart" className="nb-ibtn" aria-label="Cart">
+                <FiShoppingCart size={19}/>
+                {cartCount > 0 && <span className="nb-badge">{cartCount > 99 ? "99+" : cartCount}</span>}
               </Link>
 
-              {/* ── Profile dropdown ────────────────────────────── */}
-              <div
-                className="hc-profile-wrap"
-                ref={profileWrapRef}
-                onMouseEnter={openDropdown}
-                onMouseLeave={scheduleClose}
+              {/* Profile button — ref for position calculation */}
+              <button
+                ref={profileBtnRef}
+                type="button"
+                className={`nb-pbtn${dropdownOpen ? " open" : ""}`}
+                onClick={openProfile}
               >
-                <button className="hc-profile-btn" onClick={() => setDropdownOpen((v) => !v)}>
-                  <div className="hc-avatar">
-                    {user ? user.name?.charAt(0).toUpperCase() : <FiUser size={15}/>}
-                  </div>
-                  <span>{user ? user.name?.split(" ")[0] : "Account"}</span>
-                </button>
-
-                {dropdownOpen && (
-                  <div className="hc-dd">
-                    {user && (
-                      <div className="hc-dd-head">
-                        <p>{user.name}</p>
-                        <p>{user.email}</p>
-                      </div>
-                    )}
-                    <div style={{padding:"5px 0"}}>
-                      {profileItems.map((item, i) =>
-                        item.path ? (
-                          <Link key={i} to={item.path} onClick={() => setDropdownOpen(false)}>
-                            {item.label}
-                          </Link>
-                        ) : (
-                          <button key={i} onClick={item.action}>
-                            {item.icon}{item.label}
-                          </button>
-                        )
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* CTA */}
-              <button className="hc-cta" onClick={() => navigate("/post-requirement")}>
-                <CrossIcon/> Post Requirement
+                <div className="nb-avatar">
+                  {user ? user.name?.charAt(0).toUpperCase() : <FiUser size={13}/>}
+                </div>
+                <span style={{maxWidth:76,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                  {user ? user.name?.split(" ")[0] : "Account"}
+                </span>
+                <FiChevronRight size={13} style={{flexShrink:0,transition:"transform .2s",transform:dropdownOpen?"rotate(90deg)":"rotate(0deg)"}}/>
               </button>
 
-              {/* Hamburger */}
-              <button className="hc-ham" onClick={() => setMenuOpen((v) => !v)} aria-label="Toggle menu">
-                {menuOpen ? <FiX size={24}/> : <FiMenu size={24}/>}
+              <Link to="/post-requirement" className="nb-cta">Post Requirement</Link>
+
+              <button type="button" className="nb-ham nb-ibtn" onClick={()=>setMenuOpen((v)=>!v)} aria-label="Toggle menu">
+                {menuOpen ? <FiX size={19}/> : <FiMenu size={19}/>}
               </button>
             </div>
           </div>
         </nav>
 
-        {/* ── Mobile menu ───────────────────────────────────────── */}
-        {menuOpen && (
-          <div className="hc-mob">
-            {/* Mobile search */}
-            <div style={{position:"relative",marginBottom:4}} ref={searchRef}>
-              <form onSubmit={handleSearch}>
-                <input
-                  type="text"
-                  style={{
-                    width:"100%", height:42, padding:"0 44px 0 14px",
-                    border:"1.5px solid var(--g200)", borderRadius:8,
-                    fontFamily:"DM Sans,sans-serif", fontSize:14,
-                    color:"var(--g800)", background:"var(--g50)", outline:"none",
-                  }}
-                  placeholder="Search medical equipment..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onFocus={() => setShowAutocomplete(true)}
-                />
-                <button type="submit" style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"var(--g400)",display:"flex"}}>
-                  <FiSearch size={17}/>
-                </button>
-              </form>
-
-              {showAutocomplete && searchQuery.length > 0 && (
-                <div className="hc-ac" style={{maxHeight:320}}>
-                  {isSearching ? (
-                    <div className="hc-ac-loading"><AiOutlineLoading3Quarters style={{display:"inline",marginRight:8}}/>Searching...</div>
-                  ) : hasSuccessfulResults ? (
-                    <div>
-                      {searchResults.products.slice(0,3).map((p) => (
-                        <button key={p._id||p.id} onClick={() => { handleAutocompleteSelect("product",p); setMenuOpen(false); }} className="hc-ac-row">
-                          <div className="hc-ac-name">{p.name||p.productName}</div>
-                        </button>
-                      ))}
-                      {searchResults.categories.slice(0,2).map((c) => (
-                        <button key={c._id||c.id} onClick={() => { handleAutocompleteSelect("category",c); setMenuOpen(false); }} className="hc-ac-row">
-                          <div className="hc-ac-name">{c.name}</div>
-                        </button>
-                      ))}
-                      {searchResults.totalResults > 0 && (
-                        <div className="hc-ac-foot">
-                          <button onClick={() => { setShowAutocomplete(false); navigate(`/search?q=${encodeURIComponent(searchQuery)}`); setMenuOpen(false); }}>
-                            View all {searchResults.totalResults} results
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="hc-ac-empty">No results for "{searchQuery}"</div>
-                  )}
-                </div>
-              )}
+        {/* ── Mobile menu ── */}
+        <div className="nb-mob" style={{display:menuOpen?"block":"none"}}>
+          <form onSubmit={handleSearch}>
+            <div className="nb-msearch">
+              <input type="text" placeholder="Search products, brands…" value={searchQuery} onChange={(e)=>setSearchQuery(e.target.value)} onFocus={()=>setShowAutocomplete(true)}/>
+              <button type="submit"><FiSearch size={16} style={{color:"#94a3b8"}}/></button>
             </div>
-
-            <div className="hc-mob-label">Navigation</div>
-            <Link to="/" className="hc-mob-link" onClick={() => setMenuOpen(false)}>Home</Link>
-            <Link to="/products" className="hc-mob-link" onClick={() => setMenuOpen(false)}>Products</Link>
-
-            <div className="hc-mob-label">Account</div>
-            <Link to="/cart" className="hc-mob-link" onClick={() => setMenuOpen(false)}>
-              Cart
-              {cartCount > 0 && (
-                <span style={{background:"var(--red)",color:"#fff",borderRadius:12,padding:"2px 8px",fontSize:11,fontWeight:700}}>
-                  {cartCount > 99 ? "99+" : cartCount}
-                </span>
-              )}
-            </Link>
-
-            {user ? (
-              <>
-                <Link to="/profile" className="hc-mob-link" onClick={() => setMenuOpen(false)}>My Profile</Link>
-                <Link to="/orders/my-orders" className="hc-mob-link" onClick={() => setMenuOpen(false)}>My Orders</Link>
-                <button className="hc-mob-link" onClick={handleLogout} style={{gap:8}}>
-                  <FiLogOut size={14}/> Logout
-                </button>
-              </>
-            ) : (
-              <>
-                <Link to="/login" className="hc-mob-link" onClick={() => setMenuOpen(false)}>Sign In</Link>
-                <Link to="/register" className="hc-mob-link" onClick={() => setMenuOpen(false)}>Sign Up</Link>
-              </>
+            {showAutocomplete && searchQuery.length > 0 && (
+              <div className="nb-ac" style={{maxHeight:280}}>
+                {isSearching ? <div className="nb-ac-spin">Searching…</div>
+                : hasResults ? (
+                  <div>
+                    {searchResults.products.slice(0,4).map((p)=>(
+                      <button key={p._id||p.id} onClick={()=>{handleSelect("product",p);setMenuOpen(false)}} className="nb-ac-row">
+                        <div className="nb-ac-name">{p.name||p.productName}</div>
+                        {p.price&&<div className="nb-ac-price">₹{p.price.toLocaleString()}</div>}
+                      </button>
+                    ))}
+                    {searchResults.categories.slice(0,2).map((c)=>(
+                      <button key={c._id||c.id} onClick={()=>{handleSelect("category",c);setMenuOpen(false)}} className="nb-ac-row">
+                        <div className="nb-ac-name">{c.name}</div>
+                      </button>
+                    ))}
+                    {searchResults.totalResults>0&&<div className="nb-ac-foot"><button onClick={()=>{setShowAutocomplete(false);navigate(`/search?q=${encodeURIComponent(searchQuery)}`);setMenuOpen(false)}}>View all {searchResults.totalResults} results</button></div>}
+                  </div>
+                ) : <div className="nb-ac-empty">No results for "{searchQuery}"</div>}
+              </div>
             )}
+          </form>
 
-            <button className="hc-mob-cta" onClick={() => { navigate("/post-requirement"); setMenuOpen(false); }}>
-              <CrossIcon/> Post Medical Requirement
-            </button>
-          </div>
-        )}
+          <div className="nb-ml">Navigation</div>
+          {navLinks.map((l)=>(
+            <Link key={l.to} to={l.to} className="nb-mlink" onClick={()=>setMenuOpen(false)}>
+              {l.label}<FiChevronRight size={14} style={{color:"#cbd5e1"}}/>
+            </Link>
+          ))}
+
+          <div className="nb-ml">Account</div>
+          <Link to="/cart" className="nb-mlink" onClick={()=>setMenuOpen(false)}>
+            <span>Cart</span>
+            {cartCount>0&&<span style={{background:ACCENT,color:"#fff",borderRadius:12,padding:"2px 8px",fontSize:11,fontWeight:700}}>{cartCount>99?"99+":cartCount}</span>}
+          </Link>
+          {user ? (
+            <>
+              <Link to="/profile" className="nb-mlink" onClick={()=>setMenuOpen(false)}>My Profile<FiChevronRight size={14} style={{color:"#cbd5e1"}}/></Link>
+              <Link to="/orders/my-orders" className="nb-mlink" onClick={()=>setMenuOpen(false)}>My Orders<FiChevronRight size={14} style={{color:"#cbd5e1"}}/></Link>
+              <button className="nb-mlink" onClick={handleLogout} style={{display:"flex",alignItems:"center",gap:8}}><FiLogOut size={13}/> Logout</button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className="nb-mlink" onClick={()=>setMenuOpen(false)}>Sign In<FiChevronRight size={14} style={{color:"#cbd5e1"}}/></Link>
+              <Link to="/register" className="nb-mlink" onClick={()=>setMenuOpen(false)}>Sign Up<FiChevronRight size={14} style={{color:"#cbd5e1"}}/></Link>
+            </>
+          )}
+          <button className="nb-mcta" onClick={()=>{navigate("/post-requirement");setMenuOpen(false);}}>Post Requirement</button>
+        </div>
       </header>
+
+      {/* ── Profile dropdown — rendered OUTSIDE <header> as position:fixed ──
+          This completely escapes every stacking context in the page.
+          z-index: 999999 guarantees it is always on top of everything.     */}
+      {dropdownOpen && (
+        <div
+          ref={dropdownRef}
+          className="nb-dd"
+          style={{ top: ddPos.top, right: ddPos.right }}
+        >
+          {user && (
+            <div className="nb-dd-head">
+              <div className="nb-dd-name">{user.name}</div>
+              <div className="nb-dd-email">{user.email}</div>
+            </div>
+          )}
+          <div style={{padding:"5px 0"}}>
+            {profileItems.map((item, i) => (
+              <button
+                key={i}
+                type="button"
+                className="nb-ddi"
+                onClick={item.path ? () => ddGo(item.path) : item.action}
+              >
+                <span className="nb-ddi-icon">{item.icon}</span>
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </>
   );
 }
