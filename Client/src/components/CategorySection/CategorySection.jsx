@@ -20,6 +20,7 @@ const CategorySection = () => {
     baseURL: 'http://localhost:5000/api/v1',
   });
 
+  // Fetch categories
   const fetchPublicCategories = async () => {
     try {
       setLoading(true);
@@ -27,8 +28,8 @@ const CategorySection = () => {
       const res = await API.get('/categories/public/categories');
       setCategories(res.data.data || []);
     } catch (err) {
-      console.error(err);
-      setError('Failed to load categories. Please try again.');
+      console.error('Failed to fetch categories:', err);
+      setError('Unable to load categories. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -40,7 +41,7 @@ const CategorySection = () => {
 
   // Check if categories should be centered
   useEffect(() => {
-    const checkIfShouldCenter = () => {
+    const checkCentering = () => {
       if (carouselRef.current && !loading && categories.length > 0) {
         const container = carouselRef.current;
         const containerWidth = container.offsetWidth;
@@ -60,16 +61,11 @@ const CategorySection = () => {
     };
 
     if (categories.length > 0) {
-      setTimeout(checkIfShouldCenter, 100);
-      setTimeout(checkIfShouldCenter, 300);
-      setTimeout(checkIfShouldCenter, 500);
+      [100, 300, 500].forEach(delay => setTimeout(checkCentering, delay));
     }
 
-    window.addEventListener('resize', checkIfShouldCenter);
-    
-    return () => {
-      window.removeEventListener('resize', checkIfShouldCenter);
-    };
+    window.addEventListener('resize', checkCentering);
+    return () => window.removeEventListener('resize', checkCentering);
   }, [categories, loading]);
 
   // Force center for small number of categories
@@ -92,17 +88,18 @@ const CategorySection = () => {
       'examination': <Stethoscope className="w-8 h-8" strokeWidth={1.5} />,
     };
     
-    const key = Object.keys(icons).find(k => 
-      categoryName?.toLowerCase().includes(k)
+    const matchedKey = Object.keys(icons).find(key => 
+      categoryName?.toLowerCase().includes(key)
     );
-    return key ? icons[key] : <Stethoscope className="w-8 h-8" strokeWidth={1.5} />;
+    
+    return matchedKey ? icons[matchedKey] : <Stethoscope className="w-8 h-8" strokeWidth={1.5} />;
   };
 
-  // Scroll & Pagination Logic
+  // Scroll and pagination handlers
   const checkScrollPosition = () => {
     if (!carouselRef.current) return;
+    
     const { scrollLeft, scrollWidth, clientWidth } = carouselRef.current;
-
     setCanScrollLeft(scrollLeft > 10);
     setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
 
@@ -125,18 +122,24 @@ const CategorySection = () => {
 
   const goToPage = (pageIndex) => {
     if (!carouselRef.current) return;
+    
     const itemWidth = 128;
     const scrollAmount = pageIndex * (itemWidth * 5);
     carouselRef.current.scrollTo({ left: scrollAmount, behavior: 'smooth' });
     resetAutoSlide();
   };
 
+  // Auto-slide functionality
   const startAutoSlide = () => {
     if (autoSlideRef.current) clearInterval(autoSlideRef.current);
+    
     autoSlideRef.current = setInterval(() => {
       if (!carouselRef.current) return;
+      
       const { scrollLeft, scrollWidth, clientWidth } = carouselRef.current;
-      if (scrollLeft + clientWidth >= scrollWidth - 20) {
+      const isAtEnd = scrollLeft + clientWidth >= scrollWidth - 20;
+      
+      if (isAtEnd) {
         carouselRef.current.scrollTo({ left: 0, behavior: 'smooth' });
       } else {
         carouselRef.current.scrollBy({ left: 280, behavior: 'smooth' });
@@ -163,15 +166,16 @@ const CategorySection = () => {
     };
   }, [loading, error, categories.length]);
 
-  // Image Helpers
-  const getPlaceholder = (name = 'Category') => {
-    const text = encodeURIComponent(name.substring(0, 18));
-    return `https://placehold.co/400x400/0a2540/FFFFFF?text=${text}`;
+  // Image helpers
+  const getImageSrc = (category) => {
+    if (!category.image) return null;
+    if (category.image.startsWith('http')) return category.image;
+    return `http://localhost:5000${category.image.startsWith('/') ? '' : '/'}${category.image}`;
   };
 
-  const generateSVGFallback = (name) => {
-    const letter = (name?.charAt(0) || 'C').toUpperCase();
-    const shortName = name?.length > 18 ? name.substring(0, 15) + '…' : name;
+  const getPlaceholderImage = (categoryName) => {
+    const letter = (categoryName?.charAt(0) || 'C').toUpperCase();
+    const shortName = categoryName?.length > 18 ? categoryName.substring(0, 15) + '…' : categoryName;
 
     return `data:image/svg+xml;utf8,${encodeURIComponent(`
       <svg width="400" height="400" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
@@ -188,41 +192,35 @@ const CategorySection = () => {
     if (img.dataset.fallback === 'done') return;
 
     if (!img.dataset.fallback) {
-      img.src = getPlaceholder(categoryName);
+      img.src = `https://placehold.co/400x400/0a2540/FFFFFF?text=${encodeURIComponent(categoryName?.substring(0, 18) || 'Category')}`;
       img.dataset.fallback = 'placeholder';
     } else {
-      img.src = generateSVGFallback(categoryName);
+      img.src = getPlaceholderImage(categoryName);
       img.dataset.fallback = 'done';
     }
   };
 
-  const getImageSrc = (category) => {
-    if (!category.image) return null;
-    if (category.image.startsWith('http')) return category.image;
-    return `http://localhost:5000${category.image.startsWith('/') ? '' : '/'}${category.image}`;
-  };
-
-  // Render
+  // Loading skeleton
   if (loading) {
     return (
       <section className="py-12" style={{ backgroundColor: '#f8fafd' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8">
-            <div className="inline-block px-3 py-1 rounded-full text-xs font-semibold mb-3 bg-navy-700 text-white opacity-90">
-              Categories
+            <div className="inline-block px-3 py-1 rounded-full text-xs font-semibold mb-3" style={{ backgroundColor: '#0a2540', color: 'white' }}>
+              Shop by Category
             </div>
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-2" style={{ color: '#0a2540' }}>
-              Shop by Category
+              Explore  Equipment Categories
             </h2>
             <p className="text-base max-w-2xl mx-auto" style={{ color: '#0a2540', opacity: 0.7 }}>
-              Explore our comprehensive range of medical equipment
+              Explore our comprehensive range of professional equipment
             </p>
           </div>
           <div className="flex justify-center gap-6 flex-wrap">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="animate-pulse">
-                <div className="w-28 h-28 rounded-full bg-gray-200" style={{ backgroundColor: '#0a2540', opacity: 0.1 }} />
-                <div className="h-3 w-20 bg-gray-200 rounded mx-auto mt-3" style={{ backgroundColor: '#0a2540', opacity: 0.1 }} />
+                <div className="w-28 h-28 rounded-full" style={{ backgroundColor: '#0a2540', opacity: 0.1 }} />
+                <div className="h-3 w-20 rounded mx-auto mt-3" style={{ backgroundColor: '#0a2540', opacity: 0.1 }} />
               </div>
             ))}
           </div>
@@ -231,17 +229,19 @@ const CategorySection = () => {
     );
   }
 
+  // Error state
   if (error) {
     return (
       <section className="py-12" style={{ backgroundColor: '#f8fafd' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white rounded-3xl shadow-sm p-8 text-center max-w-lg mx-auto border border-navy-700/20">
+          <div className="bg-white rounded-3xl shadow-sm p-8 text-center max-w-lg mx-auto border" style={{ borderColor: '#0a254020' }}>
             <div className="text-5xl mb-4" style={{ color: '#0a2540' }}>🏥</div>
             <h3 className="text-xl font-semibold mb-2" style={{ color: '#0a2540' }}>Unable to Load Categories</h3>
             <p className="mb-6 text-sm" style={{ color: '#0a2540', opacity: 0.7 }}>{error}</p>
             <button
               onClick={fetchPublicCategories}
-              className="inline-flex items-center gap-2 px-6 py-2.5 text-white font-medium rounded-xl hover:opacity-90 transition shadow-sm bg-navy-700 text-sm"
+              className="inline-flex items-center gap-2 px-6 py-2.5 text-white font-medium rounded-xl hover:opacity-90 transition shadow-sm"
+              style={{ backgroundColor: '#0a2540' }}
             >
               <RefreshCw size={16} />
               Try Again
@@ -255,7 +255,27 @@ const CategorySection = () => {
   return (
     <section className="py-12 overflow-hidden" style={{ backgroundColor: '#f8fafd' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
+        {/* Section Header */}
+        <div className="text-center mb-8">
+          <div 
+            className="inline-block px-3 py-1 rounded-full text-xs font-semibold mb-3"
+            style={{ backgroundColor: '#0a2540', color: 'white' }}
+          >
+            Shop by Category
+          </div>
+          <h2 
+            className="text-3xl md:text-4xl font-bold tracking-tight mb-2"
+            style={{ color: '#0a2540' }}
+          >
+            Explore Equipment Categories
+          </h2>
+          <p 
+            className="text-base max-w-2xl mx-auto"
+            style={{ color: '#0a2540', opacity: 0.7 }}
+          >
+            Explore our comprehensive range of professional equipment
+          </p>
+        </div>
 
         {/* Pagination Dots */}
         {categories.length > 6 && (
@@ -264,12 +284,10 @@ const CategorySection = () => {
               <button
                 key={i}
                 onClick={() => goToPage(i)}
-                className={`transition-all duration-300 rounded-full ${
-                  activePage === i
-                    ? 'w-6 h-1.5'
-                    : 'w-1.5 h-1.5 hover:opacity-100'
-                }`}
-                style={{ 
+                className="transition-all duration-300 rounded-full"
+                style={{
+                  width: activePage === i ? '24px' : '6px',
+                  height: activePage === i ? '6px' : '6px',
                   backgroundColor: '#0a2540',
                   opacity: activePage === i ? 1 : 0.3
                 }}
@@ -289,7 +307,8 @@ const CategorySection = () => {
           {canScrollLeft && !shouldCenter && (
             <button
               onClick={scrollLeft}
-              className="absolute left-0 top-1/2 -translate-y-1/2 z-20 bg-white shadow-lg rounded-full p-2 opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-x-1/2 hover:scale-110 active:scale-95 border border-navy-700/20 hover:shadow-xl"
+              className="absolute left-0 top-1/2 -translate-y-1/2 z-20 bg-white shadow-lg rounded-full p-2 opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-x-1/2 hover:scale-110 active:scale-95 border hover:shadow-xl"
+              style={{ borderColor: '#0a254020' }}
               aria-label="Scroll left"
             >
               <ChevronLeft className="w-5 h-5" style={{ color: '#0a2540' }} />
@@ -299,21 +318,28 @@ const CategorySection = () => {
           {/* Categories Carousel */}
           <div
             ref={carouselRef}
-            className={`flex gap-5 overflow-x-auto scroll-smooth pb-4 snap-x snap-mandatory scrollbar-hide ${
+            className={`flex gap-5 overflow-x-auto scroll-smooth pb-4 snap-x snap-mandatory ${
               shouldCenter ? 'justify-center' : ''
             }`}
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            style={{ 
+              scrollbarWidth: 'none', 
+              msOverflowStyle: 'none',
+              WebkitOverflowScrolling: 'touch'
+            }}
           >
             {categories.map((category) => (
               <div
                 key={category._id}
                 onClick={() => navigate(`/category/${category._id}`)}
-                className="flex-shrink-0 w-28 snap-start cursor-pointer"
+                className="flex-shrink-0 w-28 snap-start cursor-pointer group/category"
               >
                 <div className="flex flex-col items-center">
                   {/* Circular Category Card */}
                   <div className="relative">
-                    <div className="w-28 h-28 rounded-full bg-white shadow-md transition-all duration-300 overflow-hidden border border-navy-700/10">
+                    <div 
+                      className="w-28 h-28 rounded-full bg-white shadow-md transition-all duration-300 overflow-hidden border group-hover/category:shadow-lg group-hover/category:scale-105"
+                      style={{ borderColor: '#0a254010' }}
+                    >
                       {category.image ? (
                         <img
                           src={getImageSrc(category)}
@@ -323,8 +349,8 @@ const CategorySection = () => {
                           onError={(e) => handleImageError(e, category.name)}
                         />
                       ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-navy-50 to-white">
-                          <div className="text-navy-700">
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br" style={{ background: 'linear-gradient(135deg, #f8fafd 0%, #ffffff 100%)' }}>
+                          <div style={{ color: '#0a2540' }}>
                             {getCategoryIcon(category.name)}
                           </div>
                         </div>
@@ -333,7 +359,10 @@ const CategorySection = () => {
                   </div>
                   
                   {/* Category Name */}
-                  <h3 className="mt-2 text-center font-medium text-gray-700 text-xs px-1">
+                  <h3 
+                    className="mt-2 text-center font-medium text-xs px-1 transition-colors duration-200 group-hover/category:font-semibold"
+                    style={{ color: '#0a2540' }}
+                  >
                     {category.name}
                   </h3>
                 </div>
@@ -345,7 +374,8 @@ const CategorySection = () => {
           {canScrollRight && !shouldCenter && (
             <button
               onClick={scrollRight}
-              className="absolute right-0 top-1/2 -translate-y-1/2 z-20 bg-white shadow-lg rounded-full p-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-1/2 hover:scale-110 active:scale-95 border border-navy-700/20 hover:shadow-xl"
+              className="absolute right-0 top-1/2 -translate-y-1/2 z-20 bg-white shadow-lg rounded-full p-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-1/2 hover:scale-110 active:scale-95 border hover:shadow-xl"
+              style={{ borderColor: '#0a254020' }}
               aria-label="Scroll right"
             >
               <ChevronRight className="w-5 h-5" style={{ color: '#0a2540' }} />
@@ -362,7 +392,9 @@ const CategorySection = () => {
             >
               <Stethoscope className="w-10 h-10" style={{ color: '#0a2540' }} strokeWidth={1.5} />
             </div>
-            <h3 className="text-xl font-semibold mb-2" style={{ color: '#0a2540' }}>No Categories Available</h3>
+            <h3 className="text-xl font-semibold mb-2" style={{ color: '#0a2540' }}>
+              No Categories Available
+            </h3>
             <p className="text-sm max-w-md mx-auto" style={{ color: '#0a2540', opacity: 0.7 }}>
               Categories are being updated. Please check back soon.
             </p>
