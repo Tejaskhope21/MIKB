@@ -44,6 +44,7 @@ import ContractorProfilePage from "../pages/Contractor/ContractorProfilePage"
 import ContractorsListPage from "../pages/Contractor/ContractorsListPage"
 import CategoryProducts from "../pages/Category/CategoryProducts"
 import ItemTypeProducts from "../pages/Category/ItemProducts"
+import AboutUs from '../../../Admin/src/pages/AboutUs'
 
 const AppRoutes = () => {
     return (
@@ -51,6 +52,7 @@ const AppRoutes = () => {
             <Routes>
                 {/* Public routes with MainLayout */}
                 <Route element={<MainLayout />}>
+                    <Route path="/aboutus" element={<AboutUs />} />
                     <Route path="/" element={<Home />} />
                     <Route path="/products" element={<AllProductsPage />} />
                     <Route path="/investors" element={<InvestorPage />} />

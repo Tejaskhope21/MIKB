@@ -5,7 +5,7 @@ import {
   FiLogOut, FiPackage, FiGrid, FiTag, FiChevronRight,
   FiPhone, FiMapPin, FiShoppingBag, FiHeart, FiHome,
   FiBriefcase, FiStar, FiSettings, FiUserPlus, FiEdit2,
-  FiTruck, FiAlertCircle, FiAward, FiLock, FiTarget
+  FiTruck, FiAlertCircle, FiAward, FiLock, FiTarget , FiInfo
 } from "react-icons/fi";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import logo from "../assets/logo.png";
@@ -187,10 +187,12 @@ export default function Navbar({ user, onLogout }) {
 
   const hasResults = hasSearchResults(searchResults);
 
-  const navLinks = [
-    { label: "Home", to: "/", icon: <FiHome size={16} /> },
-    { label: "Products", to: "/products", icon: <FiPackage size={16} /> },
-  ];
+
+const navLinks = [
+  { label: "Home", to: "/", icon: <FiHome size={16} /> },
+  { label: "Products", to: "/products", icon: <FiPackage size={16} /> },
+  { label: "About Us", to: "/aboutus", icon: <FiInfo size={16} /> },
+];
 
   return (
     <>
